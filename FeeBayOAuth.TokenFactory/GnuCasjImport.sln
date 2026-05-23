@@ -5,6 +5,8 @@ VisualStudioVersion = 18.6.11819.183 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FeeBayOAuth.TokenFactory", "FeeBayOAuth.TokenFactory.csproj", "{93C95787-8F72-4312-2EF4-736568E3E27F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalDBConnections", "..\LocalDBConnections\LocalDBConnections.csproj", "{DB239E6A-4F7C-4292-A160-B9921195772F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{93C95787-8F72-4312-2EF4-736568E3E27F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{93C95787-8F72-4312-2EF4-736568E3E27F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{93C95787-8F72-4312-2EF4-736568E3E27F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB239E6A-4F7C-4292-A160-B9921195772F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB239E6A-4F7C-4292-A160-B9921195772F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB239E6A-4F7C-4292-A160-B9921195772F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB239E6A-4F7C-4292-A160-B9921195772F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

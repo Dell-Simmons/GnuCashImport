@@ -1,7 +1,7 @@
 using FeeBayOAuth.TokenFactory.Models;
 using FeeBayOAuth.TokenFactory.Utilities;
 using LocalDBConnections;
-using LocalDBConnections.StampDataDB.StampdataEntities;
+using LocalDBConnections.StampDataDB.StampDataEntities;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
