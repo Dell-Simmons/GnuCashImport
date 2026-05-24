@@ -20,8 +20,8 @@ namespace FeeBayOAuth.TokenFactory.Calls
             var payloadParams = new Dictionary<string, string>
                 {
                     {"grant_type", "refresh_token" },
-                    {"refresh_token", refreshToken},
-                    {"scope", formattedScopes}
+                    {"refresh_token", refreshToken}//,
+                   // {"scope", formattedScopes}
                 };
             var requestPayload = OAuthHttpHelpers.CreateRequestPayload(payloadParams);
             var myClient = _httpClientFactory.CreateClient();
