@@ -1,10 +1,7 @@
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Text;
 using FeeBayOAuth.TokenFactory.DTO.Response;
 using FeeBayOAuth.TokenFactory.Utilities;
+using Newtonsoft.Json;
+using System.Text;
 
 namespace FeeBayOAuth.TokenFactory.Calls
 {
