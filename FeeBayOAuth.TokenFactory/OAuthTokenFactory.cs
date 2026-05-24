@@ -1,4 +1,5 @@
 using FeeBayOAuth.TokenFactory.Calls;
+using FeeBayOAuth.TokenFactory.DTO;
 using FeeBayOAuth.TokenFactory.DTO.Response;
 using LocalDBConnections;
 using Microsoft.Extensions.Configuration;
@@ -30,10 +31,10 @@ namespace FeeBayOAuth.TokenFactory
                 return null;
             }
             // Check if the user token is in the dictionary and not expired or expiring soon.  If so return it.
-            var foundToken = _oAuthTokensDictionary.TryGetValue(_feeBayUser, out string token);
-            if (foundToken)
+            var foundToken = _oAuthTokensDictionary.TryGetValue(_feeBayUser, out UserToken userToken);
+            if (foundToken && userToken.IsValid)
             {
-                return token;
+                return userToken.AccessToken;
             }
             // If the user token is not in the dictionary or is expired or expiring soon, get the user token from the database and check if it is expired or expiring soon.  If it is not expired or expiring soon, return it.  If it is expired or expiring soon, use the refresh token to get a new user token.       
             string refreshToken = GetRefreshTokenFromDataBase(_feeBayUser);
@@ -54,12 +55,16 @@ namespace FeeBayOAuth.TokenFactory
            }
                 
            // TryAdd does nothing if the key value pair is already in the dictionary.  Need for the second pass used for expired token
-           _oAuthTokensDictionary.TryAdd(_feeBayUser, oAuthUserTokenResponse.access_token);
+           _oAuthTokensDictionary.TryAdd(_feeBayUser, new UserToken
+           {
+               AccessToken = oAuthUserTokenResponse.access_token,
+               ExpiresUtc = DateTime.Now.AddSeconds(oAuthUserTokenResponse.expires_in)
+           });
             
-            foundToken = _oAuthTokensDictionary.TryGetValue(_feeBayUser, out token);
+            foundToken = _oAuthTokensDictionary.TryGetValue(_feeBayUser, out UserToken token);
             if(foundToken)
             {
-                return token;
+                return token.AccessToken;
             }
             return string.Empty;
         }
@@ -150,7 +155,7 @@ namespace FeeBayOAuth.TokenFactory
         #endregion
         #endregion
         #region Fields
-        private Dictionary<string, string> _oAuthTokensDictionary = new Dictionary<string, string>();
+        private Dictionary<string, UserToken> _oAuthTokensDictionary = new Dictionary<string, UserToken>();
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
         private readonly ILocalDbConnectionManager _localDbConnectionManager;
