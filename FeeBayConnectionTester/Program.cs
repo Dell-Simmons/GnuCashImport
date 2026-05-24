@@ -1,5 +1,7 @@
 using LocalDBConnections;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace FeeBayConnectionTester
 {
@@ -29,10 +31,10 @@ namespace FeeBayConnectionTester
         private static IHostBuilder CreateHostBuilder()
         {
             return Host.CreateDefaultBuilder()
-                .ConfigureAppConfiguration((context, config) =>
-                {
-                    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                })
+                //.ConfigureAppConfiguration((context, config) =>
+                //{
+                //    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                //})
                 .ConfigureServices((context, services) =>
                 {
                     // Register HttpClientFactory

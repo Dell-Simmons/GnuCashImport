@@ -79,14 +79,14 @@ namespace FeeBayOAuth.TokenFactory
         private string GetClientIdFromAppSettings()
         {
             string appId;
-            appId = _configuration.GetValue<string>("FeeBayOAuthConnection:appid");
+            appId = "SimmonsI-7ec9-4395-8fdd-0de9eae5ef72";// _configuration.GetValue<string>("FeeBayOAuthConnection:appid");
             return appId;
         }
 
         private string GetClientSecretFromAppSettings()
         {
             string certId;
-            certId = _configuration.GetValue<string>("FeeBayOAuthConnection:certid");
+            certId = "fdf79779-7f0d-4bce-9c62-33ba709c43b0";// _configuration.GetValue<string>("FeeBayOAuthConnection:certid");
             return certId;
         }
 

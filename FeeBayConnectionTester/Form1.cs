@@ -21,10 +21,10 @@ namespace FeeBayConnectionTester
         {
 
             var feeBayOAuthTokenFactory = new OAuthTokenFactory(_httpClientFactory, _localDbConnectionManager);
-            //{
-            //    string token = feeBayOAuthTokenFactory.GetOAuthToken("Simmons_Ink");
-            //    MessageBox.Show(token);
-            //}
+            {
+                string token = feeBayOAuthTokenFactory.GetOAuthToken("Simmons_Ink");
+                MessageBox.Show(token);
+            }
         }
     }
 }
