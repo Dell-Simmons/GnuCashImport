@@ -10,10 +10,10 @@ namespace LocalDBConnections.StampDataDB.StampDataEntities
     public class FeeBayOAuthTokens
     {
         [Key]
-        public string FeeBayUserName { get; set; }
-        public string OAuthToken { get; set; }
-        public DateTime OAuthTokenExpire { get; set; }
-        public string RefreshToken { get; set; }
-        public DateTime RefreshTokenExpire { get; set; }
+        public string? FeeBayUserName { get; set; }
+        public string? OAuthToken { get; set; }
+        public DateTime? OAuthTokenExpire { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpire { get; set; }
     }
 }

@@ -32,7 +32,7 @@ namespace FeeBayOAuth.TokenFactory
             }
             // Check if the user token is in the dictionary and not expired or expiring soon.  If so return it.
             var foundToken = _oAuthTokensDictionary.TryGetValue(_feeBayUser, out UserToken userToken);
-            if (foundToken && userToken.IsValid)
+            if (foundToken && userToken?.IsValid == true && userToken?.ExpiresSoon == false)
             {
                 return userToken.AccessToken;
             }
@@ -58,7 +58,7 @@ namespace FeeBayOAuth.TokenFactory
            _oAuthTokensDictionary.TryAdd(_feeBayUser, new UserToken
            {
                AccessToken = oAuthUserTokenResponse.access_token,
-               ExpiresUtc = DateTime.Now.AddSeconds(oAuthUserTokenResponse.expires_in)
+               ExpiresUtc = DateTime.UtcNow.AddSeconds(oAuthUserTokenResponse.expires_in)
            });
             
             foundToken = _oAuthTokensDictionary.TryGetValue(_feeBayUser, out UserToken token);
@@ -100,43 +100,11 @@ namespace FeeBayOAuth.TokenFactory
             }
         }
 
-        private DateTime GetUserTokenExpireTimeFromDataBase(string feeBayUser)
-        {
-            try
-            {
-                DateTime expireTime;
-                expireTime = _localDbConnectionManager.GetUserTokenExpireTime(feeBayUser);
-                return expireTime;
-            } catch(Exception wellFuck)
-            {
-                throw;
-            }
-        }
-
-        private string GetUserTokenFromDataBase(string feeBayUser)
-        {
-            try
-            {
-                string userToken;
-                userToken = _localDbConnectionManager.GetUserToken(feeBayUser);
-                return userToken;
-            } catch(Exception wellFuck)
-            {
-                throw;
-            }
-        }
+    
 
         private void HandleGetUserTokenError() => throw new NotImplementedException();
 
-        private void SaveUserTokenToDatabase(Get_UserToken_Response oAuthUserTokenResponse, string feeBayUser)
-        {
-            DateTime newExpireTime = DateTime.Now.Add(new TimeSpan(0, 0, oAuthUserTokenResponse.expires_in));
-            newExpireTime = newExpireTime.ToLocalTime();
-            var success = _localDbConnectionManager.SaveUserToken(
-                oAuthUserTokenResponse.access_token,
-                newExpireTime,
-                feeBayUser);
-        }
+      
 
         private bool UserIsInDictionary(string feeBayUser)
         {
@@ -157,7 +125,6 @@ namespace FeeBayOAuth.TokenFactory
         #region Fields
         private Dictionary<string, UserToken> _oAuthTokensDictionary = new Dictionary<string, UserToken>();
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IConfiguration _configuration;
         private readonly ILocalDbConnectionManager _localDbConnectionManager;
     #endregion Fields
     }

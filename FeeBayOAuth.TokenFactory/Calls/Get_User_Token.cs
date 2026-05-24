@@ -5,7 +5,7 @@ using System.Text;
 
 namespace FeeBayOAuth.TokenFactory.Calls
 {
-    public class Get_User_Token
+    public static class Get_User_Token
     {
         public static Get_UserToken_Response MakeCall(string refreshToken,
                         IHttpClientFactory _httpClientFactory,

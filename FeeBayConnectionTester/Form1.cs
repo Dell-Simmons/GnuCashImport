@@ -1,30 +1,21 @@
 using FeeBayOAuth.TokenFactory;
-using LocalDBConnections;
 
 namespace FeeBayConnectionTester
 {
     public partial class Form1 : Form
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILocalDbConnectionManager _localDbConnectionManager;
+        private readonly OAuthTokenFactory _oAuthTokenFactory;
 
-        public Form1(
-            IHttpClientFactory httpClientFactory,
-            ILocalDbConnectionManager localDbConnectionManager)
+        public Form1(OAuthTokenFactory oAuthTokenFactory)
         {
             InitializeComponent();
-            _httpClientFactory = httpClientFactory;
-            _localDbConnectionManager = localDbConnectionManager;
+            _oAuthTokenFactory = oAuthTokenFactory;
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-
-            var feeBayOAuthTokenFactory = new OAuthTokenFactory(_httpClientFactory, _localDbConnectionManager);
-            {
-                string token = feeBayOAuthTokenFactory.GetOAuthToken("Simmons_Ink");
-                MessageBox.Show(token);
-            }
+            string token = _oAuthTokenFactory.GetOAuthToken("Simmons_Ink");
+            MessageBox.Show(token);
         }
     }
 }

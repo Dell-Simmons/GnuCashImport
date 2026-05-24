@@ -10,7 +10,7 @@ namespace LocalDBConnections
     public class LocalDbConnectionManager : ILocalDbConnectionManager
     {
         #region Constants and Fields
-        private const string StampDataConnection = "Data Source=SERVER\\SQLEXPRESS;Initial Catalog=StampData;User ID=GenericUser;Password=Mishmash@2!;TrustServerCertificate=True";
+        private const string _StampDataConnection = "Data Source=SERVER\\SQLEXPRESS;Initial Catalog=StampData;User ID=GenericUser;Password=Mishmash@2!;TrustServerCertificate=True";
 
         private readonly FeeBayOAuthTokensRepository _feeBayOAuthTokensRepository;
         #endregion
@@ -18,33 +18,33 @@ namespace LocalDBConnections
         #region Constructors
         public LocalDbConnectionManager()
         {
-            _feeBayOAuthTokensRepository = CreateFeeBayOAuthTokensRepository(StampDataConnection);
+            _feeBayOAuthTokensRepository = CreateFeeBayOAuthTokensRepository(_StampDataConnection);
         }
         #endregion
 
         #region Token Read Operations
-        public string GetRefreshToken(string feeBayUser)
+        public string? GetRefreshToken(string feeBayUser)
         {
             var feeBayOAuthTokenData = _feeBayOAuthTokensRepository.Find(l => l.FeeBayUserName == feeBayUser);
-            return feeBayOAuthTokenData.RefreshToken;
+            return feeBayOAuthTokenData?.RefreshToken;
         }
 
-        public DateTime GetRefreshTokenExpireTime(string feeBayUser)
+        public DateTime? GetRefreshTokenExpireTime(string feeBayUser)
         {
             var feeBayOAuthTokenData = _feeBayOAuthTokensRepository.Find(l => l.FeeBayUserName == feeBayUser);
-            return feeBayOAuthTokenData.RefreshTokenExpire;
+            return feeBayOAuthTokenData?.RefreshTokenExpire;
         }
 
-        public string GetUserToken(string feeBayUser)
+        public string? GetUserToken(string feeBayUser)
         {
             var feeBayOAuthTokenData = _feeBayOAuthTokensRepository.Find(l => l.FeeBayUserName == feeBayUser);
-            return feeBayOAuthTokenData.OAuthToken;
+            return feeBayOAuthTokenData?.OAuthToken;
         }
 
-        public DateTime GetUserTokenExpireTime(string feeBayUser)
+        public DateTime? GetUserTokenExpireTime(string feeBayUser)
         {
             var feeBayOAuthTokenData = _feeBayOAuthTokensRepository.Find(l => l.FeeBayUserName == feeBayUser);
-            return feeBayOAuthTokenData.OAuthTokenExpire;
+            return feeBayOAuthTokenData?.OAuthTokenExpire;
         }
         #endregion
 
@@ -52,6 +52,9 @@ namespace LocalDBConnections
         public bool SaveUserToken(FeeBayOAuthTokens tokens)
         {
             var feeBayOAuthTokenData = _feeBayOAuthTokensRepository.Find(l => l.FeeBayUserName == tokens.FeeBayUserName);
+
+            if (feeBayOAuthTokenData == null)
+                return false;
 
             feeBayOAuthTokenData.OAuthToken = tokens.OAuthToken;
             feeBayOAuthTokenData.OAuthTokenExpire = tokens.OAuthTokenExpire;
@@ -64,6 +67,10 @@ namespace LocalDBConnections
         public bool SaveUserToken(string access_token, DateTime expires_in, string feeBayUser)
         {
             var feeBayOAuthTokenData = _feeBayOAuthTokensRepository.Find(l => l.FeeBayUserName == feeBayUser);
+            
+            if (feeBayOAuthTokenData == null)
+                return false;
+            
             feeBayOAuthTokenData.OAuthToken = access_token;
             feeBayOAuthTokenData.OAuthTokenExpire = expires_in;
 

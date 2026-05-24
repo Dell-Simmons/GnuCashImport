@@ -15,10 +15,10 @@ namespace LocalDBConnections
         #endregion
 
         #region Methods
-         string GetRefreshToken(string feeBayUser);
-        DateTime GetRefreshTokenExpireTime(string feeBayUser);
-         string GetUserToken(string feeBayUser);
-        DateTime GetUserTokenExpireTime(string feeBayUser);
+        string? GetRefreshToken(string feeBayUser);
+        DateTime? GetRefreshTokenExpireTime(string feeBayUser);
+        string? GetUserToken(string feeBayUser);
+        DateTime? GetUserTokenExpireTime(string feeBayUser);
         bool SaveUserToken(FeeBayOAuthTokens tokens);
         bool SaveUserToken(string access_token, DateTime expireTime, string feeBayUser);
         #endregion
