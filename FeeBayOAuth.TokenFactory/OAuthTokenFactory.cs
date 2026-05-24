@@ -11,11 +11,9 @@ namespace FeeBayOAuth.TokenFactory
         #region Constructors
         public OAuthTokenFactory(
             IHttpClientFactory httpClientFactory,
-            IConfiguration configuration,
             ILocalDbConnectionManager localDBConnectionManager)
         {
             _httpClientFactory = httpClientFactory;
-            _configuration = configuration;
             _localDbConnectionManager = localDBConnectionManager;
         }
         #endregion

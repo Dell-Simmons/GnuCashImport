@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalDBConnections", "..\Lo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FeeBayOAuth.TokenFactory.UnitTests", "..\FeeBayOAuth.TokenFactory.UnitTests\FeeBayOAuth.TokenFactory.UnitTests.csproj", "{AC817315-2E97-4411-AC08-5B990FE02520}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FeeBayConnectionTester", "..\FeeBayConnectionTester\FeeBayConnectionTester.csproj", "{1B86BDAA-0D5A-4DB4-8924-366943CC2E63}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{AC817315-2E97-4411-AC08-5B990FE02520}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC817315-2E97-4411-AC08-5B990FE02520}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AC817315-2E97-4411-AC08-5B990FE02520}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B86BDAA-0D5A-4DB4-8924-366943CC2E63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B86BDAA-0D5A-4DB4-8924-366943CC2E63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B86BDAA-0D5A-4DB4-8924-366943CC2E63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B86BDAA-0D5A-4DB4-8924-366943CC2E63}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
