@@ -16,56 +16,58 @@ namespace FeeBayOAuth.TokenFactory
         {
             _httpClientFactory = httpClientFactory;
             _localDbConnectionManager = localDBConnectionManager;
+
+            string clientId = GetClientIdFromAppSettings();
+            string clientSecret = GetClientSecretFromAppSettings();
+            _userTokenService = new UserTokenService(httpClientFactory, clientId, clientSecret);
         }
         #endregion
 
         #region Methods
         #region Public Methods
-        public string GetOAuthToken(string feeBayUserName)
+        public async Task<string?> GetOAuthTokenAsync(string feeBayUserName, CancellationToken cancellationToken = default)
         {
-            string _feeBayUser = feeBayUserName;
-            Get_UserToken_Response oAuthUserTokenResponse = new Get_UserToken_Response();
-            Response_Errors errorsContainer = null;
-            if(string.IsNullOrEmpty(_feeBayUser))
+            if (string.IsNullOrEmpty(feeBayUserName))
             {
                 return null;
             }
-            // Check if the user token is in the dictionary and not expired or expiring soon.  If so return it.
-            var foundToken = _oAuthTokensDictionary.TryGetValue(_feeBayUser, out UserToken userToken);
+
+            // Check if the user token is in the dictionary and not expired or expiring soon. If so return it.
+            var foundToken = _oAuthTokensDictionary.TryGetValue(feeBayUserName, out UserToken? userToken);
             if (foundToken && userToken?.IsValid == true && userToken?.ExpiresSoon == false)
             {
                 return userToken.AccessToken;
             }
-            // If the user token is not in the dictionary or is expired or expiring soon, get the user token from the database and check if it is expired or expiring soon.  If it is not expired or expiring soon, return it.  If it is expired or expiring soon, use the refresh token to get a new user token.       
-            string refreshToken = GetRefreshTokenFromDataBase(_feeBayUser);
-            string clientId = GetClientIdFromAppSettings();
-            string clientSecret = GetClientSecretFromAppSettings();
-                   
-            oAuthUserTokenResponse = Get_User_Token.MakeCall(
-                        refreshToken,
-                        _httpClientFactory,
-                        clientId,
-                        clientSecret,
-                        out errorsContainer);    
-               
-           if(oAuthUserTokenResponse == null && errorsContainer != null)
-           {
-            HandleGetUserTokenError();
-            return null;
-           }
-                
-           // TryAdd does nothing if the key value pair is already in the dictionary.  Need for the second pass used for expired token
-           _oAuthTokensDictionary.TryAdd(_feeBayUser, new UserToken
-           {
-               AccessToken = oAuthUserTokenResponse.access_token,
-               ExpiresUtc = DateTime.UtcNow.AddSeconds(oAuthUserTokenResponse.expires_in)
-           });
-            
-            foundToken = _oAuthTokensDictionary.TryGetValue(_feeBayUser, out UserToken token);
-            if(foundToken)
+
+            // If the user token is not in the dictionary or is expired or expiring soon, get the user token from the database and check if it is expired or expiring soon.
+            // If it is not expired or expiring soon, return it. If it is expired or expiring soon, use the refresh token to get a new user token.       
+            string? refreshToken = GetRefreshTokenFromDataBase(feeBayUserName);
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return null;
+            }
+
+            var result = await _userTokenService.GetUserTokenAsync(refreshToken, cancellationToken);
+
+            if (!result.IsSuccess || result.Response == null)
+            {
+                HandleGetUserTokenError();
+                return null;
+            }
+
+            // TryAdd does nothing if the key value pair is already in the dictionary. Need for the second pass used for expired token
+            _oAuthTokensDictionary.TryAdd(feeBayUserName, new UserToken
+            {
+                AccessToken = result.Response.access_token,
+                ExpiresUtc = DateTime.UtcNow.AddSeconds(result.Response.expires_in)
+            });
+
+            foundToken = _oAuthTokensDictionary.TryGetValue(feeBayUserName, out UserToken? token);
+            if (foundToken && token != null)
             {
                 return token.AccessToken;
             }
+
             return string.Empty;
         }
 
@@ -126,6 +128,7 @@ namespace FeeBayOAuth.TokenFactory
         private Dictionary<string, UserToken> _oAuthTokensDictionary = new Dictionary<string, UserToken>();
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILocalDbConnectionManager _localDbConnectionManager;
-    #endregion Fields
+        private readonly UserTokenService _userTokenService;
+        #endregion Fields
     }
 }

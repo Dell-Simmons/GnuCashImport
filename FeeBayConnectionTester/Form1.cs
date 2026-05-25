@@ -12,10 +12,10 @@ namespace FeeBayConnectionTester
             _oAuthTokenFactory = oAuthTokenFactory;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private async void button1_Click(object sender, EventArgs e)
         {
-            string token = _oAuthTokenFactory.GetOAuthToken("Simmons_Ink");
-            MessageBox.Show(token);
+            string? token = await _oAuthTokenFactory.GetOAuthTokenAsync("Simmons_Ink");
+            MessageBox.Show(token ?? "No token available");
         }
     }
 }

@@ -3,82 +3,117 @@ using FeeBayOAuth.TokenFactory.Utilities;
 using Newtonsoft.Json;
 using System.Text;
 
-namespace FeeBayOAuth.TokenFactory.Calls
+namespace FeeBayOAuth.TokenFactory.Calls;
+
+public class UserTokenService
 {
-    public static class Get_User_Token
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly string _appId;
+    private readonly string _certId;
+
+    public UserTokenService(IHttpClientFactory httpClientFactory, string appId, string certId)
     {
-        public static Get_UserToken_Response MakeCall(string refreshToken,
-                        IHttpClientFactory _httpClientFactory,
-                        string appId,
-                        string certId, out Response_Errors errorsContainer)
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        _appId = appId ?? throw new ArgumentNullException(nameof(appId));
+        _certId = certId ?? throw new ArgumentNullException(nameof(certId));
+    }
+
+    public async Task<UserTokenResult> GetUserTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw new ArgumentException("Refresh token cannot be null or empty.", nameof(refreshToken));
+
+        var payloadParams = new Dictionary<string, string>
         {
-            var _refreshToken = refreshToken;
-            var _appId = appId;
-            var _certId = certId;
-            var scopes = SetUserScopes();
-            var formattedScopes = FormatScopesForRequest(scopes);
-            var payloadParams = new Dictionary<string, string>
-                {
-                    {"grant_type", "refresh_token" },
-                    {"refresh_token", _refreshToken}//,
-                   // {"scope", formattedScopes}
-                };
-            var requestPayload = OAuthHttpHelpers.CreateRequestPayload(payloadParams);
-            var myClient = _httpClientFactory.CreateClient();
+            { "grant_type", "refresh_token" },
+            { "refresh_token", refreshToken }
+        };
 
-            myClient.BaseAddress = new Uri(@"https://api.ebay.com/identity/v1/oauth2/token");
-            HttpRequestMessage myRequest = new HttpRequestMessage(HttpMethod.Post, "");
-            myClient.DefaultRequestHeaders.Add("Authorization", OAuthHttpHelpers.CreateAuthorizationHeader(_appId, _certId));
+        var requestPayload = OAuthHttpHelpers.CreateRequestPayload(payloadParams);
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.BaseAddress = new Uri("https://api.ebay.com/identity/v1/oauth2/");
 
-            HttpContent content = new StringContent(requestPayload, Encoding.UTF8, "application/x-www-form-urlencoded");
-            myRequest.Content = content;
-            HttpResponseMessage response = myClient.SendAsync(myRequest).Result;
+        using var request = new HttpRequestMessage(HttpMethod.Post, "token")
+        {
+            Content = new StringContent(requestPayload, Encoding.UTF8, "application/x-www-form-urlencoded")
+        };
 
-            //errorsContainer = null;
+        request.Headers.Add("Authorization", OAuthHttpHelpers.CreateAuthorizationHeader(_appId, _certId));
+
+        try
+        {
+            var response = await httpClient.SendAsync(request, cancellationToken);
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
             if (response.IsSuccessStatusCode)
             {
-                var responseContent = response.Content.ReadAsStringAsync().Result;
-                Get_UserToken_Response userTokenContainer = JsonConvert.DeserializeObject<Get_UserToken_Response>(responseContent);
-                return userTokenContainer;
+                var userToken = JsonConvert.DeserializeObject<Get_UserToken_Response>(responseContent);
+                return UserTokenResult.Success(userToken);
             }
             else
             {
-                var returnString = response.Content.ReadAsStringAsync().Result;
-                var errorResponse =
-                  JsonConvert.DeserializeObject<Response_Errors>(response.Content.ReadAsStringAsync().Result);
-                errorsContainer = errorResponse;
+                var errors = JsonConvert.DeserializeObject<Response_Errors>(responseContent);
+                return UserTokenResult.Failure(errors);
             }
-            return null;
         }
-
-        private static IList<string> SetUserScopes()
+        catch (JsonException ex)
         {
-            IList<string> userScopes = new List<String>()
-            {
-                "https://api.ebay.com/oauth/api_scope",
-                "https://api.ebay.com/oauth/api_scope/sell.marketing",
-                "https://api.ebay.com/oauth/api_scope/sell.inventory",
-                "https://api.ebay.com/oauth/api_scope/sell.account",
-                "https://api.ebay.com/oauth/api_scope/sell.fulfillment",
-                "https://api.ebay.com/oauth/api_scope/sell.analytics.readonly",
-                "https://api.ebay.com/oauth/api_scope/sell.stores"
-            };
-            return userScopes;
+            var error = new Response_Errors();
+            return UserTokenResult.Failure(error);
         }
-
-        private static String FormatScopesForRequest(IList<String> scopes)
+        catch (HttpRequestException ex)
         {
-            String scopesForRequest = null;
-            if (scopes == null || scopes.Count == 0)
-            {
-                return scopesForRequest;
-            }
-
-            foreach (String scope in scopes)
-            {
-                scopesForRequest = scopesForRequest == null ? scope : scopesForRequest + " " + scope;
-            }
-            return Uri.EscapeDataString(scopesForRequest);
+            var error = new Response_Errors();
+            return UserTokenResult.Failure(error);
         }
+    }
+
+    private static IList<string> GetUserScopes()
+    {
+        return new List<string>
+        {
+            "https://api.ebay.com/oauth/api_scope",
+            "https://api.ebay.com/oauth/api_scope/sell.marketing",
+            "https://api.ebay.com/oauth/api_scope/sell.inventory",
+            "https://api.ebay.com/oauth/api_scope/sell.account",
+            "https://api.ebay.com/oauth/api_scope/sell.fulfillment",
+            "https://api.ebay.com/oauth/api_scope/sell.analytics.readonly",
+            "https://api.ebay.com/oauth/api_scope/sell.stores"
+        };
+    }
+
+    private static string FormatScopesForRequest(IList<string> scopes)
+    {
+        if (scopes == null || scopes.Count == 0)
+            return string.Empty;
+
+        return Uri.EscapeDataString(string.Join(" ", scopes));
+    }
+}
+
+public class UserTokenResult
+{
+    public bool IsSuccess { get; private set; }
+    public Get_UserToken_Response? Response { get; private set; }
+    public Response_Errors? Errors { get; private set; }
+
+    private UserTokenResult() { }
+
+    public static UserTokenResult Success(Get_UserToken_Response? response)
+    {
+        return new UserTokenResult
+        {
+            IsSuccess = true,
+            Response = response
+        };
+    }
+
+    public static UserTokenResult Failure(Response_Errors? errors)
+    {
+        return new UserTokenResult
+        {
+            IsSuccess = false,
+            Errors = errors
+        };
     }
 }
