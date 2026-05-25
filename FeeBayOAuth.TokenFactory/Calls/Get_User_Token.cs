@@ -20,7 +20,7 @@ namespace FeeBayOAuth.TokenFactory.Calls
             var payloadParams = new Dictionary<string, string>
                 {
                     {"grant_type", "refresh_token" },
-                    {"refresh_token", refreshToken}//,
+                    {"refresh_token", _refreshToken}//,
                    // {"scope", formattedScopes}
                 };
             var requestPayload = OAuthHttpHelpers.CreateRequestPayload(payloadParams);
@@ -28,13 +28,13 @@ namespace FeeBayOAuth.TokenFactory.Calls
 
             myClient.BaseAddress = new Uri(@"https://api.ebay.com/identity/v1/oauth2/token");
             HttpRequestMessage myRequest = new HttpRequestMessage(HttpMethod.Post, "");
-            myClient.DefaultRequestHeaders.Add("Authorization", OAuthHttpHelpers.CreateAuthorizationHeader(appId, certId));
+            myClient.DefaultRequestHeaders.Add("Authorization", OAuthHttpHelpers.CreateAuthorizationHeader(_appId, _certId));
 
             HttpContent content = new StringContent(requestPayload, Encoding.UTF8, "application/x-www-form-urlencoded");
             myRequest.Content = content;
             HttpResponseMessage response = myClient.SendAsync(myRequest).Result;
 
-            errorsContainer = null;
+            //errorsContainer = null;
             if (response.IsSuccessStatusCode)
             {
                 var responseContent = response.Content.ReadAsStringAsync().Result;

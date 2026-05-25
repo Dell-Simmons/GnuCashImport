@@ -94,7 +94,7 @@ namespace FeeBayOAuth.TokenFactory
                 string refreshToken;
                 refreshToken = _localDbConnectionManager.GetRefreshToken(feeBayUser);
                 return refreshToken;
-            } catch(Exception wellFuck)
+            } catch(Exception ex)
             {
                 throw;
             }

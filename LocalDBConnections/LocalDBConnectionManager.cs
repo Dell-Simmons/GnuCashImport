@@ -10,7 +10,7 @@ namespace LocalDBConnections
     public class LocalDbConnectionManager : ILocalDbConnectionManager
     {
         #region Constants and Fields
-        private const string _StampDataConnection = "Data Source=SERVER\\SQLEXPRESS;Initial Catalog=StampData;User ID=GenericUser;Password=Mishmash@2!;TrustServerCertificate=True";
+        private const string _stampDataConnection = "Data Source=SERVER\\SQLEXPRESS;Initial Catalog=StampData;User ID=GenericUser;Password=Mishmash@2!;TrustServerCertificate=True";
 
         private readonly FeeBayOAuthTokensRepository _feeBayOAuthTokensRepository;
         #endregion
@@ -18,7 +18,7 @@ namespace LocalDBConnections
         #region Constructors
         public LocalDbConnectionManager()
         {
-            _feeBayOAuthTokensRepository = CreateFeeBayOAuthTokensRepository(_StampDataConnection);
+            _feeBayOAuthTokensRepository = CreateFeeBayOAuthTokensRepository(_stampDataConnection);
         }
         #endregion
 
@@ -67,10 +67,8 @@ namespace LocalDBConnections
         public bool SaveUserToken(string access_token, DateTime expires_in, string feeBayUser)
         {
             var feeBayOAuthTokenData = _feeBayOAuthTokensRepository.Find(l => l.FeeBayUserName == feeBayUser);
-            
             if (feeBayOAuthTokenData == null)
                 return false;
-            
             feeBayOAuthTokenData.OAuthToken = access_token;
             feeBayOAuthTokenData.OAuthTokenExpire = expires_in;
 
