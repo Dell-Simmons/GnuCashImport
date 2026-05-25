@@ -1,6 +1,6 @@
 using FeeBayOAuth.TokenFactory.Calls;
-using FeeBayOAuth.TokenFactory.DTO;
-using FeeBayOAuth.TokenFactory.DTO.Response;
+//using FeeBayOAuth.TokenFactory.DTO.Response;
+using FeeBayOAuth.TokenFactory.Models;
 using LocalDBConnections;
 using Microsoft.Extensions.Configuration;
 using System;

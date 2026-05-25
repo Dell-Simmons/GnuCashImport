@@ -16,4 +16,8 @@
     <ProjectReference Include="..\LocalDBConnections\LocalDBConnections.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DTO\Response\" />
+  </ItemGroup>
+
 </Project>

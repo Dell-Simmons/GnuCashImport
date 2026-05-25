@@ -1,4 +1,4 @@
-namespace FeeBayOAuth.TokenFactory.DTO.Response
+namespace FeeBayOAuth.TokenFactory.Models
 {
     public class Response_Errors
     {
