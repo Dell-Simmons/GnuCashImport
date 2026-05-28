@@ -5,12 +5,12 @@ namespace FeeBayFinances
 {
     public class SellerFundsSummaryResponse
     {
-        public Amount CurrentBalance { get; set; }
+        public Amount TotalFunds { get; set; }
+
+        public Amount ProcessingFunds { get; set; }
 
         public Amount AvailableFunds { get; set; }
 
-        public Amount TotalFundsOnHold { get; set; }
-
-        public Amount PayoutsBeingProcessed { get; set; }
+        public Amount FundsOnHold { get; set; }
     }
 }

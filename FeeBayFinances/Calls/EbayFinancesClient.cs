@@ -4,7 +4,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace FeeBayFinances.Models
+namespace FeeBayFinances.Calls
 {
     public class EbayFinancesClient
     {

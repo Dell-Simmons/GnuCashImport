@@ -1,3 +1,4 @@
+using FeeBayFinances.Calls;
 using FeeBayOAuth.TokenFactory;
 using LocalDBConnections;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +39,7 @@ namespace FeeBayConnectionTester
 
                     // Register OAuthTokenFactory
                     services.AddSingleton<OAuthTokenFactory>();
+                    services.AddSingleton<EbayFinancesClient>();
 
                     // Register Form1
                     services.AddTransient<Form1>();
