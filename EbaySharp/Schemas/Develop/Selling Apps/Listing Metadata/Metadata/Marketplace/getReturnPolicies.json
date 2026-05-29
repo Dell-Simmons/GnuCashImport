@@ -1,0 +1,69 @@
+{
+  "returnPolicies": [
+    {
+      "categoryId": "string",
+      "categoryTreeId": "string",
+      "domestic": {
+        "policyDescriptionEnabled": "boolean",
+        "refundMethods": [
+          "RefundMethodEnum"
+        ],
+        "returnMethods": [
+          "ReturnMethodEnum"
+        ],
+        "returnPeriods": [
+          {
+            "unit": "TimeDurationUnitEnum : [YEAR,MONTH,DAY,HOUR,CALENDAR_DAY,BUSINESS_DAY,MINUTE,SECOND,MILLISECOND]",
+            "value": "integer"
+          }
+        ],
+        "returnsAcceptanceEnabled": "boolean",
+        "returnShippingCostPayers": [
+          "ReturnShippingCostPayerEnum"
+        ]
+      },
+      "international": {
+        "policyDescriptionEnabled": "boolean",
+        "refundMethods": [
+          "RefundMethodEnum"
+        ],
+        "returnMethods": [
+          "ReturnMethodEnum"
+        ],
+        "returnPeriods": [
+          {
+            "unit": "TimeDurationUnitEnum : [YEAR,MONTH,DAY,HOUR,CALENDAR_DAY,BUSINESS_DAY,MINUTE,SECOND,MILLISECOND]",
+            "value": "integer"
+          }
+        ],
+        "returnsAcceptanceEnabled": "boolean",
+        "returnShippingCostPayers": [
+          "ReturnShippingCostPayerEnum"
+        ]
+      },
+      "required": "boolean"
+    }
+  ],
+  "warnings": [
+    {
+      "category": "string",
+      "domain": "string",
+      "errorId": "integer",
+      "inputRefIds": [
+        "string"
+      ],
+      "longMessage": "string",
+      "message": "string",
+      "outputRefIds": [
+        "string"
+      ],
+      "parameters": [
+        {
+          "name": "string",
+          "value": "string"
+        }
+      ],
+      "subdomain": "string"
+    }
+  ]
+}

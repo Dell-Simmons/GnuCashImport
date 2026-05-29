@@ -1,0 +1,22 @@
+{
+  "rateLimits": [
+    {
+      "apiContext": "string",
+      "apiName": "string",
+      "apiVersion": "string",
+      "resources": [
+        {
+          "name": "string",
+          "rates": [
+            {
+              "limit": "integer",
+              "remaining": "integer",
+              "reset": "string",
+              "timeWindow": "integer"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

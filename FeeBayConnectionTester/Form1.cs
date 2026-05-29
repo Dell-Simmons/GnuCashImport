@@ -1,4 +1,5 @@
 
+using EbaySharp.Controllers;
 using FeeBayOAuth.TokenService;
 
 namespace FeeBayConnectionTester
@@ -6,12 +7,13 @@ namespace FeeBayConnectionTester
     public partial class Form1 : Form
     {
         private readonly IOAuthTokenService _oAuthTokenFactory;
-        //   private readonly EbayFinancesClient _ebayFinancesClient;
+        private readonly EbayController _ebayController;
 
-        public Form1(IOAuthTokenService oAuthTokenFactory)
+        public Form1(IOAuthTokenService oAuthTokenFactory, EbayController ebayController)
         {
             InitializeComponent();
             _oAuthTokenFactory = oAuthTokenFactory;
+            _ebayController = ebayController;
             // _ebayFinancesClient = ebayFinancesClient;
         }
         //public Form1()
@@ -22,6 +24,7 @@ namespace FeeBayConnectionTester
         {
             string? token = await _oAuthTokenFactory.GetOAuthTokenAsync("Simmons_Ink");
             // SellerFundsSummaryResponse sellerFundsSummaryResponse = await _ebayFinancesClient.GetSellerFundsSummaryAsync();
+     
             MessageBox.Show(token);
         }
 
