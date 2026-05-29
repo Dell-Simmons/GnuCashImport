@@ -37,7 +37,8 @@ namespace FeeBayConnectionTester
                     services.AddSingleton<ILocalDbConnectionManager, LocalDbConnectionManager>();
 
                     // Register EbaySharp
-                    services.AddSingleton<EbaySharp.Controllers.EbayController>();
+                    services.AddSingleton<Func<string, EbaySharp.Controllers.EbayController>>(_ =>
+                        accessToken => new EbaySharp.Controllers.EbayController(accessToken));
 
                     // Register Form1
                     services.AddTransient<Form1>();
