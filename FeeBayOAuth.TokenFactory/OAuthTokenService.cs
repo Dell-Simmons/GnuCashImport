@@ -1,3 +1,4 @@
+using FeeBayFinances;
 using FeeBayOAuth.TokenFactory.Calls;
 //using FeeBayOAuth.TokenFactory.DTO.Response;
 using FeeBayOAuth.TokenFactory.Models;
@@ -7,10 +8,10 @@ using System;
 
 namespace FeeBayOAuth.TokenFactory
 {
-    public class OAuthTokenFactory
+    public class OAuthTokenService : IOAuthTokenService
     {
         #region Constructors
-        public OAuthTokenFactory(
+        public OAuthTokenService(
             IHttpClientFactory httpClientFactory,
             ILocalDbConnectionManager localDBConnectionManager)
         {

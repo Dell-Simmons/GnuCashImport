@@ -1,3 +1,4 @@
+using FeeBayFinances;
 using FeeBayFinances.Calls;
 using FeeBayOAuth.TokenFactory;
 using LocalDBConnections;
@@ -37,12 +38,13 @@ namespace FeeBayConnectionTester
                     // Register ILocalDbConnectionManager
                     services.AddSingleton<ILocalDbConnectionManager, LocalDbConnectionManager>();
 
-                    // Register OAuthTokenFactory
-                    services.AddSingleton<OAuthTokenFactory>();
+                    // Register EbayFinancesClient
                     services.AddSingleton<EbayFinancesClient>();
 
                     // Register Form1
                     services.AddTransient<Form1>();
+                    // Register IEbayTokenService
+                    services.AddSingleton<IOAuthTokenService, OAuthTokenService>();
                 });
         }
     }

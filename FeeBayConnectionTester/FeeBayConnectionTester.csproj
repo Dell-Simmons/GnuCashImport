@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FeeBayFinances\FeeBayFinances.csproj" />
-    <ProjectReference Include="..\FeeBayOAuth.TokenFactory\FeeBayOAuth.TokenFactory.csproj" />
+    <ProjectReference Include="..\FeeBayOAuth.TokenFactory\FeeBayOAuth.TokenService.csproj" />
     <ProjectReference Include="..\LocalDBConnections\LocalDBConnections.csproj" />
   </ItemGroup>
 

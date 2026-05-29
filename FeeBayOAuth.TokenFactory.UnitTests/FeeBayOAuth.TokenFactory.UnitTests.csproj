@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FeeBayOAuth.TokenFactory\FeeBayOAuth.TokenFactory.csproj" />
+    <ProjectReference Include="..\FeeBayOAuth.TokenFactory\FeeBayOAuth.TokenService.csproj" />
   </ItemGroup>
 
   <ItemGroup>

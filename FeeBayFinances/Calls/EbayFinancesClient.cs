@@ -10,7 +10,7 @@ namespace FeeBayFinances.Calls
 
         public EbayFinancesClient(
             HttpClient httpClient,
-            IEbayTokenService tokenService)
+            IOAuthTokenService tokenService)
             : base(httpClient, tokenService)
         {
         }

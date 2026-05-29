@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FeeBayOAuth.TokenFactory;
+using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -10,13 +11,13 @@ namespace FeeBayFinances.Calls
     public abstract class EbayApiClientBase
     {
         protected readonly HttpClient HttpClient;
-        private readonly IEbayTokenService _tokenService;
+        private readonly IOAuthTokenService _tokenService;
 
         protected abstract string BaseUrl { get; }
 
         protected EbayApiClientBase(
             HttpClient httpClient,
-            IEbayTokenService tokenService)
+            IOAuthTokenService tokenService)
         {
             HttpClient = httpClient;
             _tokenService = tokenService;
@@ -66,7 +67,7 @@ namespace FeeBayFinances.Calls
 
         private async Task AddAuthorizationAsync(HttpRequestMessage request)
         {
-            var token = await _tokenService.GetValidUserAccessTokenAsync();
+            var token = await _tokenService.GetOAuthTokenAsync("Simmons_Ink");
 
             request.Headers.Authorization =
                 new AuthenticationHeaderValue("Bearer", token);

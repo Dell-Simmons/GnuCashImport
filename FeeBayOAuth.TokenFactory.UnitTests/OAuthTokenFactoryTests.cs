@@ -26,14 +26,14 @@ namespace FeeBayOAuth.TokenFactory.UnitTests
         private Mock<IHttpClientFactory> _mockHttpClientFactory = null!;
         private Mock<IConfiguration> _mockConfiguration = null!;
         private Mock<ILocalDbConnectionManager> _mockLocalDbConnectionManager = null!;
-        private OAuthTokenFactory _sut = null!;
+        private OAuthTokenService _sut = null!;
 
         [TestInitialize]
         public void TestInitialize()
         {
             _mockHttpClientFactory = new Mock<IHttpClientFactory>();
             _mockLocalDbConnectionManager = new Mock<ILocalDbConnectionManager>();
-            _sut = new OAuthTokenFactory(
+            _sut = new OAuthTokenService(
                 _mockHttpClientFactory.Object,
                 _mockLocalDbConnectionManager.Object);
         }
