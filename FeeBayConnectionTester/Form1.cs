@@ -5,13 +5,13 @@ namespace FeeBayConnectionTester
 {
     public partial class Form1 : Form
     {
-        private readonly IOAuthTokenService _oAuthTokenFactory;
+        private readonly IOAuthTokenService _oAuthTokenService;
         private readonly Func<string, EbayController> _ebayControllerFactory;
 
         public Form1(IOAuthTokenService oAuthTokenFactory, Func<string, EbayController> ebayControllerFactory)
         {
             InitializeComponent();
-            _oAuthTokenFactory = oAuthTokenFactory;
+            _oAuthTokenService = oAuthTokenFactory;
             _ebayControllerFactory = ebayControllerFactory;
             // _ebayFinancesClient = ebayFinancesClient;
         }
@@ -21,7 +21,7 @@ namespace FeeBayConnectionTester
         //}
         private async void button1_Click(object sender, EventArgs e)
         {
-            string? token = await _oAuthTokenFactory.GetOAuthTokenAsync("Simmons_Ink");
+            string? token = await _oAuthTokenService.GetOAuthTokenAsync("Simmons_Ink");
             var ebayController = _ebayControllerFactory(token);
             // use ebayController...
         }
