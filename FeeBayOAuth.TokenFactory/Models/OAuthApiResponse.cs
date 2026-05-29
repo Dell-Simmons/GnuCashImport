@@ -19,7 +19,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace FeeBayOAuth.TokenFactory.Models
+namespace FeeBayOAuth.TokenService.Models
 {
     public class OAuthApiResponse
     {

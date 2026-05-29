@@ -1,12 +1,12 @@
-using FeeBayFinances;
-using FeeBayOAuth.TokenFactory.Calls;
 //using FeeBayOAuth.TokenFactory.DTO.Response;
-using FeeBayOAuth.TokenFactory.Models;
+using FeeBayOAuth.TokenService;
+using FeeBayOAuth.TokenService.Calls;
+using FeeBayOAuth.TokenService.Models;
 using LocalDBConnections;
 using Microsoft.Extensions.Configuration;
 using System;
 
-namespace FeeBayOAuth.TokenFactory
+namespace FeeBayOAuth.TokenService
 {
     public class OAuthTokenService : IOAuthTokenService
     {

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace FeeBayOAuth.TokenFactory.Utilities
+namespace FeeBayOAuth.TokenService.Utilities
 {
     /// <summary>
     /// Shared utility methods for eBay OAuth HTTP requests

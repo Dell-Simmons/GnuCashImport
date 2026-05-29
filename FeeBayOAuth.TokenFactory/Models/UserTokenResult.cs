@@ -1,4 +1,4 @@
-namespace FeeBayOAuth.TokenFactory.Models
+namespace FeeBayOAuth.TokenService.Models
 {
     public class UserTokenResult
     {

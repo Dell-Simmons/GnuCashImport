@@ -1,9 +1,9 @@
-using FeeBayOAuth.TokenFactory.Models;
-using FeeBayOAuth.TokenFactory.Utilities;
+using FeeBayOAuth.TokenService.Models;
+using FeeBayOAuth.TokenService.Utilities;
 using Newtonsoft.Json;
 using System.Text;
 
-namespace FeeBayOAuth.TokenFactory.Calls;
+namespace FeeBayOAuth.TokenService.Calls;
 
 public class UserTokenService
 {

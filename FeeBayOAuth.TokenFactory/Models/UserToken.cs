@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace FeeBayOAuth.TokenFactory.Models
+namespace FeeBayOAuth.TokenService.Models
 {
     internal class UserToken
     {

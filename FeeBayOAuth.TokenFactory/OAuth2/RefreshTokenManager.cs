@@ -1,5 +1,5 @@
-using FeeBayOAuth.TokenFactory.Models;
-using FeeBayOAuth.TokenFactory.Utilities;
+using FeeBayOAuth.TokenService.Models;
+using FeeBayOAuth.TokenService.Utilities;
 using LocalDBConnections;
 using LocalDBConnections.StampDataDB.StampDataEntities;
 using Microsoft.Extensions.Configuration;
@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 
-namespace FeeBayOAuth.TokenFactory.OAuth2
+namespace FeeBayOAuth.TokenService.OAuth2
 {
     /// <summary>
     /// Manages the initial OAuth authorization flow to obtain refresh tokens from eBay

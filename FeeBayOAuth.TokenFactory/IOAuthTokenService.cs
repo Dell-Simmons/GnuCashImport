@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace FeeBayFinances
+namespace FeeBayOAuth.TokenService
 {
     public interface IOAuthTokenService
     {
