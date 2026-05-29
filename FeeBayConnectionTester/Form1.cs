@@ -1,4 +1,5 @@
 using EbaySharp.Controllers;
+using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
 using FeeBayOAuth.TokenService;
 
 namespace FeeBayConnectionTester
@@ -13,7 +14,7 @@ namespace FeeBayConnectionTester
             InitializeComponent();
             _oAuthTokenService = oAuthTokenFactory;
             _ebayControllerFactory = ebayControllerFactory;
-            // _ebayFinancesClient = ebayFinancesClient;
+           
         }
         //public Form1()
         //{
@@ -23,7 +24,19 @@ namespace FeeBayConnectionTester
         {
             string? token = await _oAuthTokenService.GetOAuthTokenAsync("Simmons_Ink");
             var ebayController = _ebayControllerFactory(token);
-            // use ebayController...
+    
+            SigningKeys signingKeys = await ebayController.GetSigningKeys();
+    
+            if (signingKeys?.SigningKeyList == null ||signingKeys.SigningKeyList.Length == 0)
+            {
+                MessageBox.Show("No signing keys found. Creating one...");
+                var newKey = await ebayController.CreateSigningKey();
+                MessageBox.Show($"Created signing key: {newKey.SigningKeyId}");
+            }
+            else
+            {
+                MessageBox.Show($"Found {signingKeys.SigningKeyList.Length} signing key(s)");
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e)
