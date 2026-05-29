@@ -1,4 +1,5 @@
-﻿using LocalDBConnections.StampDataDB.StampDataEntities;
+﻿using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
+using LocalDBConnections.StampDataDB.StampDataEntities;
 using LocalDBConnections.StampDataDB.StampDataRepositories;
 using MicroOrm.Dapper.Repositories.SqlGenerator;
 using System;
@@ -13,13 +14,17 @@ namespace LocalDBConnections
         private const string _stampDataConnection = "Data Source=SERVER\\SQLEXPRESS;Initial Catalog=StampData;User ID=GenericUser;Password=Mishmash@2!;TrustServerCertificate=True";
 
         private readonly FeeBayOAuthTokensRepository _feeBayOAuthTokensRepository;
+        private readonly FeeBaySigningKeyRepository _feeBaySigningKeysRepository;
         #endregion
 
         #region Constructors
         public LocalDbConnectionManager()
         {
             _feeBayOAuthTokensRepository = CreateFeeBayOAuthTokensRepository(_stampDataConnection);
+            _feeBaySigningKeysRepository = CreateFeeBaySigningKeysRepository(_stampDataConnection);
         }
+
+      
         #endregion
 
         #region Token Read Operations
@@ -81,6 +86,48 @@ namespace LocalDBConnections
         {
             IDbConnection dbConnection = new SqlConnection(stampDataConnection);
             return new FeeBayOAuthTokensRepository(dbConnection, new SqlGenerator<FeeBayOAuthTokens>());
+        }
+        private FeeBaySigningKeyRepository CreateFeeBaySigningKeysRepository(string stampDataConnection)
+        {
+            IDbConnection dbConnection = new SqlConnection(stampDataConnection);
+            return new FeeBaySigningKeyRepository(dbConnection, new SqlGenerator<FeeBaySigningKey>());
+
+        }
+        public async Task<bool> SaveSigningKeyAsync(FeeBaySigningKey signingKey)
+        {
+            try
+            {
+                var asdf = await _feeBaySigningKeysRepository.FindAsync();
+          
+            if (asdf == null) 
+            {
+                return await _feeBaySigningKeysRepository.InsertAsync(signingKey);  
+            }
+               
+            return await _feeBaySigningKeysRepository.UpdateAsync(signingKey);  
+            }
+            catch (Exception fuck)
+            {
+
+                throw;
+            }
+        }
+        public async Task<FeeBaySigningKey> GetSigningKeyAsync()
+        {
+            try
+            {
+                var feeBaySigningKey = await _feeBaySigningKeysRepository.FindAllAsync();
+                return feeBaySigningKey.FirstOrDefault();
+              //  FeeBaySigningKey feeBaySigningKey = await _feeBaySigningKeysRepository.FindAsync();
+                if (feeBaySigningKey == null) return null;
+
+                return null;
+            }
+            catch (Exception shit)
+            {
+
+                throw;
+            }
         }
         #endregion
     }
