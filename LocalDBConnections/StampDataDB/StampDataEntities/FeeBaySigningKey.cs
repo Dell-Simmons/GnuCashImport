@@ -6,7 +6,8 @@ using System.Text;
 
 namespace LocalDBConnections.StampDataDB.StampDataEntities
 {
-    public class FeeBaySigningKey
+    //[Table("FeeBaySigningKey")]
+    public class FeeBaySigningKeys
     {
         [Key]
         public string SigningKeyId { get; set; }

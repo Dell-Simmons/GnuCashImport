@@ -8,11 +8,11 @@ namespace FeeBayConnectionTester.Extensions
         /// <summary>
         /// Convert EbaySharp API entity to database entity
         /// </summary>
-        public static FeeBaySigningKey ToFeeBaySigningKey(this SigningKey apiKey)
+        public static FeeBaySigningKeys ToFeeBaySigningKey(this SigningKey apiKey)
         {
             if (apiKey == null) return null;
 
-            return new FeeBaySigningKey
+            return new FeeBaySigningKeys
             {
                 SigningKeyId = apiKey.SigningKeyId,
                 SigningKeyCipher = apiKey.SigningKeyCipher,
@@ -28,7 +28,7 @@ namespace FeeBayConnectionTester.Extensions
         /// <summary>
         /// Convert database entity back to EbaySharp API entity
         /// </summary>
-        public static SigningKey ToSigningKey(this FeeBaySigningKey dbKey)
+        public static SigningKey ToSigningKey(this FeeBaySigningKeys dbKey)
         {
             if (dbKey == null) return null;
 

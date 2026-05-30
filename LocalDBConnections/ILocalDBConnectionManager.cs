@@ -21,8 +21,8 @@ namespace LocalDBConnections
         DateTime? GetUserTokenExpireTime(string feeBayUser);
         bool SaveUserToken(FeeBayOAuthTokens tokens);
         bool SaveUserToken(string access_token, DateTime expireTime, string feeBayUser);
-        Task<bool> SaveSigningKeyAsync(FeeBaySigningKey signingKey);
-        Task<FeeBaySigningKey> GetSigningKeyAsync();
+        Task<bool> SaveSigningKeyAsync(FeeBaySigningKeys signingKey);
+        Task<FeeBaySigningKeys> GetSigningKeyAsync();
         #endregion
         // IEnumerable<MisslItem> GetMisslItems();
     }
