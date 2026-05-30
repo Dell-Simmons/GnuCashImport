@@ -22,7 +22,7 @@ namespace LocalDBConnections
         bool SaveUserToken(FeeBayOAuthTokens tokens);
         bool SaveUserToken(string access_token, DateTime expireTime, string feeBayUser);
         Task<bool> SaveSigningKeyAsync(FeeBaySigningKeys signingKey);
-        Task<FeeBaySigningKeys> GetSigningKeyAsync();
+        Task<FeeBaySigningKeys?> GetSigningKeyAsync();
         #endregion
         // IEnumerable<MisslItem> GetMisslItems();
     }

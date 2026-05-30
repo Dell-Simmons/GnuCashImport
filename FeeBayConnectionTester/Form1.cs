@@ -76,7 +76,7 @@ namespace FeeBayConnectionTester
         #region Private Methods
         private async Task<SigningKey> GetOrCreateSigningKey(EbayController ebayController)
         {
-            // // 1. Try to get from database
+            // 1. Try to get from database
             FeeBaySigningKeys? cachedKey = null;
 
             cachedKey = await _localDbConnectionManager.GetSigningKeyAsync();
@@ -87,16 +87,14 @@ namespace FeeBayConnectionTester
                 return cachedKey.ToSigningKey();
             }
 
-
             SigningKey key;
 
-
             {
-                // 3. Create new if none exist
+                // 2. Create new if none exist
                 key = await ebayController.CreateSigningKey();
             }
 
-            // 4. Store in database
+            // 3. Store in database
             await _localDbConnectionManager.SaveSigningKeyAsync(key.ToFeeBaySigningKey());
 
             return key;

@@ -1,11 +1,9 @@
-﻿using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
-using LocalDBConnections.StampDataDB.StampDataEntities;
+﻿using LocalDBConnections.StampDataDB.StampDataEntities;
 using LocalDBConnections.StampDataDB.StampDataRepositories;
 using MicroOrm.Dapper.Repositories.SqlGenerator;
 using System;
 using System.Data;
 using System.Data.SqlClient;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LocalDBConnections
 {
@@ -13,7 +11,6 @@ namespace LocalDBConnections
     {
         #region Constants and Fields
         private const string _stampDataConnection = "Data Source=SERVER\\SQLEXPRESS;Initial Catalog=StampData;User ID=GenericUser;Password=Mishmash@2!;TrustServerCertificate=True";
-
         private readonly FeeBayOAuthTokensRepository _feeBayOAuthTokensRepository;
         private readonly FeeBaySigningKeyRepository _feeBaySigningKeysRepository;
         #endregion
@@ -24,8 +21,6 @@ namespace LocalDBConnections
             _feeBayOAuthTokensRepository = CreateFeeBayOAuthTokensRepository(_stampDataConnection);
             _feeBaySigningKeysRepository = CreateFeeBaySigningKeysRepository(_stampDataConnection);
         }
-
-      
         #endregion
 
         #region Token Read Operations
@@ -59,8 +54,10 @@ namespace LocalDBConnections
         {
             var feeBayOAuthTokenData = _feeBayOAuthTokensRepository.Find(l => l.FeeBayUserName == tokens.FeeBayUserName);
 
-            if (feeBayOAuthTokenData == null)
+            if(feeBayOAuthTokenData == null)
+            {
                 return false;
+            }
 
             feeBayOAuthTokenData.OAuthToken = tokens.OAuthToken;
             feeBayOAuthTokenData.OAuthTokenExpire = tokens.OAuthTokenExpire;
@@ -73,8 +70,11 @@ namespace LocalDBConnections
         public bool SaveUserToken(string access_token, DateTime expires_in, string feeBayUser)
         {
             var feeBayOAuthTokenData = _feeBayOAuthTokensRepository.Find(l => l.FeeBayUserName == feeBayUser);
-            if (feeBayOAuthTokenData == null)
+            if(feeBayOAuthTokenData == null)
+            {
                 return false;
+            }
+
             feeBayOAuthTokenData.OAuthToken = access_token;
             feeBayOAuthTokenData.OAuthTokenExpire = expires_in;
 
@@ -88,40 +88,31 @@ namespace LocalDBConnections
             IDbConnection dbConnection = new SqlConnection(stampDataConnection);
             return new FeeBayOAuthTokensRepository(dbConnection, new SqlGenerator<FeeBayOAuthTokens>());
         }
+
         private FeeBaySigningKeyRepository CreateFeeBaySigningKeysRepository(string stampDataConnection)
         {
             IDbConnection dbConnection = new SqlConnection(stampDataConnection);
             return new FeeBaySigningKeyRepository(dbConnection, new SqlGenerator<FeeBaySigningKeys>());
-
         }
-        public async Task<bool> SaveSigningKeyAsync(FeeBaySigningKeys signingKey)
+
+        public async Task<bool> SaveSigningKeyAsync(FeeBaySigningKeys signingKey) =>
+ //var asdf = await _feeBaySigningKeysRepository.FindAsync();
+ //if (asdf != null)
+ //{
+                //    await _feeBaySigningKeysRepository.DeleteAsync(asdf);
+                //    return await _feeBaySigningKeysRepository.InsertAsync(signingKey);
+                //}
+                //return false;
+                //if (asdf == null)
+                //{
+                await _feeBaySigningKeysRepository.InsertAsync(signingKey);
+
+        public async Task<FeeBaySigningKeys?> GetSigningKeyAsync()
         {
-
-            //var asdf = await _feeBaySigningKeysRepository.FindAsync();
-            //if (asdf != null)
-            //{
-            //    await _feeBaySigningKeysRepository.DeleteAsync(asdf);
-            //    return await _feeBaySigningKeysRepository.InsertAsync(signingKey);
-            //}
-            //return false;
-            //if (asdf == null)
-            //{
-                return await _feeBaySigningKeysRepository.InsertAsync(signingKey);
-           // }
-
-            //return await _feeBaySigningKeysRepository.UpdateAsync(signingKey);  
-
-        }
-        public async Task<FeeBaySigningKeys> GetSigningKeyAsync()
-        {
-           
-                var feeBaySigningKey = await _feeBaySigningKeysRepository.FindAllAsync();
-                return feeBaySigningKey.FirstOrDefault();
-              //  FeeBaySigningKey feeBaySigningKey = await _feeBaySigningKeysRepository.FindAsync();
-                if (feeBaySigningKey == null) return null;
-
-                return null;
-           
+            var feeBaySigningKey = await _feeBaySigningKeysRepository.FindAllAsync();
+            return feeBaySigningKey.FirstOrDefault();
+            //  FeeBaySigningKey feeBaySigningKey = await _feeBaySigningKeysRepository.FindAsync();
+            // if (feeBaySigningKey == null) return null;
         }
         #endregion
     }
