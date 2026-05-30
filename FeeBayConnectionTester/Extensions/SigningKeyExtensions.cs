@@ -35,12 +35,12 @@ namespace FeeBayConnectionTester.Extensions
             return new SigningKey
             {
                 SigningKeyId = dbKey.SigningKeyId,
-                SigningKeyCipher = dbKey.SigningKeyCipher,
-                PublicKey = dbKey.PublicKey,
-                PrivateKey = dbKey.PrivateKey,
-                JWE = dbKey.JWE,
-                CreationTime = dbKey.CreationTime,
-                ExpirationTime = dbKey.ExpirationTime
+                SigningKeyCipher = dbKey.SigningKeyCipher.HasValue ? (SigningKeyCipher)dbKey.SigningKeyCipher.Value : default,
+                PublicKey = (string)dbKey.PublicKey,
+                PrivateKey = (string)dbKey.PrivateKey,
+                JWE = (string)dbKey.JWE,
+                CreationTime = (int)dbKey.CreationTime,
+                ExpirationTime = (int)dbKey.ExpirationTime
             };
         }
     }

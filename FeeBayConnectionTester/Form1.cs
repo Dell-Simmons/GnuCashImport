@@ -1,5 +1,7 @@
 using EbaySharp.Controllers;
+using EbaySharp.Entities.Common;
 using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
+using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
 using EbaySharp.Entities.Develop.SellingApps.OrderManagement.Fulfillment.Order;
 using FeeBayConnectionTester.Extensions;
@@ -57,13 +59,39 @@ namespace FeeBayConnectionTester
             //!{PAYOUT} is funds going from feeBay to bank account
             multiFilter = "transactionStatus:{PAYOUT},transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
 
-            TransactionSummary transactionPayoutSummary = 
-                await ebayController.GetTransactionSummary(signingKey, multiFilter);
-            //!{ COMPLETED} is funds going from buyer to feeBay.
-            multiFilter = "transactionStatus:{COMPLETED},transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
+            //TransactionSummary transactionPayoutSummary = 
+            //    await ebayController.GetTransactionSummary(signingKey, multiFilter);
+            ////!{ COMPLETED} is funds going from buyer to feeBay.
+            //multiFilter = "transactionStatus:{COMPLETED},transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
 
-            TransactionSummary transactionCompletedSummary =
-                await ebayController.GetTransactionSummary(signingKey, multiFilter);
+            //TransactionSummary transactionCompletedSummary =
+            //    await ebayController.GetTransactionSummary(signingKey, multiFilter);
+
+            //!GetTransactions
+            multiFilter = "transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
+            Transactions transactions = await ebayController.GetTransactions(signingKey, multiFilter);
+            List<Transaction> transactionList = transactions.TransactionList;
+            foreach( Transaction transaction in transactionList )
+            {
+                string transactionId = transaction.TransactionId;
+                string transactionDate = transaction.TransactionDate;
+                Amount amount = transaction.Amount;
+                string orderId = transaction.OrderId;
+                TransactionStatusEnum? transactionStatus = transaction.TransactionStatus;
+                TransactionTypeEnum? transactionType = transaction.TransactionType;
+                FeeTypeEnum? feeType = transaction.FeeType;
+                var taxes = transaction.EBayCollectedTaxAmount;
+                if (transactionType == TransactionTypeEnum.SALE)
+                {
+                    var buyer = transaction.Buyer;
+                    foreach (OrderLineItem lineItem in transaction.OrderLineItems)
+                    {
+                        var Donations = lineItem.Donations;
+                        var FeeBasisAmount = lineItem.FeeBasisAmount;
+                        var LineItemId = lineItem.LineItemId;
+                        var MarketplaceFees = lineItem.MarketplaceFees;
+                    }
+                }
 
 
         }
