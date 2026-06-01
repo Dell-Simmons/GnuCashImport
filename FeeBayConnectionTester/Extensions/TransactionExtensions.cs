@@ -1,3 +1,4 @@
+using EbaySharp.Entities.Common;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
 using System.Linq;
@@ -37,6 +38,25 @@ namespace FeeBayConnectionTester.Extensions
             }
 
             return total;
+        }
+
+        /// <summary>
+        /// Converts the Amount's Value property to a decimal.
+        /// Returns null if the Value is null or cannot be parsed.
+        /// </summary>
+        public static decimal? DollarAmount(this Amount amount)
+        {
+            if (amount?.Value == null)
+            {
+                return null;
+            }
+
+            if (decimal.TryParse(amount.Value, out decimal result))
+            {
+                return result;
+            }
+
+            return null;
         }
     }
 }

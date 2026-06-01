@@ -47,6 +47,25 @@ namespace FeeBayConnectionTester.Services
             var payoutTransactions = transactions
                 .Where(t => t.TransactionStatus == TransactionStatusEnum.PAYOUT)
                 .ToList();
+            var completedTransactions = transactions
+                .Where(t => t.TransactionStatus == TransactionStatusEnum.COMPLETED)
+                .ToList();
+            var failedTransactions = transactions
+                .Where(t => t.TransactionStatus == TransactionStatusEnum.FAILED)
+                .ToList();
+            var fundsProcessingTransactions = transactions
+                .Where(t => t.TransactionStatus == TransactionStatusEnum.FUNDS_PROCESSING)
+                .ToList();
+             var fundsAvailableForPayoutTransactions = transactions
+                .Where(t => t.TransactionStatus == TransactionStatusEnum.FUNDS_AVAILABLE_FOR_PAYOUT)
+                .ToList();
+            var fundsOnHoldTransactions = transactions
+                .Where(t => t.TransactionStatus == TransactionStatusEnum.FUNDS_ON_HOLD)
+                .ToList();
+
+            // now same for orders 
+            var asdf = orders
+                .Where(o => o.)
 
             Console.WriteLine($"Total transactions: {transactions.Count}, PAYOUT transactions: {payoutTransactions.Count}");
 
@@ -137,7 +156,7 @@ namespace FeeBayConnectionTester.Services
             var transactionId = $"{order.OrderId}-{lineItem.LineItemId}";
 
             // (1) Product Sale Income
-            var saleAmount = lineItem.LineItemCost?.Value != null ? decimal.Parse(lineItem.LineItemCost.Value) : 0;
+            var saleAmount = lineItem.LineItemCost?.DollarAmount() ?? 0;
             entries.Add(new ToGnuCash
             {
                 Date = orderDate,
@@ -149,9 +168,7 @@ namespace FeeBayConnectionTester.Services
             });
 
             // (2) Shipping Income
-            var shippingAmount = lineItem.DeliveryCost?.ShippingCost?.Value != null 
-                ? decimal.Parse(lineItem.DeliveryCost.ShippingCost.Value) 
-                : 0;
+            var shippingAmount = lineItem.DeliveryCost?.ShippingCost?.DollarAmount() ?? 0;
 
             if (shippingAmount > 0)
             {
@@ -215,7 +232,8 @@ namespace FeeBayConnectionTester.Services
             }
 
             // (6) eBay Asset line (negative net amount from PAYOUT transaction)
-            var netAmount = transaction.Amount?.Value != null ? decimal.Parse(transaction.Amount.Value) : 0;
+           // var netAmount = transaction.Amount.GetDoll
+            var netAmount = transaction.Amount?.DollarAmount() ?? 0;
             // Calculate the proportional net for this line item if multiple items in order
             var orderLineItemCount = order.LineItems?.Count ?? 1;
             var proportionalNet = netAmount / orderLineItemCount;
