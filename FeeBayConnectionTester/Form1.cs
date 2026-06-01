@@ -11,6 +11,7 @@ using LocalDBConnections.StampDataDB.StampDataEntities;
 using System;
 using System.Collections.Generic;   
 using System.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FeeBayConnectionTester
 {
@@ -73,180 +74,56 @@ namespace FeeBayConnectionTester
             //    await ebayController.GetTransactionSummary(signingKey, multiFilter);
 
             //!GetTransactions
-            multiFilter = "transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
-            Transactions financialTransactionsContainer = await _eBayController.GetTransactions(signingKey, multiFilter);
+            multiFilter = "transactionDate:[2025-12-01T00:00:00.000Z..2025-12-31T23:59:59.000Z]";
+            Transactions financialTransactionsContainer = await _eBayController.GetTransactions(signingKey, multiFilter, sort: null, limit: 50);
             List<Transaction> financialTransactionList = financialTransactionsContainer.TransactionList;
 
 
 
-            string ordersFilter = "creationdate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.999Z]\r\n";
-            Orders ordersContainer = await _eBayController.GetOrders(ordersFilter);
+            string ordersFilter = "creationdate:[2025-12-01T00:00:00.000Z..2025-12-31T23:59:59.999Z]";
+            Orders ordersContainer = await _eBayController.GetOrders(ordersFilter,limit:50);
+            List<Order> orderList = ordersContainer.OrderList;
 
-            await FormatToSendToGnuCash(financialTransactionList);
+            await FormatToSendToGnuCash(orderList,financialTransactionList);
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
         }
         #endregion
+
         #region Methods
         #region Private Methods
-        private async Task<bool> FormatToSendToGnuCash(List<Transaction> transactions)
+        private async Task<bool> FormatToSendToGnuCash(List<Order> orders, List<Transaction> transactions)
         {
-            //! Sort into Transaction Types
-            var sales = transactions.Where(x => x.TransactionType == TransactionTypeEnum.SALE);
-            var refund = transactions.Where(x => x.TransactionType == TransactionTypeEnum.REFUND);
-            var credit = transactions.Where(x => x.TransactionType == TransactionTypeEnum.CREDIT);
-            var dispute = transactions.Where(x => x.TransactionType == TransactionTypeEnum.DISPUTE);
-            var shippingLabel = transactions.Where(x => x.TransactionType == TransactionTypeEnum.SHIPPING_LABEL);
-            var transfer = transactions.Where(x => x.TransactionType == TransactionTypeEnum.TRANSFER);
-            var nonSaleCharge = transactions.Where(x => x.TransactionType == TransactionTypeEnum.NON_SALE_CHARGE);
-            var adjustment = transactions.Where(x => x.TransactionType == TransactionTypeEnum.ADJUSTMENT);
-            var withdrawal = transactions.Where(x => x.TransactionType == TransactionTypeEnum.WITHDRAWAL);
-            var loanRepayment = transactions.Where(x => x.TransactionType == TransactionTypeEnum.LOAN_REPAYMENT);
-            var purchase = transactions.Where(x => x.TransactionType == TransactionTypeEnum.PURCHASE);
-
-            var totalTransactions = transactions.Count();
-            var salesTransactions = sales.Count();
-            var refundTransactions = refund.Count();
-            var creditTransactions = credit.Count();
-            var disputeTransactions = dispute.Count();
-            var shippingLabelTransactions = shippingLabel.Count();
-            var transferTransactions = transfer.Count();
-            var nonSaleChargeTransactions = nonSaleCharge.Count();
-            var adjustmentTransactions = adjustment.Count();
-            var withdrawalTransactions = withdrawal.Count();
-            var loanRepaymentTransactions = loanRepayment.Count();
-            var purchaseTransactions = purchase.Count();
-
-            //! Sort into Transaction Status
-            //var onHold = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.FUNDS_ON_HOLD);
-            //var processing = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.FUNDS_PROCESSING);
-            //var availableForPayout = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.FUNDS_AVAILABLE_FOR_PAYOUT);
-            //var payout = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.PAYOUT);
-            //var completed = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.COMPLETED);
-            //var failed = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.FAILED);
-
-            //var onHoldTransactions = onHold.Count();
-            //var processingTransactions = processing.Count();
-            //var availableForPayoutTransactions = availableForPayout.Count();
-            //var payoutTransactions = payout.Count();
-            //var completedTransactions = completed.Count();
-            //var failedTransactions = failed.Count();
-            foreach (var sale in sales)
+            foreach (var order in orders)
             {
-              //  var orderId = sale.OrderId;
-              ////  var orderInfo = await _eBayController.GetOrder(orderId);
-              //  var orderDate = sale.TransactionDate;
-              //  var sellingPrice = decimal.Parse(orderInfo.);
-              //  var shippingPrice = ParseOutTotalShippingCharge(sale);
+                var orderId = order.OrderId;
+                var financialTransactionForOrder = transactions.Where(x => x.OrderId == orderId);
+                if (!financialTransactionForOrder.Any()) 
+                { 
 
+                }
 
+                foreach (var orderItem in order.LineItems)
+                {
+                    ToGnuCash salesLineIncome = MakeSalesLine(order, financialTransactionForOrder, 1);
+                    ToGnuCash shippingIncome = MakeShippingIncomeLine(order, financialTransactionForOrder, 2);
+                    ToGnuCash fixedFeeLineExpense = MakeFixedFeeLine(order, financialTransactionForOrder, 3);
+                    ToGnuCash variableFeeLineExpense = MakeVariableFeeLine(order, financialTransactionForOrder, 4);
+                    ToGnuCash internationalFeeExpense = MakeInternationalFeeLine(order, financialTransactionForOrder, 5);
+                    ToGnuCash feeBayAssetsLine = MakeFeeBayAssettsLine(order, financialTransactionForOrder, 6);
+                    ToGnuCash cogsLine = MakeCOGSLine(order, financialTransactionForOrder, 7);
+                    ToGnuCash inventoryLine = MakeInventoryLine(order, financialTransactionForOrder, 8);
+                }
             }
             return true;
         }
-            //foreach (var order in sales)
-            //{
-            //    var skusInOrder = PullOutSkus(order.OrderLineItems);
-            //    var orderDate = order.First().Transaction_creation_date;
-            //    var orderId = order.First().Order_number;
-            //    var sellingPrice = order.Sum(x => decimal.Parse(x.Item_subtotal));
-            //    var shippingPrice = order.Sum(x => decimal.Parse(x.Shipping_and_handling));
-            //    var fixedFees = order.Sum(x => decimal.Parse(x.FVF_fixed));
-            //    var variableFees = order.Sum(x => decimal.Parse(x.FVF_variable));
-            //    var net = order.Sum(x => decimal.Parse(x.Net_amount));
-            //    var internationalFees = order.Sum(x => decimal.Parse(x.International_fee));
-            //    var gross = order.Sum(x => decimal.Parse(x.Gross_transaction_amount));
-            //    var numberSold = order.Count(x => !string.Equals(x.Sku, "--", StringComparison.Ordinal));
-            //    if (sellingPrice + shippingPrice != gross)
-            //    {
-            //        MessageBox.Show(
-            //            $"Gross amount {gross} does not equal selling price {sellingPrice} + shipping price {shippingPrice}");
-            //    }
-            //    if (gross + fixedFees + variableFees + internationalFees != net)
-            //    {
-            //        MessageBox.Show(
-            //            $"Net amount {net} does not equal gross amount {gross} - fixed fees {fixedFees} - variable fees {variableFees}");
-            //    }
-            //    var incomeLineDescription = string.Empty;
-            //    if (numberSold == 1)
-            //    {
-            //        incomeLineDescription = $"feeBay Order #{orderId} - {order.First().Item_title}";
-            //    }
-            //    else
-            //    {
-            //        incomeLineDescription = $"feeBay Order #{orderId} - {numberSold} items sold";
-            //    }
 
-            //    // income line
-            //    try
-            //    {
-            //        var incomeLine = new Stripe.StripeModels.OutputData();
-            //        incomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
-            //        incomeLine.Account = $"Income:{feeBayName2} Sales";
-            //        incomeLine.Description = incomeLineDescription;
-            //        incomeLine.Amount = sellingPrice + shippingPrice;
-            //        incomeLine.TransactionId = orderId;
-            //        incomeLine.SortOrder = 1;
-            //        outputData.Add(incomeLine);
-            //    }
-            //    catch (Exception)
-            //    {
-            //        throw;
-            //    }
-
-            //    // fixed fee Line
-            //    try
-            //    {
-            //        var fixedFeeLine = new Stripe.StripeModels.OutputData();
-            //        fixedFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
-            //        fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBayName1}:Fixed Fee Per Sale";
-            //        fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-            //        fixedFeeLine.Amount = fixedFees;
-            //        fixedFeeLine.TransactionId = orderId;
-            //        fixedFeeLine.SortOrder = 2;
-            //        outputData.Add(fixedFeeLine);
-            //    }
-            //    catch (Exception)
-            //    {
-            //        throw;
-            //    }
-
-            //    // variable fee line
-            //    try
-            //    {
-            //        var variableFeeLine = new Stripe.StripeModels.OutputData();
-            //        variableFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
-            //        variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBayName1}:Final Value Fees";
-            //        variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-            //        variableFeeLine.Amount = variableFees;
-            //        variableFeeLine.TransactionId = orderId;
-            //        variableFeeLine.SortOrder = 3;
-            //        outputData.Add(variableFeeLine);
-            //    }
-            //    catch (Exception)
-            //    {
-            //        throw;
-            //    }
-
-            //    //add the remaining money to feeBay current assett
-            //    try
-            //    {
-            //        var netIncomeLine = new Stripe.StripeModels.OutputData();
-            //        netIncomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
-            //        netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBayName2}";
-            //        netIncomeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-            //        netIncomeLine.Amount = -net;
-            //        netIncomeLine.TransactionId = orderId;
-            //        netIncomeLine.SortOrder = 4;
-            //        outputData.Add(netIncomeLine);
-            //    }
-            //    catch (Exception)
-            //    {
-            //        throw;
-            //    }
-
-            //    //international fees line
+        private ToGnuCash MakeInternationalFeeLine(Order order, IEnumerable<Transaction> financialTransactionForOrder, int v)
+        {
+            return new ToGnuCash();
+            //international fees line
             //    try
             //    {
             //        if (internationalFees != 0)
@@ -265,24 +142,54 @@ namespace FeeBayConnectionTester
             //    {
             //        throw;
             //    }
+        }
+        private void Form1_Load_1(object sender, EventArgs e)
+        {
+        }
 
-            //    // And add to the cost of goods sold
-            //    try
-            //    {
-            //        Stripe.StripeModels.OutputData feeBayCOGSRecord = new();
-            //        feeBayCOGSRecord.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
-            //        feeBayCOGSRecord.Account = "Expenses:Cost of Goods Sold";
-            //        feeBayCOGSRecord.Description = $"{incomeLineDescription} COGS";
-            //        feeBayCOGSRecord.Amount = MakeCogsForFullOrder(sellingPrice, skusInOrder);
-            //        feeBayCOGSRecord.TransactionId = orderId;
-            //        feeBayCOGSRecord.SortOrder = 6;
-            //        outputData.Add(feeBayCOGSRecord);
-            //    }
-            //    catch (Exception)
-            //    {
-            //        throw;
-            //    }
+        private ToGnuCash MakeShippingIncomeLine(Order order, IEnumerable<Transaction> financialTransactionForOrder, int v) => throw new NotImplementedException();
 
+        //! Sort into Transaction Types
+        //var sales = transactions.Where(x => x.TransactionType == TransactionTypeEnum.SALE);
+
+
+        //var totalTransactions = transactions.Count();
+        //var salesTransactions = sales.Count();
+        //var refundTransactions = refund.Count();
+        //var creditTransactions = credit.Count();
+        //var disputeTransactions = dispute.Count();
+        //var shippingLabelTransactions = shippingLabel.Count();
+        //var transferTransactions = transfer.Count();
+        //var nonSaleChargeTransactions = nonSaleCharge.Count();
+        //var adjustmentTransactions = adjustment.Count();
+        //var withdrawalTransactions = withdrawal.Count();
+        //var loanRepaymentTransactions = loanRepayment.Count();
+        //var purchaseTransactions = purchase.Count();
+
+        //! Sort into Transaction Status
+        //var onHold = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.FUNDS_ON_HOLD);
+        //var processing = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.FUNDS_PROCESSING);
+        //var availableForPayout = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.FUNDS_AVAILABLE_FOR_PAYOUT);
+        //var payout = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.PAYOUT);
+        //var completed = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.COMPLETED);
+        //var failed = financialTransactionsContainer.Where(x => x.TransactionStatus == TransactionStatusEnum.FAILED);
+
+        //var onHoldTransactions = onHold.Count();
+        //var processingTransactions = processing.Count();
+        //var availableForPayoutTransactions = availableForPayout.Count();
+        //var payoutTransactions = payout.Count();
+        //var completedTransactions = completed.Count();
+        //var failedTransactions = failed.Count();
+
+
+
+        //}
+        //return true;
+        //}
+
+        private ToGnuCash MakeInventoryLine(Order order, IEnumerable<Transaction> financialTransactionForOrder, int sortOrder)
+        {
+            var line = new ToGnuCash();
             //    // now subtract the cost of the sold stuff from inventory
             //    try
             //    {
@@ -300,9 +207,129 @@ namespace FeeBayConnectionTester
             //        throw;
             //    }
             //}
+            return line;
+        }
+        private ToGnuCash MakeCOGSLine(Order order, IEnumerable<Transaction> financialTransactionForOrder, int sortOrder)
+        {
+            var line = new ToGnuCash();
+            // And add to the cost of goods sold
+            //    try
+            //    {
+            //        Stripe.StripeModels.OutputData feeBayCOGSRecord = new();
+            //        feeBayCOGSRecord.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+            //        feeBayCOGSRecord.Account = "Expenses:Cost of Goods Sold";
+            //        feeBayCOGSRecord.Description = $"{incomeLineDescription} COGS";
+            //        feeBayCOGSRecord.Amount = MakeCogsForFullOrder(sellingPrice, skusInOrder);
+            //        feeBayCOGSRecord.TransactionId = orderId;
+            //        feeBayCOGSRecord.SortOrder = 6;
+            //        outputData.Add(feeBayCOGSRecord);
+            //    }
+            //    catch (Exception)
+            //    {
+            //        throw;
+            //    }
+            return line;
+        }
+        private ToGnuCash MakeFeeBayAssettsLine(Order order, IEnumerable<Transaction> financialTransactionForOrder, int sortOrder)
+        {
+            var line = new ToGnuCash();
+            try
+            {
+                var net = financialTransactionForOrder.Sum(t => Decimal.Parse(t.Amount.Value));
+                line.Date = DateTime.Parse(order.CreationDate);
+                line.Account = $"Assets:Current Assets:feeBay:Simmons_Ink";
+                line.Description = $"feeBay Order #{order.OrderId} - {order.LineItems.Count} items sold";
+                line.Amount = -net;
+                line.TransactionId = order.OrderId;
+                line.SortOrder = sortOrder;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return line;
+        }
+        private ToGnuCash MakeVariableFeeLine(Order order, IEnumerable<Transaction> financialTransactionForOrder, int sortOrder)
+        {
+            var line = new ToGnuCash();
+            //    // variable fee line
+            //    try
+            //    {
+            //        var variableFeeLine = new Stripe.StripeModels.OutputData();
+            //        variableFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+            //        variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBayName1}:Final Value Fees";
+            //        variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+            //        variableFeeLine.Amount = variableFees;
+            //        variableFeeLine.TransactionId = orderId;
+            //        variableFeeLine.SortOrder = 3;
+            //        outputData.Add(variableFeeLine);
+            //    }
+            //    catch (Exception)
+            //    {
+            //        throw;
+            //    }
+            return line;
+        }
+        private ToGnuCash MakeFixedFeeLine(Order order, IEnumerable<Transaction> financialTransactionForOrder, int sortOrder)
+        {
+            var line = new ToGnuCash();
+            // fixed fee Line
+            //    try
+            //    {
+            //        var fixedFeeLine = new Stripe.StripeModels.OutputData();
+            //        fixedFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+            //        fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBayName1}:Fixed Fee Per Sale";
+            //        fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+            //        fixedFeeLine.Amount = fixedFees;
+            //        fixedFeeLine.TransactionId = orderId;
+            //        fixedFeeLine.SortOrder = 2;
+            //        outputData.Add(fixedFeeLine);
+            //    }
+            //    catch (Exception)
+            //    {
+            //        throw;
+            //    }
+            return line;
+        }
+        private ToGnuCash MakeSalesLine(Order order, IEnumerable<Transaction> financialTransactionForOrder, int sortOrder)
+        {
+            // total sale less shipping charge
+            var line = new ToGnuCash();
+            line.Date = DateTime.Parse(order.CreationDate);
+            line.Account = $"Income:feeBay SI Sales:Product Sale";
+            line.Description = $"feeBay Order #{order.OrderId} - {order.LineItems.First().Title}";
+            line.Amount = Decimal.Parse(order.PricingSummary.PriceSubtotal.Value);
+
+            var SKU = order.LineItems.First().SKU;
+            var productTitle = order.LineItems.First().Title;
+            return line;
+            //        var incomeLine = new Stripe.StripeModels.OutputData();
+            //        incomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+            //        incomeLine.Account = $"Income:{feeBayName2} Sales";
+            //        incomeLine.Description = incomeLineDescription;
+            //        incomeLine.Amount = sellingPrice + shippingPrice;
+            //        incomeLine.TransactionId = orderId;
+            //        incomeLine.SortOrder = 1;
+            //        outputData.Add(incomeLine);
+        }
 
 
-        //}
+        //    if (gross + fixedFees + variableFees + internationalFees != net)
+        //    {
+        //        MessageBox.Show(
+        //            $"Net amount {net} does not equal gross amount {gross} - fixed fees {fixedFees} - variable fees {variableFees}");
+        //    }
+        //    var incomeLineDescription = string.Empty;
+        //    if (numberSold == 1)
+        //    {
+        //        incomeLineDescription = $"feeBay Order #{orderId} - {order.First().Item_title}";
+        //    }
+        //    else
+        //    {
+        //        incomeLineDescription = $"feeBay Order #{orderId} - {numberSold} items sold";
+        //    }
+
+       
 
         private decimal ParseOutTotalShippingCharge(Transaction sale) 
         {
