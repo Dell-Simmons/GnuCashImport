@@ -41,6 +41,7 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region Event handlers
+        #region Button1 Click Workflow
         private async void button1_Click(object sender, EventArgs e)
         {
             // token identifies the user and application,
@@ -65,7 +66,7 @@ namespace FeeBayConnectionTester
             // Combine multiple filters into ONE comma-separated string
 
             //!{PAYOUT} is funds going from feeBay to bank account
-            multiFilter = "transactionStatus:{PAYOUT},transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
+            // multiFilter = "transactionStatus:{PAYOUT},transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
 
             //TransactionSummary transactionPayoutSummary = 
             //    await ebayController.GetTransactionSummary(signingKey, multiFilter);
@@ -75,16 +76,13 @@ namespace FeeBayConnectionTester
             //TransactionSummary transactionCompletedSummary =
             //    await ebayController.GetTransactionSummary(signingKey, multiFilter);
 
-            //!GetTransactions
-            multiFilter = "transactionDate:[2025-12-01T00:00:00.000Z..2025-12-31T23:59:59.000Z]";
-            Transactions financialTransactionsContainer = await _eBayController.GetTransactions(signingKey, multiFilter, sort: null, limit: 50);
-            List<Transaction> financialTransactionList = financialTransactionsContainer.TransactionList;
+            //!GetTransactions with pagination
+            multiFilter = "transactionDate:[2026-05-01T00:00:00.000Z..2026-05-31T23:59:59.000Z]";
+            List<Transaction> financialTransactionList = await GetAllTransactionsPaginated(signingKey, multiFilter, limit: 50);
 
-
-
-            string ordersFilter = "creationdate:[2025-12-01T00:00:00.000Z..2025-12-31T23:59:59.999Z]";
-            Orders ordersContainer = await _eBayController.GetOrders(ordersFilter,limit:50);
-            List<Order> orderList = ordersContainer.OrderList;
+            //!GetOrders with pagination
+            string ordersFilter = "creationdate:[2026-05-01T00:00:00.000Z..2026-05-31T23:59:59.999Z]";
+            List<Order> orderList = await GetAllOrdersPaginated(ordersFilter, limit: 50);
 
             await FormatToSendToGnuCash(orderList, financialTransactionList);
         }
@@ -93,9 +91,82 @@ namespace FeeBayConnectionTester
         {
         }
         #endregion
+        #endregion
 
         #region Methods
         #region Private Methods
+        private async Task<List<Transaction>> GetAllTransactionsPaginated(SigningKey signingKey, string filter, int limit = 50)
+        {
+            var allTransactions = new List<Transaction>();
+            int offset = 0;
+            bool hasMore = true;
+
+            while (hasMore)
+            {
+                // Append offset to filter if not the first page
+                string paginatedFilter = offset > 0 ? $"{filter},offset:{offset}" : filter;
+
+                Transactions transactionsContainer = await _eBayController.GetTransactions(
+                    signingKey, 
+                    paginatedFilter, 
+                    sort: null, 
+                    limit: limit);
+
+                if (transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
+                {
+                    allTransactions.AddRange(transactionsContainer.TransactionList);
+                    Console.WriteLine($"Retrieved {transactionsContainer.TransactionList.Count} transactions (Total so far: {allTransactions.Count})");
+                }
+
+                // Check if there are more pages
+                hasMore = !string.IsNullOrEmpty(transactionsContainer.Next);
+                offset += limit;
+
+                // Safety check: if we've retrieved all transactions
+                if (allTransactions.Count >= transactionsContainer.Total)
+                {
+                    hasMore = false;
+                }
+            }
+
+            Console.WriteLine($"Completed pagination. Total transactions retrieved: {allTransactions.Count}");
+            return allTransactions;
+        }
+
+        private async Task<List<Order>> GetAllOrdersPaginated(string filter, int limit = 50)
+        {
+            var allOrders = new List<Order>();
+            int offset = 0;
+            bool hasMore = true;
+
+            while (hasMore)
+            {
+                // Append offset to filter if not the first page
+                string paginatedFilter = offset > 0 ? $"{filter},offset:{offset}" : filter;
+
+                Orders ordersContainer = await _eBayController.GetOrders(paginatedFilter, limit: limit);
+
+                if (ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
+                {
+                    allOrders.AddRange(ordersContainer.OrderList);
+                    Console.WriteLine($"Retrieved {ordersContainer.OrderList.Count} orders (Total so far: {allOrders.Count})");
+                }
+
+                // Check if there are more pages
+                hasMore = !string.IsNullOrEmpty(ordersContainer.Next);
+                offset += limit;
+
+                // Safety check: if we've retrieved all orders
+                if (allOrders.Count >= ordersContainer.Total)
+                {
+                    hasMore = false;
+                }
+            }
+
+            Console.WriteLine($"Completed pagination. Total orders retrieved: {allOrders.Count}");
+            return allOrders;
+        }
+
         private async Task<bool> FormatToSendToGnuCash(List<Order> orders, List<Transaction> transactions)
         {
             try

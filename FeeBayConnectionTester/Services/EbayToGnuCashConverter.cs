@@ -47,40 +47,42 @@ namespace FeeBayConnectionTester.Services
             var payoutTransactions = transactions
                 .Where(t => t.TransactionStatus == TransactionStatusEnum.PAYOUT)
                 .ToList();
-            var completedTransactions = transactions
-                .Where(t => t.TransactionStatus == TransactionStatusEnum.COMPLETED)
-                .ToList();
-            var failedTransactions = transactions
-                .Where(t => t.TransactionStatus == TransactionStatusEnum.FAILED)
-                .ToList();
-            var fundsProcessingTransactions = transactions
-                .Where(t => t.TransactionStatus == TransactionStatusEnum.FUNDS_PROCESSING)
-                .ToList();
-             var fundsAvailableForPayoutTransactions = transactions
-                .Where(t => t.TransactionStatus == TransactionStatusEnum.FUNDS_AVAILABLE_FOR_PAYOUT)
-                .ToList();
-            var fundsOnHoldTransactions = transactions
-                .Where(t => t.TransactionStatus == TransactionStatusEnum.FUNDS_ON_HOLD)
-                .ToList();
-
-            // now same for orders 
-            var asdf = orders
-                .Where(o => o.)
 
             Console.WriteLine($"Total transactions: {transactions.Count}, PAYOUT transactions: {payoutTransactions.Count}");
 
-            // Group PAYOUT transactions by OrderId for efficient lookup
-            var payoutsByOrderId = payoutTransactions.ToLookup(t => t.OrderId);
+            // Split PAYOUT transactions by type
+            var saleTransactions = payoutTransactions
+                .Where(t => t.TransactionType == TransactionTypeEnum.SALE)
+                .ToList();
 
-            var lineItemFeeMap = BuildLineItemFeeMap(payoutTransactions);
+            var nonSaleTransactions = payoutTransactions
+                .Where(t => t.TransactionType != TransactionTypeEnum.SALE)
+                .ToList();
+
+            // Log transaction type distribution
+            var transactionTypeGroups = payoutTransactions
+                .GroupBy(t => t.TransactionType?.ToString() ?? "NULL")
+                .OrderBy(g => g.Key);
+
+            Console.WriteLine("\n=== PAYOUT Transaction Type Distribution ===");
+            foreach (var group in transactionTypeGroups)
+            {
+                Console.WriteLine($"  {group.Key}: {group.Count()}");
+            }
+            Console.WriteLine($"Total SALE: {saleTransactions.Count}, Non-SALE: {nonSaleTransactions.Count}\n");
+
+            // Group SALE transactions by OrderId for efficient lookup
+            var payoutsByOrderId = saleTransactions.ToLookup(t => t.OrderId);
+
+            var lineItemFeeMap = BuildLineItemFeeMap(saleTransactions);
 
             foreach (var order in orders)
             {
-                // Skip orders without matching PAYOUT transactions
+                // Skip orders without matching PAYOUT SALE transactions
                 if (!payoutsByOrderId.Contains(order.OrderId))
                 {
-                    Console.WriteLine($"Skipping order {order.OrderId} - no PAYOUT transaction found");
-                    validationErrors.Add($"Order {order.OrderId} - no PAYOUT transaction found");
+                    Console.WriteLine($"Skipping order {order.OrderId} dated {order.CreationDate} - no PAYOUT SALE transaction found");
+                    validationErrors.Add($"Order {order.OrderId} dated {order.CreationDate} - no PAYOUT SALE transaction found");
                     continue;
                 }
 
@@ -88,8 +90,8 @@ namespace FeeBayConnectionTester.Services
 
                 if (!orderTransactions.Any())
                 {
-                    Console.WriteLine($"Warning: Order {order.OrderId} has no matching PAYOUT transactions");
-                    validationErrors.Add($"Order {order.OrderId} has no matching PAYOUT transactions");
+                    Console.WriteLine($"Warning: Order {order.OrderId} has no matching PAYOUT SALE transactions");
+                    validationErrors.Add($"Order {order.OrderId} has no matching PAYOUT SALE transactions");
                     continue;
                 }
 
@@ -103,8 +105,31 @@ namespace FeeBayConnectionTester.Services
                     }
 
                     var financeLineItem = lineItemFeeMap[lineItem.LineItemId];
-                    var lineItemEntries = ProcessSaleLineItem(lineItem, order, financeLineItem, orderTransactions.First(), feeBayUserName);
+                    var transaction = orderTransactions.First();
+                    var lineItemEntries = ProcessTransaction(transaction, feeBayUserName, order, lineItem, financeLineItem);
                     result.AddRange(lineItemEntries);
+                }
+            }
+
+            // Process standalone non-SALE transactions (independently from orders)
+            Console.WriteLine($"\n=== Processing {nonSaleTransactions.Count} standalone non-SALE transactions ===");
+            foreach (var transaction in nonSaleTransactions)
+            {
+                try
+                {
+                    var transactionEntries = ProcessTransaction(transaction, feeBayUserName);
+                    result.AddRange(transactionEntries);
+                    Console.WriteLine($"Processed {transaction.TransactionType} transaction {transaction.TransactionId}");
+                }
+                catch (NotImplementedException ex)
+                {
+                    Console.WriteLine($"Skipping transaction {transaction.TransactionId}: {ex.Message}");
+                    validationErrors.Add($"Transaction {transaction.TransactionId}: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing transaction {transaction.TransactionId}: {ex.Message}");
+                    validationErrors.Add($"Transaction {transaction.TransactionId}: {ex.Message}");
                 }
             }
 
@@ -310,6 +335,35 @@ namespace FeeBayConnectionTester.Services
                 return sellingPrice * 0.5m;
             }
         }
+
+        private List<ToGnuCash> ProcessTransaction(
+            Transaction transaction,
+            string feeBayUserName,
+            Order order = null,
+            LineItem lineItem = null,
+            OrderLineItem financeLineItem = null)
+        {
+            if (!transaction.TransactionType.HasValue)
+            {
+                throw new NotImplementedException($"Transaction {transaction.TransactionId} has null TransactionType");
+            }
+
+            return transaction.TransactionType.Value switch
+            {
+                TransactionTypeEnum.SALE => ProcessSaleLineItem(lineItem, order, financeLineItem, transaction, feeBayUserName),
+                TransactionTypeEnum.REFUND => ProcessRefund(transaction, feeBayUserName),
+                TransactionTypeEnum.CREDIT => ProcessCredit(transaction, feeBayUserName),
+                TransactionTypeEnum.DISPUTE => ProcessDispute(transaction, feeBayUserName),
+                TransactionTypeEnum.SHIPPING_LABEL => ProcessShippingLabel(transaction, feeBayUserName),
+                TransactionTypeEnum.TRANSFER => ProcessTransfer(transaction, feeBayUserName),
+                TransactionTypeEnum.NON_SALE_CHARGE => ProcessNonSaleCharge(transaction, feeBayUserName),
+                TransactionTypeEnum.ADJUSTMENT => ProcessAdjustment(transaction, feeBayUserName),
+                TransactionTypeEnum.WITHDRAWAL => ProcessWithdrawal(transaction, feeBayUserName),
+                TransactionTypeEnum.LOAN_REPAYMENT => ProcessLoanRepayment(transaction, feeBayUserName),
+                TransactionTypeEnum.PURCHASE => ProcessPurchase(transaction, feeBayUserName),
+                _ => throw new NotImplementedException($"Unknown transaction type: {transaction.TransactionType}")
+            };
+        }
         #endregion
 
         #region Transaction Type Handlers (Step 7)
@@ -323,6 +377,18 @@ namespace FeeBayConnectionTester.Services
         {
             // TODO: Implement credit processing
             throw new NotImplementedException($"Transaction type CREDIT not yet implemented for transaction {transaction.TransactionId}");
+        }
+
+        private List<ToGnuCash> ProcessDispute(Transaction transaction, string feeBayUserName)
+        {
+            // TODO: Implement dispute processing
+            throw new NotImplementedException($"Transaction type DISPUTE not yet implemented for transaction {transaction.TransactionId}");
+        }
+
+        private List<ToGnuCash> ProcessShippingLabel(Transaction transaction, string feeBayUserName)
+        {
+            // TODO: Implement shipping label processing
+            throw new NotImplementedException($"Transaction type SHIPPING_LABEL not yet implemented for transaction {transaction.TransactionId}");
         }
 
         private List<ToGnuCash> ProcessTransfer(Transaction transaction, string feeBayUserName)
