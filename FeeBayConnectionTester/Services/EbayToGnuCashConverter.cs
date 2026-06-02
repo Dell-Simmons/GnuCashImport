@@ -43,83 +43,24 @@ namespace FeeBayConnectionTester.Services
             var result = new List<ToGnuCash>();
             var validationErrors = new List<string>();
 
-            // Filter for PAYOUT transactions only
-            var payoutTransactions = transactions
-                .Where(t => t.TransactionStatus == TransactionStatusEnum.PAYOUT)
-                .ToList();
-
-            Console.WriteLine($"Total transactions: {transactions.Count}, PAYOUT transactions: {payoutTransactions.Count}");
-
-            // Split PAYOUT transactions by type
-            var saleTransactions = payoutTransactions
-                .Where(t => t.TransactionType == TransactionTypeEnum.SALE)
-                .ToList();
-
-            var nonSaleTransactions = payoutTransactions
-                .Where(t => t.TransactionType != TransactionTypeEnum.SALE)
-                .ToList();
-
-            // Log transaction type distribution
-            var transactionTypeGroups = payoutTransactions
-                .GroupBy(t => t.TransactionType?.ToString() ?? "NULL")
+            // Group transactions by status
+            var transactionsByStatus = transactions
+                .GroupBy(t => t.TransactionStatus?.ToString() ?? "NULL")
                 .OrderBy(g => g.Key);
 
-            Console.WriteLine("\n=== PAYOUT Transaction Type Distribution ===");
-            foreach (var group in transactionTypeGroups)
+            Console.WriteLine("\n=== Transaction Status Distribution ===");
+            foreach (var group in transactionsByStatus)
             {
                 Console.WriteLine($"  {group.Key}: {group.Count()}");
             }
-            Console.WriteLine($"Total SALE: {saleTransactions.Count}, Non-SALE: {nonSaleTransactions.Count}\n");
 
-            // Group SALE transactions by OrderId for efficient lookup
-            var payoutsByOrderId = saleTransactions.ToLookup(t => t.OrderId);
-
-            var lineItemFeeMap = BuildLineItemFeeMap(saleTransactions);
-
-            foreach (var order in orders)
-            {
-                // Skip orders without matching PAYOUT SALE transactions
-                if (!payoutsByOrderId.Contains(order.OrderId))
-                {
-                    Console.WriteLine($"Skipping order {order.OrderId} dated {order.CreationDate} - no PAYOUT SALE transaction found");
-                    validationErrors.Add($"Order {order.OrderId} dated {order.CreationDate} - no PAYOUT SALE transaction found");
-                    continue;
-                }
-
-                var orderTransactions = payoutsByOrderId[order.OrderId].ToList();
-
-                if (!orderTransactions.Any())
-                {
-                    Console.WriteLine($"Warning: Order {order.OrderId} has no matching PAYOUT SALE transactions");
-                    validationErrors.Add($"Order {order.OrderId} has no matching PAYOUT SALE transactions");
-                    continue;
-                }
-
-                foreach (var lineItem in order.LineItems)
-                {
-                    if (!lineItemFeeMap.ContainsKey(lineItem.LineItemId))
-                    {
-                        Console.WriteLine($"Warning: LineItem {lineItem.LineItemId} not found in transaction fee map");
-                        validationErrors.Add($"LineItem {lineItem.LineItemId} not found in transaction fee map");
-                        continue;
-                    }
-
-                    var financeLineItem = lineItemFeeMap[lineItem.LineItemId];
-                    var transaction = orderTransactions.First();
-                    var lineItemEntries = ProcessTransaction(transaction, feeBayUserName, order, lineItem, financeLineItem);
-                    result.AddRange(lineItemEntries);
-                }
-            }
-
-            // Process standalone non-SALE transactions (independently from orders)
-            Console.WriteLine($"\n=== Processing {nonSaleTransactions.Count} standalone non-SALE transactions ===");
-            foreach (var transaction in nonSaleTransactions)
+            // Process each transaction based on its status
+            foreach (var transaction in transactions)
             {
                 try
                 {
-                    var transactionEntries = ProcessTransaction(transaction, feeBayUserName);
+                    var transactionEntries = ProcessTransactionByStatus(transaction, orders, feeBayUserName);
                     result.AddRange(transactionEntries);
-                    Console.WriteLine($"Processed {transaction.TransactionType} transaction {transaction.TransactionId}");
                 }
                 catch (NotImplementedException ex)
                 {
@@ -148,6 +89,86 @@ namespace FeeBayConnectionTester.Services
         #endregion
 
         #region Private Methods
+        private List<ToGnuCash> ProcessTransactionByStatus(
+            Transaction transaction,
+            List<Order> orders,
+            string feeBayUserName)
+        {
+            if (!transaction.TransactionStatus.HasValue)
+            {
+                throw new NotImplementedException($"Transaction {transaction.TransactionId} has null TransactionStatus");
+            }
+
+            return transaction.TransactionStatus.Value switch
+            {
+                TransactionStatusEnum.PAYOUT => ProcessPayoutTransaction(transaction, orders, feeBayUserName),
+                TransactionStatusEnum.FUNDS_ON_HOLD => throw new NotImplementedException($"Transaction status FUNDS_ON_HOLD not yet implemented for transaction {transaction.TransactionId}"),
+                TransactionStatusEnum.FUNDS_PROCESSING => throw new NotImplementedException($"Transaction status FUNDS_PROCESSING not yet implemented for transaction {transaction.TransactionId}"),
+                TransactionStatusEnum.FUNDS_AVAILABLE_FOR_PAYOUT => throw new NotImplementedException($"Transaction status FUNDS_AVAILABLE_FOR_PAYOUT not yet implemented for transaction {transaction.TransactionId}"),
+                TransactionStatusEnum.COMPLETED => throw new NotImplementedException($"Transaction status COMPLETED not yet implemented for transaction {transaction.TransactionId}"),
+                TransactionStatusEnum.FAILED => throw new NotImplementedException($"Transaction status FAILED not yet implemented for transaction {transaction.TransactionId}"),
+                _ => throw new NotImplementedException($"Unknown transaction status: {transaction.TransactionStatus}")
+            };
+        }
+
+        private List<ToGnuCash> ProcessPayoutTransaction(
+            Transaction transaction,
+            List<Order> orders,
+            string feeBayUserName)
+        {
+            // Split PAYOUT transactions by type
+            if (transaction.TransactionType == TransactionTypeEnum.SALE)
+            {
+                return ProcessPayoutSaleTransaction(transaction, orders, feeBayUserName);
+            }
+            else
+            {
+                return ProcessPayoutNonSaleTransaction(transaction, feeBayUserName);
+            }
+        }
+
+        private List<ToGnuCash> ProcessPayoutSaleTransaction(
+            Transaction transaction,
+            List<Order> orders,
+            string feeBayUserName)
+        {
+            var result = new List<ToGnuCash>();
+
+            // Find the matching order
+            var order = orders.FirstOrDefault(o => o.OrderId == transaction.OrderId);
+            if (order == null)
+            {
+                Console.WriteLine($"Warning: Order {transaction.OrderId} not found for PAYOUT SALE transaction {transaction.TransactionId}");
+                return result;
+            }
+
+            // Build line item fee map for this transaction
+            var lineItemFeeMap = BuildLineItemFeeMap(new List<Transaction> { transaction });
+
+            foreach (var lineItem in order.LineItems)
+            {
+                if (!lineItemFeeMap.ContainsKey(lineItem.LineItemId))
+                {
+                    Console.WriteLine($"Warning: LineItem {lineItem.LineItemId} not found in transaction fee map");
+                    continue;
+                }
+
+                var financeLineItem = lineItemFeeMap[lineItem.LineItemId];
+                var lineItemEntries = ProcessTransaction(transaction, feeBayUserName, order, lineItem, financeLineItem);
+                result.AddRange(lineItemEntries);
+            }
+
+            return result;
+        }
+
+        private List<ToGnuCash> ProcessPayoutNonSaleTransaction(
+            Transaction transaction,
+            string feeBayUserName)
+        {
+            Console.WriteLine($"Processing {transaction.TransactionType} PAYOUT transaction {transaction.TransactionId}");
+            return ProcessTransaction(transaction, feeBayUserName);
+        }
+
         private Dictionary<string, OrderLineItem> BuildLineItemFeeMap(List<Transaction> transactions)
         {
             var map = new Dictionary<string, OrderLineItem>();
@@ -257,7 +278,6 @@ namespace FeeBayConnectionTester.Services
             }
 
             // (6) eBay Asset line (negative net amount from PAYOUT transaction)
-           // var netAmount = transaction.Amount.GetDoll
             var netAmount = transaction.Amount?.DollarAmount() ?? 0;
             // Calculate the proportional net for this line item if multiple items in order
             var orderLineItemCount = order.LineItems?.Count ?? 1;
