@@ -107,10 +107,8 @@ namespace FeeBayConnectionTester
                 string paginatedFilter = offset > 0 ? $"{filter},offset:{offset}" : filter;
 
                 Transactions transactionsContainer = await _eBayController.GetTransactions(
-                    signingKey, 
-                    paginatedFilter, 
-                    sort: null, 
-                    limit: limit);
+                    filter,null,limit,offset);
+                   
 
                 if (transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
                 {
@@ -144,7 +142,8 @@ namespace FeeBayConnectionTester
                 // Append offset to filter if not the first page
                 string paginatedFilter = offset > 0 ? $"{filter},offset:{offset}" : filter;
 
-                Orders ordersContainer = await _eBayController.GetOrders(paginatedFilter, limit: limit);
+                Orders ordersContainer = await _eBayController.GetOrders(
+                    filter, limit, offset);
 
                 if (ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
                 {
