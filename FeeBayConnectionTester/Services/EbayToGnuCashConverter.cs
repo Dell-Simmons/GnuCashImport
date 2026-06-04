@@ -407,7 +407,29 @@ namespace FeeBayConnectionTester.Services
 
         private List<ToGnuCash> ProcessShippingLabel(Transaction transaction, string feeBayUserName)
         {
+             var entries = new List<ToGnuCash>();
+            var userMapping = FeeBayUserNameMap[feeBayUserName];
+              entries.Add(new ToGnuCash
+            {
+                Date = DateTime.Parse(transaction.TransactionDate)   ,          
+                Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
+                Description = $"{transaction.OrderId} - {transaction.TransactionMemo}",
+                Amount = (decimal)(transaction.Amount?.DollarAmount() ?? 0),
+                TransactionId = transaction.TransactionId,
+                SortOrder = 1
+            });
             // TODO: Implement shipping label processing
+              
+
+                   // var labelLineTo = new Stripe.StripeModels.OutputData();
+                   // labelLineTo.Date = DateOnly.FromDateTime(DateTime.Parse(label.Transaction_creation_date));
+                   // labelLineTo.Account = $"Expenses:Postage and Delivery";
+                   // labelLineTo.Description = string.Empty; //  payout.Description;
+                   // labelLineTo.Amount = decimal.Parse(label.Net_amount);
+                   // labelLineTo.TransactionId = label.Reference_ID;
+                   // labelLineTo.SortOrder = 2;
+                   // outputData.Add(labelLineTo);
+            
             throw new NotImplementedException($"Transaction type SHIPPING_LABEL not yet implemented for transaction {transaction.TransactionId}");
         }
 
