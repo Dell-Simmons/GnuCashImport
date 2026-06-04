@@ -371,7 +371,7 @@ namespace FeeBayConnectionTester.Services
             return transaction.TransactionType.Value switch
             {
                 TransactionTypeEnum.SALE => ProcessSaleLineItem(lineItem, order, financeLineItem, transaction, feeBayUserName),
-                TransactionTypeEnum.REFUND => ProcessRefund(transaction, feeBayUserName),
+                TransactionTypeEnum.REFUND => ProcessRefund(lineItem, order, financeLineItem, transaction, feeBayUserName),
                 TransactionTypeEnum.CREDIT => ProcessCredit(transaction, feeBayUserName),
                 TransactionTypeEnum.DISPUTE => ProcessDispute(transaction, feeBayUserName),
                 TransactionTypeEnum.SHIPPING_LABEL => ProcessShippingLabel(transaction, feeBayUserName),
@@ -387,11 +387,136 @@ namespace FeeBayConnectionTester.Services
         #endregion
 
         #region Transaction Type Handlers (Step 7)
-        private List<ToGnuCash> ProcessRefund(Transaction transaction, string feeBayUserName)
+     private List<ToGnuCash> ProcessRefund(
+            LineItem lineItem, 
+            Order order, 
+            OrderLineItem financeLineItem,
+            Transaction transaction,
+            string feeBayUserName)
         {
-            // TODO: Implement refund processing
-            throw new NotImplementedException($"Transaction type REFUND not yet implemented for transaction {transaction.TransactionId}");
+            var entries = new List<ToGnuCash>();
+            var userMapping = FeeBayUserNameMap[feeBayUserName];
+            var orderDate = DateTime.Parse(order.CreationDate);
+            var transactionId = $"{order.OrderId}-{lineItem.LineItemId}";
+
+            // (1) Product Sale Income
+            var saleAmount = lineItem.LineItemCost?.DollarAmount() ?? 0;
+            entries.Add(new ToGnuCash
+            {
+                Date = orderDate,
+                Account = $"Income:{userMapping.AssetAccount} Sales:Product Sale",
+                Description = $"eBay Order #{order.OrderId}-{lineItem.LineItemId} - {lineItem.SKU} - {lineItem.Title}",
+                Amount = -saleAmount,
+                TransactionId = transactionId,
+                SortOrder = 1
+            });
+
+            // (2) Shipping Income
+            var shippingAmount = lineItem.DeliveryCost?.ShippingCost?.DollarAmount() ?? 0;
+
+            if (shippingAmount > 0)
+            {
+                entries.Add(new ToGnuCash
+                {
+                    Date = orderDate,
+                    Account = $"Income:{userMapping.AssetAccount} Sales:Shipping",
+                    Description = string.Empty,
+                    Amount = shippingAmount,
+                    TransactionId = transactionId,
+                    SortOrder = 2
+                });
+            }
+
+            // (3) Fixed Fee Expense
+            var fixedFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER) ?? 0;
+            if (fixedFee > 0)
+            {
+                entries.Add(new ToGnuCash
+                {
+                    Date = orderDate,
+                    Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Fixed Fee Per Sale",
+                    Description = string.Empty,
+                    Amount = -fixedFee,
+                    TransactionId = transactionId,
+                    SortOrder = 3
+                });
+            }
+
+            // (4) Final Value Fee Expense
+            var finalValueFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_FEE) ?? 0;
+            var finalValueShippingFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_SHIPPING_FEE) ?? 0;
+            var totalFinalValueFee = finalValueFee + finalValueShippingFee;
+
+            if (totalFinalValueFee > 0)
+            {
+                entries.Add(new ToGnuCash
+                {
+                    Date = orderDate,
+                    Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Final Value Fees",
+                    Description = string.Empty,
+                    Amount = totalFinalValueFee,
+                    TransactionId = transactionId,
+                    SortOrder = 4
+                });
+            }
+
+            // (5) International Fee Expense
+            var internationalFee = financeLineItem.GetFeeByType(FeeTypeEnum.INTERNATIONAL_FEE) ?? 0;
+            if (internationalFee > 0)
+            {
+                entries.Add(new ToGnuCash
+                {
+                    Date = orderDate,
+                    Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:International Fee",
+                    Description = string.Empty,
+                    Amount = -internationalFee,
+                    TransactionId = transactionId,
+                    SortOrder = 5
+                });
+            }
+
+            // (6) eBay Asset line (negative net amount from PAYOUT transaction)
+            var netAmount = transaction.Amount?.DollarAmount() ?? 0;
+            // Calculate the proportional net for this line item if multiple items in order
+            var orderLineItemCount = order.LineItems?.Count ?? 1;
+            var proportionalNet = netAmount / orderLineItemCount;
+
+            entries.Add(new ToGnuCash
+            {
+                Date = orderDate,
+                Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
+                Description = string.Empty,
+                Amount = proportionalNet,
+                TransactionId = transactionId,
+                SortOrder = 6
+            });
+
+            // (7) COGS Expense
+            var cogs = CalculateCOGS(lineItem.SKU, saleAmount);
+            entries.Add(new ToGnuCash
+            {
+                Date = orderDate,
+                Account = "Expenses:Cost of Goods Sold",
+                Description = $"COGS for SKU {lineItem.SKU}",
+                Amount = -cogs,
+                TransactionId = transactionId,
+                SortOrder = 7
+            });
+
+            // (8) Inventory Asset increase (negative COGS)
+            entries.Add(new ToGnuCash
+            {
+                Date = orderDate,
+                Account = "Assets:INVENTORY",
+                Description = $"COGS for SKU {lineItem.SKU}",
+                Amount = cogs,
+                TransactionId = transactionId,
+                SortOrder = 8
+            });
+
+            return entries;
         }
+     
 
         private List<ToGnuCash> ProcessCredit(Transaction transaction, string feeBayUserName)
         {
@@ -419,19 +544,17 @@ namespace FeeBayConnectionTester.Services
                 SortOrder = 1
             });
             // TODO: Implement shipping label processing
-              
-
-                   // var labelLineTo = new Stripe.StripeModels.OutputData();
-                   // labelLineTo.Date = DateOnly.FromDateTime(DateTime.Parse(label.Transaction_creation_date));
-                   // labelLineTo.Account = $"Expenses:Postage and Delivery";
-                   // labelLineTo.Description = string.Empty; //  payout.Description;
-                   // labelLineTo.Amount = decimal.Parse(label.Net_amount);
-                   // labelLineTo.TransactionId = label.Reference_ID;
-                   // labelLineTo.SortOrder = 2;
-                   // outputData.Add(labelLineTo);
-            
-            throw new NotImplementedException($"Transaction type SHIPPING_LABEL not yet implemented for transaction {transaction.TransactionId}");
-        }
+                  entries.Add(new ToGnuCash
+            {
+                Date = DateTime.Parse(transaction.TransactionDate)   ,          
+                Account = $"",
+                Description = $"{transaction.OrderId} - {transaction.TransactionMemo}",
+                Amount = (decimal)(transaction.Amount?.DollarAmount() ?? 0),
+                TransactionId = transaction.TransactionId,
+                SortOrder = 2
+            });
+            return entries;
+       }
 
         private List<ToGnuCash> ProcessTransfer(Transaction transaction, string feeBayUserName)
         {
