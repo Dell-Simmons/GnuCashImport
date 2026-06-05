@@ -565,10 +565,46 @@ namespace FeeBayConnectionTester.Services
 
         private List<ToGnuCash> ProcessNonSaleCharge(Transaction transaction, string feeBayUserName)
         {
-            // TODO: Implement non-sale charge processing
-            throw new NotImplementedException($"Transaction type NON_SALE_CHARGE not yet implemented for transaction {transaction.TransactionId}");
+            // TODO: Implement non-sale charge processing THIS IS STORE SUBSCRIPTION FEE 
+            FeeCategoryEnum feeCategoryEnum = Classify(transaction);
+                     throw new NotImplementedException($"Transaction type NON_SALE_CHARGE not yet implemented for transaction {transaction.TransactionId}");
         }
 
+      
+private FeeCategoryEnum Classify(Transaction txn)
+{
+    if (txn.FeeType == FeeTypeEnum.EBAY_STORE_SUBSCRIPTION_FEE)
+        return FeeCategoryEnum.StoreSubscription;
+
+    if (txn.FeeType == FeeTypeEnum.AD_FEE)
+        return FeeCategoryEnum.Advertising;
+
+    if (txn.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)
+        return FeeCategoryEnum.SellingFees;
+
+    // Fallbacks for eBay oddities
+    if (!string.IsNullOrEmpty(txn.TransactionMemo))
+    {
+        if (txn.TransactionMemo.Contains("Store", StringComparison.OrdinalIgnoreCase) &&
+            txn.TransactionMemo.Contains("subscription", StringComparison.OrdinalIgnoreCase))
+            return FeeCategoryEnum.StoreSubscription;
+    }
+    var regex = new System.Text.RegularExpressions.Regex(
+    @"^(\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})$");
+
+    var match = regex.Match(txn.TransactionMemo);
+
+    if (match.Success)
+    {
+    var startDate = DateOnly.Parse(match.Groups[1].Value);
+    var endDate = DateOnly.Parse(match.Groups[2].Value);
+
+    // Looks like a subscription billing period
+    return FeeCategoryEnum.StoreSubscription;
+    }
+
+    return FeeCategoryEnum.OtherEbayFees;
+}
         private List<ToGnuCash> ProcessAdjustment(Transaction transaction, string feeBayUserName)
         {
             // TODO: Implement adjustment processing
@@ -593,5 +629,13 @@ namespace FeeBayConnectionTester.Services
             throw new NotImplementedException($"Transaction type PURCHASE not yet implemented for transaction {transaction.TransactionId}");
         }
         #endregion
+    }
+
+    internal enum FeeCategoryEnum
+    {
+        StoreSubscription,
+        Advertising,
+        SellingFees,
+        OtherEbayFees
     }
 }
