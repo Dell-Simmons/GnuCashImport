@@ -117,7 +117,9 @@ namespace FeeBayConnectionTester.Services
             string feeBayUserName)
         {
             // Split PAYOUT transactions by type
-            if (transaction.TransactionType == TransactionTypeEnum.SALE)
+            // SALE and REFUND both need order/lineitem processing
+            if (transaction.TransactionType == TransactionTypeEnum.SALE || 
+                transaction.TransactionType == TransactionTypeEnum.REFUND)
             {
                 return ProcessPayoutSaleTransaction(transaction, orders, feeBayUserName);
             }
@@ -388,52 +390,52 @@ namespace FeeBayConnectionTester.Services
 
         #region Transaction Type Handlers (Step 7)
      private List<ToGnuCash> ProcessRefund(
-            LineItem lineItem, 
-            Order order, 
+            LineItem lineItem,
+            Order order,
             OrderLineItem financeLineItem,
             Transaction transaction,
             string feeBayUserName)
         {
             var entries = new List<ToGnuCash>();
             var userMapping = FeeBayUserNameMap[feeBayUserName];
-            var orderDate = DateTime.Parse(order.CreationDate);
+            var refundDate = DateTime.Parse(transaction.TransactionDate);
             var transactionId = $"{order.OrderId}-{lineItem.LineItemId}";
 
-            // (1) Product Sale Income
+            // (1) Product Sale Income - REVERSED
             var saleAmount = lineItem.LineItemCost?.DollarAmount() ?? 0;
             entries.Add(new ToGnuCash
             {
-                Date = orderDate,
+                Date = refundDate,
                 Account = $"Income:{userMapping.AssetAccount} Sales:Product Sale",
-                Description = $"eBay Order #{order.OrderId}-{lineItem.LineItemId} - {lineItem.SKU} - {lineItem.Title}",
+                Description = $"REFUND - eBay Order #{order.OrderId}-{lineItem.LineItemId} - {lineItem.SKU} - {lineItem.Title}",
                 Amount = -saleAmount,
                 TransactionId = transactionId,
                 SortOrder = 1
             });
 
-            // (2) Shipping Income
+            // (2) Shipping Income - REVERSED
             var shippingAmount = lineItem.DeliveryCost?.ShippingCost?.DollarAmount() ?? 0;
 
             if (shippingAmount > 0)
             {
                 entries.Add(new ToGnuCash
                 {
-                    Date = orderDate,
+                    Date = refundDate,
                     Account = $"Income:{userMapping.AssetAccount} Sales:Shipping",
                     Description = string.Empty,
-                    Amount = shippingAmount,
+                    Amount = -shippingAmount,
                     TransactionId = transactionId,
                     SortOrder = 2
                 });
             }
 
-            // (3) Fixed Fee Expense
+            // (3) Fixed Fee Expense - REVERSED
             var fixedFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER) ?? 0;
             if (fixedFee > 0)
             {
                 entries.Add(new ToGnuCash
                 {
-                    Date = orderDate,
+                    Date = refundDate,
                     Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Fixed Fee Per Sale",
                     Description = string.Empty,
                     Amount = -fixedFee,
@@ -442,7 +444,7 @@ namespace FeeBayConnectionTester.Services
                 });
             }
 
-            // (4) Final Value Fee Expense
+            // (4) Final Value Fee Expense - REVERSED
             var finalValueFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_FEE) ?? 0;
             var finalValueShippingFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_SHIPPING_FEE) ?? 0;
             var totalFinalValueFee = finalValueFee + finalValueShippingFee;
@@ -451,22 +453,22 @@ namespace FeeBayConnectionTester.Services
             {
                 entries.Add(new ToGnuCash
                 {
-                    Date = orderDate,
+                    Date = refundDate,
                     Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Final Value Fees",
                     Description = string.Empty,
-                    Amount = totalFinalValueFee,
+                    Amount = -totalFinalValueFee,
                     TransactionId = transactionId,
                     SortOrder = 4
                 });
             }
 
-            // (5) International Fee Expense
+            // (5) International Fee Expense - REVERSED
             var internationalFee = financeLineItem.GetFeeByType(FeeTypeEnum.INTERNATIONAL_FEE) ?? 0;
             if (internationalFee > 0)
             {
                 entries.Add(new ToGnuCash
                 {
-                    Date = orderDate,
+                    Date = refundDate,
                     Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:International Fee",
                     Description = string.Empty,
                     Amount = -internationalFee,
@@ -475,15 +477,14 @@ namespace FeeBayConnectionTester.Services
                 });
             }
 
-            // (6) eBay Asset line (negative net amount from PAYOUT transaction)
+            // (6) eBay Asset line - REVERSED (positive for refund since money is leaving eBay balance)
             var netAmount = transaction.Amount?.DollarAmount() ?? 0;
-            // Calculate the proportional net for this line item if multiple items in order
             var orderLineItemCount = order.LineItems?.Count ?? 1;
             var proportionalNet = netAmount / orderLineItemCount;
 
             entries.Add(new ToGnuCash
             {
-                Date = orderDate,
+                Date = refundDate,
                 Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                 Description = string.Empty,
                 Amount = proportionalNet,
@@ -491,24 +492,24 @@ namespace FeeBayConnectionTester.Services
                 SortOrder = 6
             });
 
-            // (7) COGS Expense
+            // (7) COGS Expense - REVERSED
             var cogs = CalculateCOGS(lineItem.SKU, saleAmount);
             entries.Add(new ToGnuCash
             {
-                Date = orderDate,
+                Date = refundDate,
                 Account = "Expenses:Cost of Goods Sold",
-                Description = $"COGS for SKU {lineItem.SKU}",
+                Description = $"COGS reversal for SKU {lineItem.SKU}",
                 Amount = -cogs,
                 TransactionId = transactionId,
                 SortOrder = 7
             });
 
-            // (8) Inventory Asset increase (negative COGS)
+            // (8) Inventory Asset - REVERSED (inventory comes back)
             entries.Add(new ToGnuCash
             {
-                Date = orderDate,
+                Date = refundDate,
                 Account = "Assets:INVENTORY",
-                Description = $"COGS for SKU {lineItem.SKU}",
+                Description = $"COGS reversal for SKU {lineItem.SKU}",
                 Amount = cogs,
                 TransactionId = transactionId,
                 SortOrder = 8
