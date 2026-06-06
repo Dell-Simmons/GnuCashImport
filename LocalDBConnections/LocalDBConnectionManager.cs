@@ -13,6 +13,7 @@ namespace LocalDBConnections
         private const string _stampDataConnection = "Data Source=SERVER\\SQLEXPRESS;Initial Catalog=StampData;User ID=GenericUser;Password=Mishmash@2!;TrustServerCertificate=True";
         private readonly FeeBayOAuthTokensRepository _feeBayOAuthTokensRepository;
         private readonly FeeBaySigningKeyRepository _feeBaySigningKeysRepository;
+        private readonly StampRepository _stampRepository;
         #endregion
 
         #region Constructors
@@ -20,6 +21,13 @@ namespace LocalDBConnections
         {
             _feeBayOAuthTokensRepository = CreateFeeBayOAuthTokensRepository(_stampDataConnection);
             _feeBaySigningKeysRepository = CreateFeeBaySigningKeysRepository(_stampDataConnection);
+            _stampRepository = CreateFeeBayStampRepository(_stampDataConnection);
+        }
+
+        private StampRepository CreateFeeBayStampRepository(string stampDataConnection)
+        {
+            IDbConnection dbConnection = new SqlConnection(stampDataConnection);
+            return new StampRepository(dbConnection);//, new SqlGenerator<FeeBaySigningKeys>());
         }
         #endregion
 
@@ -48,7 +56,10 @@ namespace LocalDBConnections
             return feeBayOAuthTokenData?.OAuthTokenExpire;
         }
         #endregion
-
+            public decimal? GetStampCOGS(int sku)
+        {
+            return _stampRepository.GetStampCostById(sku);
+        }
         #region Token Write Operations
         public bool SaveUserToken(FeeBayOAuthTokens tokens)
         {

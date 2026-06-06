@@ -10,8 +10,9 @@ namespace LocalDBConnections
 {
     public interface ILocalDbConnectionManager
     {
+        decimal? GetStampCOGS(int sku);
         #region Events
-       // event EventHandler<MyEventArgs<string>> DataBaseTableChanged;
+        // event EventHandler<MyEventArgs<string>> DataBaseTableChanged;
         #endregion
 
         #region Methods

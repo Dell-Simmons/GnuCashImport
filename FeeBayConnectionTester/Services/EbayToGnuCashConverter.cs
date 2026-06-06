@@ -201,7 +201,7 @@ namespace FeeBayConnectionTester.Services
             var entries = new List<ToGnuCash>();
             var userMapping = FeeBayUserNameMap[feeBayUserName];
             var orderDate = DateTime.Parse(order.CreationDate);
-            var transactionId = $"{order.OrderId}-{lineItem.LineItemId}";
+            var transactionId = $"{order.OrderId}";
 
             // (1) Product Sale Income
             var saleAmount = lineItem.LineItemCost?.DollarAmount() ?? 0;
@@ -209,7 +209,7 @@ namespace FeeBayConnectionTester.Services
             {
                 Date = orderDate,
                 Account = $"Income:{userMapping.AssetAccount} Sales:Product Sale",
-                Description = $"eBay Order #{order.OrderId}-{lineItem.LineItemId} - {lineItem.SKU} - {lineItem.Title}",
+                Description = $"eBay Order #{order.OrderId} SKU: {lineItem.SKU} - Title: {lineItem.Title}",
                 Amount = saleAmount,
                 TransactionId = transactionId,
                 SortOrder = 1
@@ -336,20 +336,26 @@ namespace FeeBayConnectionTester.Services
                 // Note: StampDBService.StampDBConnection is used in FeeBayCleaner.cs but not accessible here
                 // TODO: Add GetStampCostById method to ILocalDbConnectionManager interface
                 // For now using the injected manager - but need to implement the method
-
+                var stampCost = _localDbConnectionManager.GetStampCOGS(skuInt);
                 // TEMPORARY: Using 50% fallback until database method is available
+
+                if (stampCost == null || stampCost == 0.0m)
+                {
+                    Console.WriteLine($"Warning: No cost found in database for SKU {skuInt}, using 50% fallback");
+                    return sellingPrice * 0.5m;
+                }
+                return (decimal)stampCost;
+
+
+
                 Console.WriteLine($"Warning: No cost found in database for SKU {skuInt}, using 50% fallback");
+               
                 return sellingPrice * 0.5m;
 
                 // Original implementation (commented out until StampDBService is available):
-                // var db = new StampDBService.StampDBConnection();
+               // var db = new StampDBService.StampDBConnection();
                 // var stampCost = db.GetStampCostById(skuInt);
-                // if (stampCost == null || stampCost == 0.0m)
-                // {
-                //     Console.WriteLine($"Warning: No cost found in database for SKU {skuInt}, using 50% fallback");
-                //     return sellingPrice * 0.5m;
-                // }
-                // return (decimal)stampCost;
+              
             }
             catch (Exception ex)
             {
@@ -566,11 +572,71 @@ namespace FeeBayConnectionTester.Services
         private List<ToGnuCash> ProcessNonSaleCharge(Transaction transaction, string feeBayUserName)
         {
             // TODO: Implement non-sale charge processing THIS IS STORE SUBSCRIPTION FEE 
-            FeeCategoryEnum feeCategoryEnum = Classify(transaction);
-                     throw new NotImplementedException($"Transaction type NON_SALE_CHARGE not yet implemented for transaction {transaction.TransactionId}");
-        }
+             var entries = new List<ToGnuCash>();
+             FeeCategoryEnum feeCategoryEnum = Classify(transaction);
+            switch (feeCategoryEnum)
+            {
+                case FeeCategoryEnum.StoreSubscription:
+                   
+                    var userMapping = FeeBayUserNameMap[feeBayUserName];
+                    entries.Add(new ToGnuCash
+                    {
+                        Date = DateTime.Parse(transaction.TransactionDate),
+                        Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Store Monthly Fee",  
+                        Description = $"{transaction.TransactionMemo}",
+                        Amount = (decimal)(transaction.Amount?.DollarAmount() ?? 0),
+                        TransactionId = transaction.TransactionId,
+                        SortOrder = 1
+                    });
+                        entries.Add(new ToGnuCash
+                        {
+                            Date = DateTime.Parse(transaction.TransactionDate),
+                            Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
+                            Description = $"{transaction.TransactionMemo}",
+                            Amount = -(decimal)(transaction.Amount?.DollarAmount() ?? 0),
+                            TransactionId = transaction.TransactionId,
+                            SortOrder = 2
+                        });
+                        break;
+                  
 
-      
+
+    //var otherFeeLineFrom = new Stripe.StripeModels.OutputData();
+                   // otherFeeLineFrom.Date = DateOnly.FromDateTime(DateTime.Parse(otherFee.Transaction_creation_date));
+                    //otherFeeLineFrom.Account = $"Assets:Current Assets:feeBay:{feeBayName2}";
+                    //otherFeeLineFrom.Description = otherFee.Description;
+                    //otherFeeLineFrom.Amount = -decimal.Parse(otherFee.Net_amount);
+               //     otherFeeLineFrom.TransactionId = otherFee.Reference_ID;
+                //    otherFeeLineFrom.SortOrder = 1;
+                  //  outputData.Add(otherFeeLineFrom);
+
+              //      var otherFeeLineTo = new Stripe.StripeModels.OutputData();
+                //    otherFeeLineTo.Date = DateOnly.FromDateTime(DateTime.Parse(otherFee.Transaction_creation_date));
+                  //  otherFeeLineTo.Account = $"Expenses:FeeBay Fees:{feeBayName1}:Store Monthly Fee";
+                    //otherFeeLineTo.Description = string.Empty; //  payout.Description;
+               //     otherFeeLineTo.Amount = decimal.Parse(otherFee.Net_amount);
+                 //   otherFeeLineTo.TransactionId = otherFee.Reference_ID;
+                   // otherFeeLineTo.SortOrder = 2;
+                 //   outputData.Add(otherFeeLineTo);
+
+
+
+
+
+               case FeeCategoryEnum.Advertising :
+                    throw new NotImplementedException($"Transaction type AD_FEE not yet implemented for transaction {transaction.TransactionId}");
+            
+                case FeeCategoryEnum.SellingFees :
+                    throw new NotImplementedException($"Transaction type SELLING_FEE not yet implemented for transaction {transaction.TransactionId}");
+                    
+                case FeeCategoryEnum.OtherEbayFees :
+                    throw new NotImplementedException($"Transaction type OTHER_EBAY_FEES not yet implemented for transaction {transaction.TransactionId}");
+
+                default:
+                    throw new NotImplementedException($"Unknown fee category for transaction {transaction.TransactionId}");
+            }
+              return entries;
+        }
 private FeeCategoryEnum Classify(Transaction txn)
 {
     if (txn.FeeType == FeeTypeEnum.EBAY_STORE_SUBSCRIPTION_FEE)
