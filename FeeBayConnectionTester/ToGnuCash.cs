@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace FeeBayConnectionTester
 {
@@ -36,6 +38,6 @@ namespace FeeBayConnectionTester
         /// <summary>
         /// Sort order for display/export (lower numbers first)
         /// </summary>
-        public int SortOrder { get; set; }
+        public int SortOrder { get; set; }  
     }
 }
