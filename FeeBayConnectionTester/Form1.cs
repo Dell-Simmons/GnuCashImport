@@ -77,11 +77,11 @@ namespace FeeBayConnectionTester
             //    await ebayController.GetTransactionSummary(signingKey, multiFilter);
 
             //!GetTransactions with pagination
-            multiFilter = "transactionDate:[2026-05-01T00:00:00.000Z..2026-05-31T23:59:59.000Z]";
+            multiFilter = "transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
             List<Transaction> financialTransactionList = await GetAllTransactionsPaginated(signingKey, multiFilter, limit: 50);
 
             //!GetOrders with pagination
-            string ordersFilter = "creationdate:[2026-05-01T00:00:00.000Z..2026-05-31T23:59:59.999Z]";
+            string ordersFilter = "creationdate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.999Z]";
             List<Order> orderList = await GetAllOrdersPaginated(ordersFilter, limit: 50);
 
             await FormatToSendToGnuCash(orderList, financialTransactionList);

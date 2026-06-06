@@ -507,7 +507,7 @@ namespace FeeBayConnectionTester.Services
                     {
                         Date = orderDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Fixed Fee Per Sale",
-                        Description = string.Empty,
+                        Description = $"eBay Order #{order.OrderId}",
                         Amount = fixedFee,
                         TransactionId = transactionId,
                         SortOrder = 3
@@ -526,7 +526,7 @@ namespace FeeBayConnectionTester.Services
                     {
                         Date = orderDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Final Value Fees",
-                        Description = string.Empty,
+                        Description = $"eBay Order #{order.OrderId} SKU: {lineItem.SKU} - Title: {lineItem.Title}",
                         Amount = totalFinalValueFee,
                         TransactionId = transactionId,
                         SortOrder = 4
@@ -542,7 +542,7 @@ namespace FeeBayConnectionTester.Services
                     {
                         Date = orderDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:International Fee",
-                        Description = string.Empty,
+                        Description = $"eBay Order #{order.OrderId} SKU: {lineItem.SKU} - Title: {lineItem.Title}",
                         Amount = internationalFee,
                         TransactionId = transactionId,
                         SortOrder = 5
@@ -613,7 +613,7 @@ namespace FeeBayConnectionTester.Services
                 new ToGnuCash
                 {
                     Date = DateTime.Parse(transaction.TransactionDate),
-                    Account = string.Empty,
+                    Account = $"Expenses:Postage and Delivery",
                     Description = $"{transaction.OrderId} - {transaction.TransactionMemo}",
                     Amount = transaction.Amount?.DollarAmount() ?? 0,
                     TransactionId = transaction.TransactionId,
