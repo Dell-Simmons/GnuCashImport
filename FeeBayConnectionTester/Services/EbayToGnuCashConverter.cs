@@ -5,6 +5,8 @@ using FeeBayConnectionTester.Extensions;
 using LocalDBConnections;
 using System;
 using System.Linq;
+using System.Reflection.Emit;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FeeBayConnectionTester.Services
 {
@@ -228,7 +230,7 @@ namespace FeeBayConnectionTester.Services
                         {
                             Date = DateTime.Parse(transaction.TransactionDate),
                             Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
-                            Description = $"{transaction.TransactionMemo}",
+                            Description = string.Empty,//$"{transaction.TransactionMemo}",
                             Amount = -transaction.Amount?.DollarAmount() ?? 0,
                             TransactionId = transaction.TransactionId,
                             SortOrder = 2
@@ -371,7 +373,7 @@ namespace FeeBayConnectionTester.Services
                         Date = refundDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Fixed Fee Per Sale",
                         Description = string.Empty,
-                        Amount = -fixedFee,
+                        Amount = fixedFee,
                         TransactionId = transactionId,
                         SortOrder = 3
                     });
@@ -390,7 +392,7 @@ namespace FeeBayConnectionTester.Services
                         Date = refundDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Final Value Fees",
                         Description = string.Empty,
-                        Amount = -totalFinalValueFee,
+                        Amount = totalFinalValueFee,
                         TransactionId = transactionId,
                         SortOrder = 4
                     });
@@ -406,7 +408,7 @@ namespace FeeBayConnectionTester.Services
                         Date = refundDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:International Fee",
                         Description = string.Empty,
-                        Amount = -internationalFee,
+                        Amount = internationalFee,
                         TransactionId = transactionId,
                         SortOrder = 5
                     });
@@ -423,7 +425,7 @@ namespace FeeBayConnectionTester.Services
                     Date = refundDate,
                     Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                     Description = string.Empty,
-                    Amount = proportionalNet,
+                    Amount = transaction.Amount?.DollarAmount() ?? ,0
                     TransactionId = transactionId,
                     SortOrder = 6
                 });
@@ -435,7 +437,7 @@ namespace FeeBayConnectionTester.Services
                 {
                     Date = refundDate,
                     Account = "Expenses:Cost of Goods Sold",
-                    Description = $"COGS reversal for SKU {lineItem.SKU}",
+                    Description = string.Empty,//$"COGS reversal for SKU {lineItem.SKU}",
                     Amount = -cogs,
                     TransactionId = transactionId,
                     SortOrder = 7
@@ -447,7 +449,7 @@ namespace FeeBayConnectionTester.Services
                 {
                     Date = refundDate,
                     Account = "Assets:INVENTORY",
-                    Description = $"COGS reversal for SKU {lineItem.SKU}",
+                    Description = string.Empty,//$"COGS reversal for SKU {lineItem.SKU}",
                     Amount = cogs,
                     TransactionId = transactionId,
                     SortOrder = 8
@@ -507,7 +509,7 @@ namespace FeeBayConnectionTester.Services
                     {
                         Date = orderDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Fixed Fee Per Sale",
-                        Description = $"eBay Order #{order.OrderId}",
+                        Description = string.Empty,//$"eBay Order #{order.OrderId}",
                         Amount = fixedFee,
                         TransactionId = transactionId,
                         SortOrder = 3
@@ -526,7 +528,7 @@ namespace FeeBayConnectionTester.Services
                     {
                         Date = orderDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Final Value Fees",
-                        Description = $"eBay Order #{order.OrderId} SKU: {lineItem.SKU} - Title: {lineItem.Title}",
+                        Description = string.Empty,//$"eBay Order #{order.OrderId} SKU: {lineItem.SKU} - Title: {lineItem.Title}",
                         Amount = totalFinalValueFee,
                         TransactionId = transactionId,
                         SortOrder = 4
@@ -542,7 +544,7 @@ namespace FeeBayConnectionTester.Services
                     {
                         Date = orderDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:International Fee",
-                        Description = $"eBay Order #{order.OrderId} SKU: {lineItem.SKU} - Title: {lineItem.Title}",
+                        Description = string.Empty,//$"eBay Order #{order.OrderId} SKU: {lineItem.SKU} - Title: {lineItem.Title}",
                         Amount = internationalFee,
                         TransactionId = transactionId,
                         SortOrder = 5
@@ -550,10 +552,10 @@ namespace FeeBayConnectionTester.Services
             }
 
             // (6) eBay Asset line (negative net amount from PAYOUT transaction)
-            var netAmount = transaction.Amount?.DollarAmount() ?? 0;
+            //var netAmount = transaction.Amount?.DollarAmount() ?? 0;
             // Calculate the proportional net for this line item if multiple items in order
-            var orderLineItemCount = order.LineItems?.Count ?? 1;
-            var proportionalNet = netAmount / orderLineItemCount;
+           // var orderLineItemCount = order.LineItems?.Count ?? 1;
+           // var proportionalNet = netAmount / orderLineItemCount;
 
             entries.Add(
                 new ToGnuCash
@@ -561,7 +563,7 @@ namespace FeeBayConnectionTester.Services
                     Date = orderDate,
                     Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                     Description = string.Empty,
-                    Amount = -proportionalNet,
+                    Amount = transaction.Amount?.DollarAmount() ?? 0,
                     TransactionId = transactionId,
                     SortOrder = 6
                 });
@@ -573,7 +575,7 @@ namespace FeeBayConnectionTester.Services
                 {
                     Date = orderDate,
                     Account = "Expenses:Cost of Goods Sold",
-                    Description = $"COGS for SKU {lineItem.SKU}",
+                    Description = string.Empty,//$"COGS for SKU {lineItem.SKU}",
                     Amount = cogs,
                     TransactionId = transactionId,
                     SortOrder = 7
@@ -585,7 +587,7 @@ namespace FeeBayConnectionTester.Services
                 {
                     Date = orderDate,
                     Account = "Assets:INVENTORY",
-                    Description = $"COGS for SKU {lineItem.SKU}",
+                    Description = string.Empty,//$"COGS for SKU {lineItem.SKU}",
                     Amount = -cogs,
                     TransactionId = transactionId,
                     SortOrder = 8
@@ -604,7 +606,7 @@ namespace FeeBayConnectionTester.Services
                     Date = DateTime.Parse(transaction.TransactionDate),
                     Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                     Description = $"{transaction.OrderId} - {transaction.TransactionMemo}",
-                    Amount = transaction.Amount?.DollarAmount() ?? 0,
+                    Amount = -transaction.Amount?.DollarAmount() ?? 0,
                     TransactionId = transaction.TransactionId,
                     SortOrder = 1
                 });
@@ -614,12 +616,13 @@ namespace FeeBayConnectionTester.Services
                 {
                     Date = DateTime.Parse(transaction.TransactionDate),
                     Account = $"Expenses:Postage and Delivery",
-                    Description = $"{transaction.OrderId} - {transaction.TransactionMemo}",
+                    Description = string.Empty,//$"{transaction.OrderId} - {transaction.TransactionMemo}",
                     Amount = transaction.Amount?.DollarAmount() ?? 0,
                     TransactionId = transaction.TransactionId,
                     SortOrder = 2
                 });
             return entries;
+         
         }
 
         private List<ToGnuCash> ProcessTransaction(

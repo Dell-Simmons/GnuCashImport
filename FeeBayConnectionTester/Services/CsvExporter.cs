@@ -34,16 +34,16 @@ namespace FeeBayConnectionTester.Services
             }
 
             // Sort by Date, then SortOrder
-            var sortedTransactions = transactions
-                .OrderBy(t => t.Date)
-                .ThenBy(t => t.SortOrder)
-                .ToList();
+            var sortedTransactions = transactions;
+                //.OrderBy(t => t.Date)
+                //.ThenBy(t => t.SortOrder)
+                //.ToList();
 
             // Write CSV with UTF-8 encoding and BOM for Excel compatibility
             using var writer = new StreamWriter(outputPath, false, new UTF8Encoding(true));
 
             // Write GnuCash-compatible headers
-            writer.WriteLine("Date,Account,Description,Amount,TransactionId");
+            writer.WriteLine("Date,Account,Description,Amount,TransactionId,Sort");
 
             // Write transaction data
             foreach (var transaction in sortedTransactions)
@@ -67,8 +67,10 @@ namespace FeeBayConnectionTester.Services
             var account = EscapeCsvField(transaction.Account ?? string.Empty);
             var description = EscapeCsvField(transaction.Description ?? string.Empty);
             var transactionId = EscapeCsvField(transaction.TransactionId ?? string.Empty);
+            
+            var sort = EscapeCsvField(transaction.SortOrder.ToString());
 
-            return $"{dateStr},{account},{description},{amountStr},{transactionId}";
+            return $"{dateStr},{account},{description},{amountStr},{transactionId},{sort}";
         }
 
         private static string EscapeCsvField(string field)
