@@ -246,8 +246,32 @@ namespace FeeBayConnectionTester.Services
                         $"Transaction type SELLING_FEE not yet implemented for transaction {transaction.TransactionId}");
 
                 case FeeCategoryEnum.OtherEbayFees:
-                    throw new NotImplementedException(
-                        $"Transaction type OTHER_EBAY_FEES not yet implemented for transaction {transaction.TransactionId}");
+
+                     userMapping = FeeBayUserNameMap[feeBayUserName];
+                    entries.Add(
+                        new ToGnuCash
+                        {
+                            Date = DateTime.Parse(transaction.TransactionDate),
+                            Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Promoted Listings Fee",
+                            Description = $"{transaction.TransactionMemo}",
+                            Amount = transaction.Amount?.DollarAmount() ?? 0,
+                            TransactionId = transaction.TransactionId,
+                            SortOrder = 1
+                        });
+                    entries.Add(
+                        new ToGnuCash
+                        {
+                            Date = DateTime.Parse(transaction.TransactionDate),
+                            Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
+                            Description = string.Empty,//$"{transaction.TransactionMemo}",
+                            Amount = -transaction.Amount?.DollarAmount() ?? 0,
+                            TransactionId = transaction.TransactionId,
+                            SortOrder = 2
+                        });
+                    break;
+
+                       //  throw new NotImplementedException(
+                       //     $"Transaction type OTHER_EBAY_FEES not yet implemented for transaction {transaction.TransactionId}");
 
                 default:
                     throw new NotImplementedException(
@@ -415,17 +439,18 @@ namespace FeeBayConnectionTester.Services
             }
 
             // (6) eBay Asset line - REVERSED (positive for refund since money is leaving eBay balance)
-            var netAmount = transaction.Amount?.DollarAmount() ?? 0;
-            var orderLineItemCount = order.LineItems?.Count ?? 1;
-            var proportionalNet = netAmount / orderLineItemCount;
-
+           // var netAmount = transaction.Amount?.DollarAmount() ?? 0;
+           // var orderLineItemCount = order.LineItems?.Count ?? 1;
+            //var proportionalNet = netAmount / orderLineItemCount;
+   var netAmountThisLineItem = saleAmount + shippingAmount - fixedFee - totalFinalValueFee - internationalFee;
+         
             entries.Add(
                 new ToGnuCash
                 {
                     Date = refundDate,
                     Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                     Description = string.Empty,
-                    Amount = transaction.Amount?.DollarAmount() ?? ,0
+                    Amount = netAmountThisLineItem,//transaction.Amount?.DollarAmount() ?? 0,
                     TransactionId = transactionId,
                     SortOrder = 6
                 });
@@ -469,7 +494,10 @@ namespace FeeBayConnectionTester.Services
             var userMapping = FeeBayUserNameMap[feeBayUserName];
             var orderDate = DateTime.Parse(order.CreationDate);
             var transactionId = $"{order.OrderId}";
-
+            if(transaction.TransactionId == "06-14118-68052")
+            {
+                
+            }
             // (1) Product Sale Income
             var saleAmount = lineItem.LineItemCost?.DollarAmount() ?? 0;
             entries.Add(
@@ -510,7 +538,7 @@ namespace FeeBayConnectionTester.Services
                         Date = orderDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Fixed Fee Per Sale",
                         Description = string.Empty,//$"eBay Order #{order.OrderId}",
-                        Amount = fixedFee,
+                        Amount = -fixedFee,
                         TransactionId = transactionId,
                         SortOrder = 3
                     });
@@ -529,7 +557,7 @@ namespace FeeBayConnectionTester.Services
                         Date = orderDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Final Value Fees",
                         Description = string.Empty,//$"eBay Order #{order.OrderId} SKU: {lineItem.SKU} - Title: {lineItem.Title}",
-                        Amount = totalFinalValueFee,
+                        Amount = -totalFinalValueFee,
                         TransactionId = transactionId,
                         SortOrder = 4
                     });
@@ -545,25 +573,21 @@ namespace FeeBayConnectionTester.Services
                         Date = orderDate,
                         Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:International Fee",
                         Description = string.Empty,//$"eBay Order #{order.OrderId} SKU: {lineItem.SKU} - Title: {lineItem.Title}",
-                        Amount = internationalFee,
+                        Amount = -internationalFee,
                         TransactionId = transactionId,
                         SortOrder = 5
                     });
             }
 
-            // (6) eBay Asset line (negative net amount from PAYOUT transaction)
-            //var netAmount = transaction.Amount?.DollarAmount() ?? 0;
-            // Calculate the proportional net for this line item if multiple items in order
-           // var orderLineItemCount = order.LineItems?.Count ?? 1;
-           // var proportionalNet = netAmount / orderLineItemCount;
-
+            // (6) eBay Asset line (negative net amount from PAYOUT transaction)      
+            var netAmountThisLineItem = saleAmount + shippingAmount - fixedFee - totalFinalValueFee - internationalFee;
             entries.Add(
                 new ToGnuCash
                 {
                     Date = orderDate,
                     Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                     Description = string.Empty,
-                    Amount = transaction.Amount?.DollarAmount() ?? 0,
+                    Amount = -netAmountThisLineItem,//transaction.Amount?.DollarAmount() ?? 0,
                     TransactionId = transactionId,
                     SortOrder = 6
                 });
@@ -606,7 +630,7 @@ namespace FeeBayConnectionTester.Services
                     Date = DateTime.Parse(transaction.TransactionDate),
                     Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                     Description = $"{transaction.OrderId} - {transaction.TransactionMemo}",
-                    Amount = -transaction.Amount?.DollarAmount() ?? 0,
+                    Amount = transaction.Amount?.DollarAmount() ?? 0,
                     TransactionId = transaction.TransactionId,
                     SortOrder = 1
                 });
@@ -617,7 +641,7 @@ namespace FeeBayConnectionTester.Services
                     Date = DateTime.Parse(transaction.TransactionDate),
                     Account = $"Expenses:Postage and Delivery",
                     Description = string.Empty,//$"{transaction.OrderId} - {transaction.TransactionMemo}",
-                    Amount = transaction.Amount?.DollarAmount() ?? 0,
+                    Amount = -transaction.Amount?.DollarAmount() ?? 0,
                     TransactionId = transaction.TransactionId,
                     SortOrder = 2
                 });
