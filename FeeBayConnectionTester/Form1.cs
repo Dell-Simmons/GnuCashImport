@@ -2,6 +2,7 @@ using EbaySharp.Controllers;
 using EbaySharp.Entities.Common;
 using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances;
+using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Payout;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
 using EbaySharp.Entities.Develop.SellingApps.OrderManagement.Fulfillment.Order;
 using FeeBayConnectionTester.Extensions;
@@ -9,6 +10,7 @@ using FeeBayConnectionTester.Services;
 using FeeBayOAuth.TokenService;
 using LocalDBConnections;
 using LocalDBConnections.StampDataDB.StampDataEntities;
+using MicroOrm.Dapper.Repositories.SqlGenerator.Filters;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -78,11 +80,16 @@ namespace FeeBayConnectionTester
 
             //!GetTransactions with pagination
             multiFilter = "transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
-            List<Transaction> financialTransactionList = await GetAllTransactionsPaginated(signingKey, multiFilter, limit: 50);
+            List<Transaction> financialTransactionList = await GetAllTransactionsPaginated(multiFilter, limit: 50);
 
             //!GetOrders with pagination
             string ordersFilter = "creationdate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.999Z]";
             List<Order> orderList = await GetAllOrdersPaginated(ordersFilter, limit: 50);
+
+            //!Get Payouts (transfers from feeBay to checking from someplace
+            string payOutsFilter = "payoutDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.999Z]";
+            List<Payout> payOutList = await GetAllPayOutsPaginated(payOutsFilter, limit: 50);
+
 
             await FormatToSendToGnuCash(orderList, financialTransactionList);
         }
@@ -95,7 +102,44 @@ namespace FeeBayConnectionTester
 
         #region Methods
         #region Private Methods
-        private async Task<List<Transaction>> GetAllTransactionsPaginated(SigningKey signingKey, string filter, int limit = 50)
+        private async Task<List<Payout>> GetAllPayOutsPaginated(string filter, int limit = 50)
+        {
+            var allPayouts = new List<Payout>();
+            int offset = 0;
+            bool hasMore = true;
+
+            while (hasMore)
+            {
+                // Append offset to filter if not the first page
+                string paginatedFilter = offset > 0 ? $"{filter},offset:{offset}" : filter;
+
+                PayoutList payoutsContainer = await _eBayController.GetPayouts(
+                    filter, null, limit, offset);
+
+
+                if (payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
+                {
+                    allPayouts.AddRange(payoutsContainer.Payouts);
+                    Console.WriteLine($"Retrieved {payoutsContainer.Payouts.Count} payouts (Total so far: {allPayouts.Count})");
+                }
+
+                // Check if there are more pages
+                hasMore = !string.IsNullOrEmpty(payoutsContainer.Next);
+                offset += limit;
+
+                // Safety check: if we've retrieved all transactions
+                if (allPayouts.Count >= payoutsContainer.Total)
+                {
+                    hasMore = false;
+                }
+            }
+
+            Console.WriteLine($"Completed pagination. Total payouts retrieved: {allPayouts.Count}");
+            return allPayouts;
+        }
+
+
+        private async Task<List<Transaction>> GetAllTransactionsPaginated(string filter, int limit = 50)
         {
             var allTransactions = new List<Transaction>();
             int offset = 0;
