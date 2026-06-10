@@ -7,6 +7,7 @@ using LocalDBConnections;
 using System;
 using System.Linq;
 using System.Reflection.Emit;
+//using System.Transactions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FeeBayConnectionTester.Services
@@ -22,12 +23,12 @@ namespace FeeBayConnectionTester.Services
             List<Payout> payouts,
             string feeBayUserName)
         {
-            if(!FeeBayUserNameMap.ContainsKey(feeBayUserName))
+            if (!FeeBayUserNameMap.ContainsKey(feeBayUserName))
             {
                 throw new ArgumentException(
                     $"Unknown eBay user name: {feeBayUserName}. Valid values are: {string.Join(", ", FeeBayUserNameMap.Keys)}");
             }
-           
+
             var feeBayDataIsConsistent = ValidateFeeBayData(orders, transactions, payouts);
 
             var result = new List<ToGnuCash>();
@@ -39,37 +40,38 @@ namespace FeeBayConnectionTester.Services
                 .OrderBy(g => g.Key);
 
             Console.WriteLine("\n=== Transaction Status Distribution ===");
-            foreach(var group in transactionsByStatus)
+            foreach (var group in transactionsByStatus)
             {
                 Console.WriteLine($"  {group.Key}: {group.Count()}");
             }
 
             // Process each transaction based on its status
-            foreach(var transaction in transactions)
+            foreach (var transaction in transactions)
             {
                 try
                 {
                     var transactionEntries = ProcessTransactionByStatus(transaction, orders, feeBayUserName);
                     result.AddRange(transactionEntries);
-                } catch(NotImplementedException ex)
+                } catch (NotImplementedException ex)
                 {
                     Console.WriteLine($"Skipping transaction {transaction.TransactionId}: {ex.Message}");
                     validationErrors.Add($"Transaction {transaction.TransactionId}: {ex.Message}");
-                } catch(Exception ex)
+                } catch (Exception ex)
                 {
                     Console.WriteLine($"Error processing transaction {transaction.TransactionId}: {ex.Message}");
                     validationErrors.Add($"Transaction {transaction.TransactionId}: {ex.Message}");
                 }
             }
-            foreach(var p in payouts)
+            foreach (var payOut in payouts)
             {
-                    ProcessPayoutTransaction();
+                var payOutEntries = ProcessPayoutTransaction(payOut, feeBayUserName);
+                result.AddRange(payOutEntries);
             }
-            if(validationErrors.Any())
+            if (validationErrors.Any())
             {
                 Console.WriteLine($"\n=== Validation Summary ===");
                 Console.WriteLine($"Total errors: {validationErrors.Count}");
-                foreach(var error in validationErrors)
+                foreach (var error in validationErrors)
                 {
                     Console.WriteLine($"  - {error}");
                 }
@@ -78,10 +80,6 @@ namespace FeeBayConnectionTester.Services
             return result;
         }
 
-        private void ProcessPayoutTransaction()
-        {
-            throw new NotImplementedException();
-        }
 
         private bool ValidateFeeBayData(List<Order> orders, List<Transaction> transactions, List<Payout> payouts)
         {
@@ -92,7 +90,7 @@ namespace FeeBayConnectionTester.Services
                 .ToDictionary(g => g.Key, g => g.ToList());
 
             Console.WriteLine("\n=== Transactions Grouped By PayoutId ===");
-            foreach(var payoutGroup in transactionsByPayoutId.OrderBy(g => g.Key))
+            foreach (var payoutGroup in transactionsByPayoutId.OrderBy(g => g.Key))
             {
                 var payoutKey = string.IsNullOrWhiteSpace(payoutGroup.Key) ? "<NULL>" : payoutGroup.Key;
                 Console.WriteLine($"  {payoutKey}: {payoutGroup.Value.Count}");
@@ -108,32 +106,11 @@ namespace FeeBayConnectionTester.Services
                 .OrderBy(payoutId => payoutId)
                 .ToList();
 
-            if(unknownPayoutIds.Any())
+            if (unknownPayoutIds.Any())
             {
                 isConsistent = false;
                 Console.WriteLine("\nValidation warning: transactions reference unknown payout ids:");
-                foreach(var payoutId in unknownPayoutIds)
-                {
-                    Console.WriteLine($"  - {payoutId}");
-                  //     var payoutLineFrom = new Stripe.StripeModels.OutputData();
-                  //  payoutLineFrom.Account = $"Assets:Current Assets:feeBay:{feeBayName2}";
-                  //  payoutLineFrom.Date = DateOnly.FromDateTime(DateTime.Parse(payout.Transaction_creation_date));
-                  //  payoutLineFrom.Description = payout.Description;
-                  //  payoutLineFrom.Amount = -decimal.Parse(payout.Net_amount);
-                  //  payoutLineFrom.TransactionId = payout.Reference_ID;
-                  //  payoutLineFrom.SortOrder = 1;
-                  //  outputData.Add(payoutLineFrom);
 
-                  //  var payoutLineTo = new Stripe.StripeModels.OutputData();
-                  //  payoutLineTo.Account = "Assets:Current Assets:TCCU Business Checking";
-                  //  payoutLineTo.Date = DateOnly.FromDateTime(DateTime.Parse(payout.Transaction_creation_date));
-                  //  payoutLineTo.Description = string.Empty; //  payout.Description;
-                  //  payoutLineTo.Amount = decimal.Parse(payout.Net_amount);
-                  //  payoutLineTo.TransactionId = payout.Reference_ID;
-                  //  payoutLineTo.SortOrder = 2;
-                  //  outputData.Add(payoutLineTo);
-
-                }
             }
 
             var saleAndRefundOrderIds = transactions
@@ -154,11 +131,11 @@ namespace FeeBayConnectionTester.Services
                 .OrderBy(orderId => orderId)
                 .ToList();
 
-            if(missingOrders.Any())
+            if (missingOrders.Any())
             {
                 isConsistent = false;
                 Console.WriteLine("\nValidation warning: SALE/REFUND transactions with missing orders:");
-                foreach(var orderId in missingOrders)
+                foreach (var orderId in missingOrders)
                 {
                     Console.WriteLine($"  - {orderId}");
                 }
@@ -187,16 +164,16 @@ namespace FeeBayConnectionTester.Services
         {
             var map = new Dictionary<string, OrderLineItem>();
 
-            foreach(var transaction in transactions)
+            foreach (var transaction in transactions)
             {
-                if(transaction.OrderLineItems == null)
+                if (transaction.OrderLineItems == null)
                 {
                     continue;
                 }
 
-                foreach(var lineItem in transaction.OrderLineItems)
+                foreach (var lineItem in transaction.OrderLineItems)
                 {
-                    if(!string.IsNullOrEmpty(lineItem.LineItemId))
+                    if (!string.IsNullOrEmpty(lineItem.LineItemId))
                     {
                         map[lineItem.LineItemId] = lineItem;
                     }
@@ -211,7 +188,7 @@ namespace FeeBayConnectionTester.Services
             try
             {
                 // Try to parse SKU to int
-                if(!int.TryParse(sku, out int skuInt))
+                if (!int.TryParse(sku, out int skuInt))
                 {
                     Console.WriteLine($"Warning: SKU '{sku}' is not numeric, using 50% fallback for COGS");
                     return sellingPrice * 0.5m;
@@ -219,14 +196,14 @@ namespace FeeBayConnectionTester.Services
 
                 var stampCost = _localDbConnectionManager.GetStampCOGS(skuInt);
 
-                if(stampCost == null || stampCost == 0.0m)
+                if (stampCost == null || stampCost == 0.0m)
                 {
                     Console.WriteLine($"Warning: No cost found in database for SKU {skuInt}, using 50% fallback");
                     return sellingPrice * 0.5m;
                 }
                 return (decimal)stampCost;
 
-            } catch(Exception ex)
+            } catch (Exception ex)
             {
                 Console.WriteLine($"Error calculating COGS for SKU '{sku}': {ex.Message}, using 50% fallback");
                 return sellingPrice * 0.5m;
@@ -235,25 +212,25 @@ namespace FeeBayConnectionTester.Services
 
         private FeeCategoryEnum ClassifyNonSaleCharge(Transaction txn)
         {
-            if(txn.FeeType == FeeTypeEnum.EBAY_STORE_SUBSCRIPTION_FEE)
+            if (txn.FeeType == FeeTypeEnum.EBAY_STORE_SUBSCRIPTION_FEE)
             {
                 return FeeCategoryEnum.StoreSubscription;
             }
 
-            if(txn.FeeType == FeeTypeEnum.AD_FEE)
+            if (txn.FeeType == FeeTypeEnum.AD_FEE)
             {
                 return FeeCategoryEnum.Advertising;
             }
 
-            if(txn.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)
+            if (txn.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)
             {
                 return FeeCategoryEnum.SellingFees;
             }
 
             // Fallbacks for eBay oddities
-            if(!string.IsNullOrEmpty(txn.TransactionMemo))
+            if (!string.IsNullOrEmpty(txn.TransactionMemo))
             {
-                if(txn.TransactionMemo.Contains("Store", StringComparison.OrdinalIgnoreCase) &&
+                if (txn.TransactionMemo.Contains("Store", StringComparison.OrdinalIgnoreCase) &&
                     txn.TransactionMemo.Contains("subscription", StringComparison.OrdinalIgnoreCase))
                 {
                     return FeeCategoryEnum.StoreSubscription;
@@ -263,7 +240,7 @@ namespace FeeBayConnectionTester.Services
 
             var match = regex.Match(txn.TransactionMemo);
 
-            if(match.Success)
+            if (match.Success)
             {
                 var startDate = DateOnly.Parse(match.Groups[1].Value);
                 var endDate = DateOnly.Parse(match.Groups[2].Value);
@@ -302,7 +279,7 @@ namespace FeeBayConnectionTester.Services
             // TODO: Implement non-sale charge processing THIS IS STORE SUBSCRIPTION FEE 
             var entries = new List<ToGnuCash>();
             FeeCategoryEnum feeCategoryEnum = ClassifyNonSaleCharge(transaction);
-            switch(feeCategoryEnum)
+            switch (feeCategoryEnum)
             {
                 case FeeCategoryEnum.StoreSubscription:
 
@@ -339,7 +316,7 @@ namespace FeeBayConnectionTester.Services
 
                 case FeeCategoryEnum.OtherEbayFees:
 
-                     userMapping = FeeBayUserNameMap[feeBayUserName];
+                    userMapping = FeeBayUserNameMap[feeBayUserName];
                     entries.Add(
                         new ToGnuCash
                         {
@@ -362,8 +339,8 @@ namespace FeeBayConnectionTester.Services
                         });
                     break;
 
-                       //  throw new NotImplementedException(
-                       //     $"Transaction type OTHER_EBAY_FEES not yet implemented for transaction {transaction.TransactionId}");
+                //  throw new NotImplementedException(
+                //     $"Transaction type OTHER_EBAY_FEES not yet implemented for transaction {transaction.TransactionId}");
 
                 default:
                     throw new NotImplementedException(
@@ -390,7 +367,7 @@ namespace FeeBayConnectionTester.Services
 
             // Find the matching order
             var order = orders.FirstOrDefault(o => o.OrderId == transaction.OrderId);
-            if(order == null)
+            if (order == null)
             {
                 Console.WriteLine(
                     $"Warning: Order {transaction.OrderId} not found for PAYOUT SALE transaction {transaction.TransactionId}");
@@ -400,9 +377,9 @@ namespace FeeBayConnectionTester.Services
             // Build line item fee map for this transaction
             var lineItemFeeMap = BuildLineItemFeeMap(new List<Transaction> { transaction });
 
-            foreach(var lineItem in order.LineItems)
+            foreach (var lineItem in order.LineItems)
             {
-                if(!lineItemFeeMap.ContainsKey(lineItem.LineItemId))
+                if (!lineItemFeeMap.ContainsKey(lineItem.LineItemId))
                 {
                     Console.WriteLine($"Warning: LineItem {lineItem.LineItemId} not found in transaction fee map");
                     continue;
@@ -423,7 +400,7 @@ namespace FeeBayConnectionTester.Services
         {
             // Split PAYOUT transactions by type
             // SALE and REFUND both need order/lineitem processing
-            if(transaction.TransactionType == TransactionTypeEnum.SALE ||
+            if (transaction.TransactionType == TransactionTypeEnum.SALE ||
                 transaction.TransactionType == TransactionTypeEnum.REFUND)
             {
                 return ProcessPayoutSaleTransaction(transaction, orders, feeBayUserName);
@@ -465,7 +442,7 @@ namespace FeeBayConnectionTester.Services
             // (2) Shipping Income - REVERSED
             var shippingAmount = lineItem.DeliveryCost?.ShippingCost?.DollarAmount() ?? 0;
 
-            if(shippingAmount > 0)
+            if (shippingAmount > 0)
             {
                 entries.Add(
                     new ToGnuCash
@@ -481,7 +458,7 @@ namespace FeeBayConnectionTester.Services
 
             // (3) Fixed Fee Expense - REVERSED
             var fixedFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER) ?? 0;
-            if(fixedFee > 0)
+            if (fixedFee > 0)
             {
                 entries.Add(
                     new ToGnuCash
@@ -500,7 +477,7 @@ namespace FeeBayConnectionTester.Services
             var finalValueShippingFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_SHIPPING_FEE) ?? 0;
             var totalFinalValueFee = finalValueFee + finalValueShippingFee;
 
-            if(totalFinalValueFee > 0)
+            if (totalFinalValueFee > 0)
             {
                 entries.Add(
                     new ToGnuCash
@@ -516,7 +493,7 @@ namespace FeeBayConnectionTester.Services
 
             // (5) International Fee Expense - REVERSED
             var internationalFee = financeLineItem.GetFeeByType(FeeTypeEnum.INTERNATIONAL_FEE) ?? 0;
-            if(internationalFee > 0)
+            if (internationalFee > 0)
             {
                 entries.Add(
                     new ToGnuCash
@@ -531,11 +508,11 @@ namespace FeeBayConnectionTester.Services
             }
 
             // (6) eBay Asset line - REVERSED (positive for refund since money is leaving eBay balance)
-           // var netAmount = transaction.Amount?.DollarAmount() ?? 0;
-           // var orderLineItemCount = order.LineItems?.Count ?? 1;
+            // var netAmount = transaction.Amount?.DollarAmount() ?? 0;
+            // var orderLineItemCount = order.LineItems?.Count ?? 1;
             //var proportionalNet = netAmount / orderLineItemCount;
-   var netAmountThisLineItem = saleAmount + shippingAmount - fixedFee - totalFinalValueFee - internationalFee;
-         
+            var netAmountThisLineItem = saleAmount + shippingAmount - fixedFee - totalFinalValueFee - internationalFee;
+
             entries.Add(
                 new ToGnuCash
                 {
@@ -586,9 +563,9 @@ namespace FeeBayConnectionTester.Services
             var userMapping = FeeBayUserNameMap[feeBayUserName];
             var orderDate = DateTime.Parse(order.CreationDate);
             var transactionId = $"{order.OrderId}";
-            if(transaction.TransactionId == "06-14118-68052")
+            if (transaction.TransactionId == "06-14118-68052")
             {
-                
+
             }
             // (1) Product Sale Income
             var saleAmount = lineItem.LineItemCost?.DollarAmount() ?? 0;
@@ -606,7 +583,7 @@ namespace FeeBayConnectionTester.Services
             // (2) Shipping Income
             var shippingAmount = lineItem.DeliveryCost?.ShippingCost?.DollarAmount() ?? 0;
 
-            if(shippingAmount > 0)
+            if (shippingAmount > 0)
             {
                 entries.Add(
                     new ToGnuCash
@@ -622,7 +599,7 @@ namespace FeeBayConnectionTester.Services
 
             // (3) Fixed Fee Expense
             var fixedFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER) ?? 0;
-            if(fixedFee > 0)
+            if (fixedFee > 0)
             {
                 entries.Add(
                     new ToGnuCash
@@ -641,7 +618,7 @@ namespace FeeBayConnectionTester.Services
             var finalValueShippingFee = financeLineItem.GetFeeByType(FeeTypeEnum.FINAL_VALUE_SHIPPING_FEE) ?? 0;
             var totalFinalValueFee = finalValueFee + finalValueShippingFee;
 
-            if(totalFinalValueFee > 0)
+            if (totalFinalValueFee > 0)
             {
                 entries.Add(
                     new ToGnuCash
@@ -657,7 +634,7 @@ namespace FeeBayConnectionTester.Services
 
             // (5) International Fee Expense
             var internationalFee = financeLineItem.GetFeeByType(FeeTypeEnum.INTERNATIONAL_FEE) ?? 0;
-            if(internationalFee > 0)
+            if (internationalFee > 0)
             {
                 entries.Add(
                     new ToGnuCash
@@ -738,9 +715,56 @@ namespace FeeBayConnectionTester.Services
                     SortOrder = 2
                 });
             return entries;
-         
-        }
 
+        }
+        private List<ToGnuCash> ProcessPayoutTransaction(Payout payOut, string feeBayUserName)
+        {
+            var entries = new List<ToGnuCash>();
+            var userMapping = FeeBayUserNameMap[feeBayUserName];
+            entries.Add(
+                new ToGnuCash
+                {
+                    Date = DateTime.Parse(payOut.PayoutDate),
+                    Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
+                    Description = $"{payOut.PayoutId} - {payOut.PayoutMemo}",
+                    Amount = payOut.Amount?.DollarAmount() ?? 0,
+                    TransactionId = payOut.PayOutId,
+                    SortOrder = 1
+                });
+            // TODO: Implement shipping label processing
+            entries.Add(
+                new ToGnuCash
+                {
+                    Date = DateTime.Parse(payOut.PayoutDate),
+                    Account = $"Assets:Current Assets:TCCU Business Checking",
+                    Description = string.Empty,//$"{transaction.OrderId} - {transaction.TransactionMemo}",
+                    Amount = -payOut.Amount?.DollarAmount() ?? 0,
+                    TransactionId = payOut.PayoutId,
+                    SortOrder = 2
+                });
+            return entries;
+        }
+            // Console.WriteLine($"  - {payoutId}");
+            //     var payoutLineFrom = new Stripe.StripeModels.OutputData();
+            //  payoutLineFrom.Account = $"Assets:Current Assets:feeBay:{feeBayName2}";
+            //  payoutLineFrom.Date = DateOnly.FromDateTime(DateTime.Parse(payout.Transaction_creation_date));
+            //  payoutLineFrom.Description = payout.Description;
+            //  payoutLineFrom.Amount = -decimal.Parse(payout.Net_amount);
+            //  payoutLineFrom.TransactionId = payout.Reference_ID;
+            //  payoutLineFrom.SortOrder = 1;
+            //  outputData.Add(payoutLineFrom);
+
+            //  var payoutLineTo = new Stripe.StripeModels.OutputData();
+            //  payoutLineTo.Account = "Assets:Current Assets:TCCU Business Checking";
+            //  payoutLineTo.Date = DateOnly.FromDateTime(DateTime.Parse(payout.Transaction_creation_date));
+            //  payoutLineTo.Description = string.Empty; //  payout.Description;
+            //  payoutLineTo.Amount = decimal.Parse(payout.Net_amount);
+            //  payoutLineTo.TransactionId = payout.Reference_ID;
+            //  payoutLineTo.SortOrder = 2;
+            //  outputData.Add(payoutLineTo);
+
+        //}
+        
         private List<ToGnuCash> ProcessTransaction(
             Transaction transaction,
             string feeBayUserName,
@@ -748,7 +772,7 @@ namespace FeeBayConnectionTester.Services
             LineItem lineItem = null,
             OrderLineItem financeLineItem = null)
         {
-            if(!transaction.TransactionType.HasValue)
+            if (!transaction.TransactionType.HasValue)
             {
                 throw new NotImplementedException($"Transaction {transaction.TransactionId} has null TransactionType");
             }
@@ -785,7 +809,7 @@ namespace FeeBayConnectionTester.Services
             List<Order> orders,
             string feeBayUserName)
         {
-            if(!transaction.TransactionStatus.HasValue)
+            if (!transaction.TransactionStatus.HasValue)
             {
                 throw new NotImplementedException($"Transaction {transaction.TransactionId} has null TransactionStatus");
             }
@@ -812,8 +836,8 @@ namespace FeeBayConnectionTester.Services
 
         private List<ToGnuCash> ProcessWithdrawal(Transaction transaction) => throw new NotImplementedException(
             $"Transaction type WITHDRAWAL not yet implemented for transaction {transaction.TransactionId}");
-    #endregion
-    }
+        #endregion
+    } }
 
     internal enum FeeCategoryEnum
     {
@@ -822,4 +846,4 @@ namespace FeeBayConnectionTester.Services
         SellingFees,
         OtherEbayFees
     }
-}
+
