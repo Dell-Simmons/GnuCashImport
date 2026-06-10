@@ -87,11 +87,12 @@ namespace FeeBayConnectionTester
             List<Order> orderList = await GetAllOrdersPaginated(ordersFilter, limit: 50);
 
             //!Get Payouts (transfers from feeBay to checking from someplace
-            string payOutsFilter = "payoutDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.999Z]";
+            //!Extend the Payouts filter by a week to catch payouts from end of month sales
+            string payOutsFilter = "payoutDate:[2026-01-01T00:00:00.000Z..2026-02-14T23:59:59.999Z]";
             List<Payout> payOutList = await GetAllPayOutsPaginated(payOutsFilter, limit: 50);
 
 
-            await FormatToSendToGnuCash(orderList, financialTransactionList);
+            await FormatToSendToGnuCash(orderList, financialTransactionList, payOutList);
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -210,7 +211,7 @@ namespace FeeBayConnectionTester
             return allOrders;
         }
 
-        private async Task<bool> FormatToSendToGnuCash(List<Order> orders, List<Transaction> transactions)
+        private async Task<bool> FormatToSendToGnuCash(List<Order> orders, List<Transaction> transactions, List<Payout> payouts)
         {
             try
             {
@@ -218,8 +219,8 @@ namespace FeeBayConnectionTester
                 var converter = new EbayToGnuCashConverter(_localDbConnectionManager);
 
                 // Convert orders and transactions to GnuCash format
-                Console.WriteLine($"Processing {orders.Count} orders and {transactions.Count} transactions...");
-                var gnuCashLines = converter.ConvertOrdersAndTransactions(orders, transactions, "Simmons_Ink");
+                Console.WriteLine($"Processing {orders.Count} orders, {transactions.Count} transactions, and {payouts.Count} payouts...");
+                var gnuCashLines = converter.ConvertOrdersAndTransactions(orders, transactions, payouts, "Simmons_Ink");
 
                 if (!gnuCashLines.Any())
                 {

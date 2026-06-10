@@ -1,4 +1,5 @@
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances;
+using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Payout;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
 using EbaySharp.Entities.Develop.SellingApps.OrderManagement.Fulfillment.Order;
 using FeeBayConnectionTester.Extensions;
@@ -18,6 +19,7 @@ namespace FeeBayConnectionTester.Services
         public List<ToGnuCash> ConvertOrdersAndTransactions(
             List<Order> orders,
             List<Transaction> transactions,
+            List<Payout> payouts,
             string feeBayUserName)
         {
             if(!FeeBayUserNameMap.ContainsKey(feeBayUserName))
@@ -25,6 +27,8 @@ namespace FeeBayConnectionTester.Services
                 throw new ArgumentException(
                     $"Unknown eBay user name: {feeBayUserName}. Valid values are: {string.Join(", ", FeeBayUserNameMap.Keys)}");
             }
+           
+            var feeBayDataIsConsistent = ValidateFeeBayData(orders, transactions, payouts);
 
             var result = new List<ToGnuCash>();
             var validationErrors = new List<string>();
@@ -57,7 +61,10 @@ namespace FeeBayConnectionTester.Services
                     validationErrors.Add($"Transaction {transaction.TransactionId}: {ex.Message}");
                 }
             }
-
+            foreach(var p in payouts)
+            {
+                    ProcessPayoutTransaction();
+            }
             if(validationErrors.Any())
             {
                 Console.WriteLine($"\n=== Validation Summary ===");
@@ -69,6 +76,95 @@ namespace FeeBayConnectionTester.Services
             }
 
             return result;
+        }
+
+        private void ProcessPayoutTransaction()
+        {
+            throw new NotImplementedException();
+        }
+
+        private bool ValidateFeeBayData(List<Order> orders, List<Transaction> transactions, List<Payout> payouts)
+        {
+            var isConsistent = true;
+
+            var transactionsByPayoutId = transactions
+                .GroupBy(t => t.PayoutId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            Console.WriteLine("\n=== Transactions Grouped By PayoutId ===");
+            foreach(var payoutGroup in transactionsByPayoutId.OrderBy(g => g.Key))
+            {
+                var payoutKey = string.IsNullOrWhiteSpace(payoutGroup.Key) ? "<NULL>" : payoutGroup.Key;
+                Console.WriteLine($"  {payoutKey}: {payoutGroup.Value.Count}");
+            }
+
+            var knownPayoutIds = payouts
+                .Where(p => !string.IsNullOrWhiteSpace(p.PayoutId))
+                .Select(p => p.PayoutId)
+                .ToHashSet(StringComparer.Ordinal);
+
+            var unknownPayoutIds = transactionsByPayoutId.Keys
+                .Where(payoutId => !string.IsNullOrWhiteSpace(payoutId) && !knownPayoutIds.Contains(payoutId))
+                .OrderBy(payoutId => payoutId)
+                .ToList();
+
+            if(unknownPayoutIds.Any())
+            {
+                isConsistent = false;
+                Console.WriteLine("\nValidation warning: transactions reference unknown payout ids:");
+                foreach(var payoutId in unknownPayoutIds)
+                {
+                    Console.WriteLine($"  - {payoutId}");
+                  //     var payoutLineFrom = new Stripe.StripeModels.OutputData();
+                  //  payoutLineFrom.Account = $"Assets:Current Assets:feeBay:{feeBayName2}";
+                  //  payoutLineFrom.Date = DateOnly.FromDateTime(DateTime.Parse(payout.Transaction_creation_date));
+                  //  payoutLineFrom.Description = payout.Description;
+                  //  payoutLineFrom.Amount = -decimal.Parse(payout.Net_amount);
+                  //  payoutLineFrom.TransactionId = payout.Reference_ID;
+                  //  payoutLineFrom.SortOrder = 1;
+                  //  outputData.Add(payoutLineFrom);
+
+                  //  var payoutLineTo = new Stripe.StripeModels.OutputData();
+                  //  payoutLineTo.Account = "Assets:Current Assets:TCCU Business Checking";
+                  //  payoutLineTo.Date = DateOnly.FromDateTime(DateTime.Parse(payout.Transaction_creation_date));
+                  //  payoutLineTo.Description = string.Empty; //  payout.Description;
+                  //  payoutLineTo.Amount = decimal.Parse(payout.Net_amount);
+                  //  payoutLineTo.TransactionId = payout.Reference_ID;
+                  //  payoutLineTo.SortOrder = 2;
+                  //  outputData.Add(payoutLineTo);
+
+                }
+            }
+
+            var saleAndRefundOrderIds = transactions
+                .Where(t => t.TransactionType == TransactionTypeEnum.SALE ||
+                            t.TransactionType == TransactionTypeEnum.REFUND)
+                .Where(t => !string.IsNullOrWhiteSpace(t.OrderId))
+                .Select(t => t.OrderId)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            var knownOrderIds = orders
+                .Where(o => !string.IsNullOrWhiteSpace(o.OrderId))
+                .Select(o => o.OrderId)
+                .ToHashSet(StringComparer.Ordinal);
+
+            var missingOrders = saleAndRefundOrderIds
+                .Where(orderId => !knownOrderIds.Contains(orderId))
+                .OrderBy(orderId => orderId)
+                .ToList();
+
+            if(missingOrders.Any())
+            {
+                isConsistent = false;
+                Console.WriteLine("\nValidation warning: SALE/REFUND transactions with missing orders:");
+                foreach(var orderId in missingOrders)
+                {
+                    Console.WriteLine($"  - {orderId}");
+                }
+            }
+
+            return isConsistent;
         }
         #endregion
 
@@ -130,10 +226,6 @@ namespace FeeBayConnectionTester.Services
                 }
                 return (decimal)stampCost;
 
-
-                Console.WriteLine($"Warning: No cost found in database for SKU {skuInt}, using 50% fallback");
-
-                return sellingPrice * 0.5m;
             } catch(Exception ex)
             {
                 Console.WriteLine($"Error calculating COGS for SKU '{sku}': {ex.Message}, using 50% fallback");
