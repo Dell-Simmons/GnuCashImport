@@ -524,7 +524,7 @@ namespace FeeBayConnectionTester.Services
                     SortOrder = 6
                 });
 
-            // (7) COGS Expense - REVERSED
+            // (7) COGS Expense
             var cogs = CalculateCOGS(lineItem.SKU, saleAmount);
             entries.Add(
                 new ToGnuCash
@@ -532,7 +532,7 @@ namespace FeeBayConnectionTester.Services
                     Date = refundDate,
                     Account = "Expenses:Cost of Goods Sold",
                     Description = string.Empty,//$"COGS reversal for SKU {lineItem.SKU}",
-                    Amount = -cogs,
+                    Amount = cogs,
                     TransactionId = transactionId,
                     SortOrder = 7
                 });
@@ -544,7 +544,7 @@ namespace FeeBayConnectionTester.Services
                     Date = refundDate,
                     Account = "Assets:INVENTORY",
                     Description = string.Empty,//$"COGS reversal for SKU {lineItem.SKU}",
-                    Amount = cogs,
+                    Amount = -cogs,
                     TransactionId = transactionId,
                     SortOrder = 8
                 });
@@ -669,7 +669,7 @@ namespace FeeBayConnectionTester.Services
                     Date = orderDate,
                     Account = "Expenses:Cost of Goods Sold",
                     Description = string.Empty,//$"COGS for SKU {lineItem.SKU}",
-                    Amount = cogs,
+                    Amount = -cogs,
                     TransactionId = transactionId,
                     SortOrder = 7
                 });
@@ -681,7 +681,7 @@ namespace FeeBayConnectionTester.Services
                     Date = orderDate,
                     Account = "Assets:INVENTORY",
                     Description = string.Empty,//$"COGS for SKU {lineItem.SKU}",
-                    Amount = -cogs,
+                    Amount = cogs,
                     TransactionId = transactionId,
                     SortOrder = 8
                 });
@@ -717,29 +717,29 @@ namespace FeeBayConnectionTester.Services
             return entries;
 
         }
-        private List<ToGnuCash> ProcessPayoutTransaction(Payout payOut, string feeBayUserName)
+        private List<ToGnuCash> ProcessPayoutTransaction(Payout payout, string feeBayUserName)
         {
             var entries = new List<ToGnuCash>();
             var userMapping = FeeBayUserNameMap[feeBayUserName];
             entries.Add(
                 new ToGnuCash
                 {
-                    Date = DateTime.Parse(payOut.PayoutDate),
+                    Date = DateTime.Parse(payout.PayoutDate),
                     Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
-                    Description = $"{payOut.PayoutId} - {payOut.PayoutMemo}",
-                    Amount = payOut.Amount?.DollarAmount() ?? 0,
-                    TransactionId = payOut.PayOutId,
+                    Description = $"{payout.PayoutId} - {payout.PayoutMemo}",
+                    Amount = payout.Amount?.DollarAmount() ?? 0,
+                    TransactionId = payout.PayoutId,
                     SortOrder = 1
                 });
-            // TODO: Implement shipping label processing
+           
             entries.Add(
                 new ToGnuCash
                 {
-                    Date = DateTime.Parse(payOut.PayoutDate),
+                    Date = DateTime.Parse(payout.PayoutDate),
                     Account = $"Assets:Current Assets:TCCU Business Checking",
                     Description = string.Empty,//$"{transaction.OrderId} - {transaction.TransactionMemo}",
-                    Amount = -payOut.Amount?.DollarAmount() ?? 0,
-                    TransactionId = payOut.PayoutId,
+                    Amount = -payout.Amount?.DollarAmount() ?? 0,
+                    TransactionId = payout.PayoutId,
                     SortOrder = 2
                 });
             return entries;
