@@ -171,7 +171,7 @@ namespace FeeBayConnectionTester
                     hasMore = false;
                 }
             }
-
+            var look = from a in allTransactions where a.OrderId == "09-14052-99669" select a;
             Console.WriteLine($"Completed pagination. Total transactions retrieved: {allTransactions.Count}");
             return allTransactions;
         }

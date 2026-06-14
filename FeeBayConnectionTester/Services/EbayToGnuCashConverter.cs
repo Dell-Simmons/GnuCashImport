@@ -273,6 +273,7 @@ namespace FeeBayConnectionTester.Services
  // TODO: Implement loan repayment processing
  throw new NotImplementedException(
      $"Transaction type LOAN_REPAYMENT not yet implemented for transaction {transaction.TransactionId}");
+        #endregion
 
         private List<ToGnuCash> ProcessNonSaleCharge(Transaction transaction, string feeBayUserName)
         {
@@ -290,7 +291,7 @@ namespace FeeBayConnectionTester.Services
                             Date = DateTime.Parse(transaction.TransactionDate),
                             Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Store Monthly Fee",
                             Description = $"{transaction.TransactionMemo}",
-                            Amount = transaction.Amount?.DollarAmount() ?? 0,
+                            Amount = -transaction.Amount?.DollarAmount() ?? 0,
                             TransactionId = transaction.TransactionId,
                             SortOrder = 1
                         });
@@ -300,7 +301,7 @@ namespace FeeBayConnectionTester.Services
                             Date = DateTime.Parse(transaction.TransactionDate),
                             Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                             Description = string.Empty,//$"{transaction.TransactionMemo}",
-                            Amount = -transaction.Amount?.DollarAmount() ?? 0,
+                            Amount = transaction.Amount?.DollarAmount() ?? 0,
                             TransactionId = transaction.TransactionId,
                             SortOrder = 2
                         });
@@ -323,7 +324,7 @@ namespace FeeBayConnectionTester.Services
                             Date = DateTime.Parse(transaction.TransactionDate),
                             Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Promoted Listings Fee",
                             Description = $"{transaction.TransactionMemo}",
-                            Amount = transaction.Amount?.DollarAmount() ?? 0,
+                            Amount = -transaction.Amount?.DollarAmount() ?? 0,
                             TransactionId = transaction.TransactionId,
                             SortOrder = 1
                         });
@@ -333,7 +334,7 @@ namespace FeeBayConnectionTester.Services
                             Date = DateTime.Parse(transaction.TransactionDate),
                             Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                             Description = string.Empty,//$"{transaction.TransactionMemo}",
-                            Amount = -transaction.Amount?.DollarAmount() ?? 0,
+                            Amount = transaction.Amount?.DollarAmount() ?? 0,
                             TransactionId = transaction.TransactionId,
                             SortOrder = 2
                         });
@@ -348,9 +349,9 @@ namespace FeeBayConnectionTester.Services
             }
             return entries;
         }
-        #endregion
-
         #region Processing Entry Points
+
+
         private List<ToGnuCash> ProcessPayoutNonSaleTransaction(Transaction transaction, string feeBayUserName)
         {
             Console.WriteLine(
@@ -420,6 +421,18 @@ namespace FeeBayConnectionTester.Services
             Transaction transaction,
             string feeBayUserName)
         {
+            if(lineItem.Refunds == null)
+            {
+                throw new NotImplementedException();
+            }
+        List<Refund> refunds = lineItem.Refunds;
+        decimal totalRefundThislineitem = 0;
+        foreach(var r in refunds)
+            {
+                var refund = r.Amount.DollarAmount() ?? 0;
+                totalRefundThislineitem += refund;
+            }
+            
             var entries = new List<ToGnuCash>();
             var userMapping = FeeBayUserNameMap[feeBayUserName];
             var refundDate = DateTime.Parse(transaction.TransactionDate);
@@ -434,7 +447,7 @@ namespace FeeBayConnectionTester.Services
                     Account = $"Income:{userMapping.AssetAccount} Sales:Product Sale",
                     Description =
                         $"REFUND - eBay Order #{order.OrderId}-{lineItem.LineItemId} - {lineItem.SKU} - {lineItem.Title}",
-                    Amount = -saleAmount,
+                    Amount = -totalRefundThislineitem,
                     TransactionId = transactionId,
                     SortOrder = 1
                 });
