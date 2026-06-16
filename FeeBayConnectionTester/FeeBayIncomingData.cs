@@ -24,7 +24,8 @@
         #region Public properties
         public required string Below_standard_performance_fee
         {
-            get
+            get;set;
+          /*   get
             {
                 if(_below_Standard_Performance_Fee == "--")
                 {
@@ -32,7 +33,7 @@
                 }
                 return _below_Standard_Performance_Fee;
             }
-            set => _below_Standard_Performance_Fee = value;
+            set => _bel ow_Standard_Performance_Fee = value;*/
         } //decimal
 
         public required string Buyer_name { get; set; }
@@ -41,7 +42,8 @@
 
         public required string Charity_donation
         {
-            get
+            get;set;
+           /*  get
             {
                 if(_charity_Donation == "--")
                 {
@@ -49,12 +51,13 @@
                 }
                 return _charity_Donation;
             }
-            set => _charity_Donation = value;
+            set => _charity_Donation = value; */
         } // decimal
 
         public required string Deposit_processing_fee
         {
-            get
+            get;set;
+          /*   get
             {
                 if(_deposit_Processing_Fee == "--")
                 {
@@ -62,14 +65,15 @@
                 }
                 return _deposit_Processing_Fee;
             }
-            set => _deposit_Processing_Fee = value;
+            set => _deposi t_Processing_Fee = value;*/
         } // decimal
 
         public required string Description { get; set; }
 
         public required string Exchange_rate
         {
-            get
+            get;set;
+          /*   get
             {
                 if(_exchange_Rate == "--")
                 {
@@ -77,12 +81,13 @@
                 }
                 return _exchange_Rate;
             }
-            set => _exchange_Rate = value;
+            set => _exchange_Rate = value; */
         } // decimal
 
         public required string feeBay_collected_tax
         {
-            get
+            get;set;
+           /*  get
             {
                 if(_feeBay_Collected_Tax == "--")
                 {
@@ -90,12 +95,13 @@
                 }
                 return _feeBay_Collected_Tax;
             }
-            set => _feeBay_Collected_Tax = value;
+            set => _feeBay_Collected_Tax = value; */
         } // decimal
 
         public required string FVF_fixed
         {
-            get
+            get;set;
+           /*  get
             {
                 if(_fVF_Fixed == "--")
                 {
@@ -103,12 +109,13 @@
                 }
                 return _fVF_Fixed;
             }
-            set => _fVF_Fixed = value;
+            set => _fVF_Fixed = value; */
         } // decimal
 
         public required string FVF_variable
         {
-            get
+            get;set;
+           /*  get
             {
                 if(_fVF_Variable == "--")
                 {
@@ -116,12 +123,13 @@
                 }
                 return _fVF_Variable;
             }
-            set => _fVF_Variable = value;
+            set => _fVF_Variable = value; */
         } // decimal
 
         public required string Gross_transaction_amount
         {
-            get
+            get;set;
+          /*   get
             {
                 if(_gross_Transaction_Amount == "--")
                 {
@@ -129,12 +137,13 @@
                 }
                 return _gross_Transaction_Amount;
             }
-            set => _gross_Transaction_Amount = value;
+            set => _gross_Transaction_Amount = value; */
         } // decimal
 
         public required string International_fee
         {
-            get
+            get;set;
+          /*   get
             {
                 if(_international_Fee == "--")
                 {
@@ -143,14 +152,15 @@
                
                     return _international_Fee;
             }
-            set => _international_Fee = value;
+            set => _international_Fee = value; */
         } // decimal
 
         public required string Item_ID { get; set; }
 
         public required string Item_not_as_described_fee
         {
-            get
+            get;set;
+           /*  get
             {
                 if(_item_Not_As_Described_Fee == "--")
                 {
@@ -158,12 +168,13 @@
                 }
                 return _item_Not_As_Described_Fee;
             }
-            set => _item_Not_As_Described_Fee = value;
+            set => _item_Not_As_Described_Fee = value; */
         }// deicmal
 
         public required string Item_subtotal
         {
-            get
+            get;set;
+          /*   get
             {
                 if(_item_Subtotal == "--")
                 {
@@ -171,7 +182,7 @@
                 }
                 return _item_Subtotal;
             }
-            set => _item_Subtotal = value;
+            set => _item_Subtotal = value; */
         }// decimal
 
         public required string Item_title { get; set; }
@@ -180,7 +191,8 @@
 
         public required string Net_amount    //decimal
         {
-            get
+            get;set;
+          /*   get
             {
                 if(_net_Amount == "--")
                 {
@@ -188,7 +200,7 @@
                 }
                 return _net_Amount;
             }
-            set => _net_Amount = value;
+            set => _net_Amount = value; */
         }
 
         public required string Order_number { get; set; }
@@ -205,7 +217,8 @@
 
         public required string Quantity // int
         {
-            get
+            get;set;
+           /*  get
             {
                 if(_quantity == "--")
                 {
@@ -213,7 +226,7 @@
                 }
                 return _quantity;
             }
-            set => _quantity = value;
+            set => _quantity = value; */
         }
 
         public required string Reason_for_hold { get; set; }
@@ -222,7 +235,8 @@
 
         public required string Regulatory_operating_fee
         {
-            get
+            get;set;
+          /*   get
             {
                 if(_regulatory_Operating_Fee == "--")
                 {
@@ -230,12 +244,13 @@
                 }
                 return _regulatory_Operating_Fee;
             }
-            set => _regulatory_Operating_Fee = value;
+            set => _regulatory_Operating_Fee = value; */
         } // decimal
 
         public required string Seller_collected_tax
         {
-            get
+            get;set;
+           /*  get
             {
                 if(_seller_Collected_Tax == "--")
                 {
@@ -243,7 +258,7 @@
                 }
                 return _seller_Collected_Tax;
             }
-            set => _seller_Collected_Tax = value;
+            set => _seller_Collected_Tax = value; */
         } // decimal
 
         public required string Ship_to_city { get; set; }
@@ -256,7 +271,8 @@
 
         public required string Shipping_and_handling
         {
-            get
+            get;set;
+         /*    get
             {
                 if(_shipping_And_Handling == "--")
                 {
@@ -264,7 +280,7 @@
                 }
                 return _shipping_And_Handling;
             }
-            set => _shipping_And_Handling = value;
+            set => _shipping_And_Handling = value; */
         } // decimal
 
         public required string Sku { get; set; }
