@@ -1,4 +1,4 @@
-﻿using CsvHelper.Configuration.Attributes;
+﻿
 
 namespace FeeBayConnectionTester
 {
@@ -24,7 +24,6 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region Public properties
-        [Name("Below standard performance fee")]
         public required string Below_standard_performance_fee
         {
             get
@@ -38,13 +37,10 @@ namespace FeeBayConnectionTester
             set => _below_Standard_Performance_Fee = value;
         } //decimal
 
-        [Name("Buyer name")]
         public required string Buyer_name { get; set; }
 
-        [Name("Buyer username")]
         public required string Buyer_username { get; set; }
 
-        [Name("Charity donation")]
         public required string Charity_donation
         {
             get
@@ -58,7 +54,6 @@ namespace FeeBayConnectionTester
             set => _charity_Donation = value;
         } // decimal
 
-        [Name("Deposit processing fee")]
         public required string Deposit_processing_fee
         {
             get
@@ -72,10 +67,8 @@ namespace FeeBayConnectionTester
             set => _deposit_Processing_Fee = value;
         } // decimal
 
-        [Name("Description")]
         public required string Description { get; set; }
 
-        [Name("Exchange rate")]
         public required string Exchange_rate
         {
             get
@@ -89,7 +82,6 @@ namespace FeeBayConnectionTester
             set => _exchange_Rate = value;
         } // decimal
 
-        [Name("eBay collected tax")]
         public required string feeBay_collected_tax
         {
             get
@@ -103,7 +95,6 @@ namespace FeeBayConnectionTester
             set => _feeBay_Collected_Tax = value;
         } // decimal
 
-        [Name("Final Value Fee - fixed")]
         public required string FVF_fixed
         {
             get
@@ -117,7 +108,6 @@ namespace FeeBayConnectionTester
             set => _fVF_Fixed = value;
         } // decimal
 
-        [Name("Final Value Fee - variable")]
         public required string FVF_variable
         {
             get
@@ -131,7 +121,6 @@ namespace FeeBayConnectionTester
             set => _fVF_Variable = value;
         } // decimal
 
-        [Name("Gross transaction amount")]
         public required string Gross_transaction_amount
         {
             get
@@ -145,7 +134,6 @@ namespace FeeBayConnectionTester
             set => _gross_Transaction_Amount = value;
         } // decimal
 
-        [Name("International fee")]
         public required string International_fee
         {
             get
@@ -160,10 +148,8 @@ namespace FeeBayConnectionTester
             set => _international_Fee = value;
         } // decimal
 
-        [Name("Item ID")]
         public required string Item_ID { get; set; }
 
-        [Name("Very high \"item not as described\" fee")]
         public required string Item_not_as_described_fee
         {
             get
@@ -177,7 +163,6 @@ namespace FeeBayConnectionTester
             set => _item_Not_As_Described_Fee = value;
         }// deicmal
 
-        [Name("Item subtotal")]
         public required string Item_subtotal
         {
             get
@@ -191,13 +176,10 @@ namespace FeeBayConnectionTester
             set => _item_Subtotal = value;
         }// decimal
 
-        [Name("Item title")]
         public required string Item_title { get; set; }
 
-        [Name("Legacy order ID")]
         public required string Legacy_order_ID { get; set; }
 
-        [Name("Net amount")]
         public required string Net_amount    //decimal
         {
             get
@@ -211,25 +193,18 @@ namespace FeeBayConnectionTester
             set => _net_Amount = value;
         }
 
-        [Name("Order number")]
         public required string Order_number { get; set; }
 
-        [Name("Payout currency")]
         public required string Payout_currency { get; set; }
 
-        [Name("Payout date")]
         public required string Payout_date { get; set; } // datetime
 
-        [Name("Payout ID")]
         public required string Payout_ID { get; set; }
 
-        [Name("Payout method")]
         public required string Payout_method { get; set; }
 
-        [Name("Payout status")]
         public required string Payout_status { get; set; }
 
-        [Name("Quantity")]
         public required string Quantity // int
         {
             get
@@ -243,13 +218,10 @@ namespace FeeBayConnectionTester
             set => _quantity = value;
         }
 
-        [Name("Reason for hold")]
         public required string Reason_for_hold { get; set; }
 
-        [Name("Reference ID")]
         public required string Reference_ID { get; set; }
 
-        [Name("Regulatory operating fee")]
         public required string Regulatory_operating_fee
         {
             get
@@ -263,7 +235,6 @@ namespace FeeBayConnectionTester
             set => _regulatory_Operating_Fee = value;
         } // decimal
 
-        [Name("Seller collected tax")]
         public required string Seller_collected_tax
         {
             get
@@ -277,19 +248,14 @@ namespace FeeBayConnectionTester
             set => _seller_Collected_Tax = value;
         } // decimal
 
-        [Name("Ship to city")]
         public required string Ship_to_city { get; set; }
 
-        [Name("Ship to country")]
         public required string Ship_to_country { get; set; }
 
-        [Name("Ship to province/region/state")]
         public required string Ship_to_state { get; set; }
 
-        [Name("Ship to zip")]
         public required string Ship_to_zip { get; set; }
 
-        [Name("Shipping and handling")]
         public required string Shipping_and_handling
         {
             get
@@ -303,19 +269,14 @@ namespace FeeBayConnectionTester
             set => _shipping_And_Handling = value;
         } // decimal
 
-        [Name("Custom label")]
         public required string Sku { get; set; }
 
-        [Name("Transaction creation date")]
         public required string Transaction_creation_date { get; set; } // datetime
 
-        [Name("Transaction currency")]
         public required string Transaction_currency { get; set; }
 
-        [Name("Transaction ID")]
         public required string Transaction_ID { get; set; }
 
-        [Name("Type")]
         public required string Type { get; set; }
         #endregion
     }
