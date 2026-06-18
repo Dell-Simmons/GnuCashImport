@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <Compile Remove="FeeBayCleaner.cs" />
-    <Compile Remove="FeeBayIncomingData.cs" />
     <Compile Remove="FormatToSendToGnuCash.cs" />
   </ItemGroup>
 

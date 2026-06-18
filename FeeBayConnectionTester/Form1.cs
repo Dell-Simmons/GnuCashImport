@@ -13,6 +13,7 @@ using LocalDBConnections.StampDataDB.StampDataEntities;
 using MicroOrm.Dapper.Repositories.SqlGenerator.Filters;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -75,24 +76,289 @@ namespace FeeBayConnectionTester
             ////!{ COMPLETED} is funds going from buyer to feeBay.
             //multiFilter = "transactionStatus:{COMPLETED},transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
 
-            //TransactionSummary transactionCompletedSummary =
-            //    await ebayController.GetTransactionSummary(signingKey, multiFilter);
-
-            //!GetTransactions with pagination
-            multiFilter = "transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
-            List<Transaction> financialTransactionList = await GetAllTransactionsPaginated(multiFilter, limit: 50);
-
-            //!GetOrders with pagination
-            string ordersFilter = "creationdate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.999Z]";
-            List<Order> orderList = await GetAllOrdersPaginated(ordersFilter, limit: 50);
-
             //!Get Payouts (transfers from feeBay to checking from someplace
             //!Extend the Payouts filter by a week to catch payouts from end of month sales
             string payOutsFilter = "payoutDate:[2026-01-01T00:00:00.000Z..2026-02-14T23:59:59.999Z]";
             List<Payout> payOutList = await GetAllPayOutsPaginated(payOutsFilter, limit: 50);
 
+            //!GetTransactions with pagination
+            multiFilter = "transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
+            List<Transaction> transactionList = await GetAllTransactionsPaginated(multiFilter, limit: 50);
 
-            await FormatToSendToGnuCash(orderList, financialTransactionList, payOutList);
+            //!GetOrders with pagination
+            string ordersFilter = "creationdate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.999Z]";
+            List<Order> orderList = await GetAllOrdersPaginated(ordersFilter, limit: 50);
+
+            List<FeeBayIncomingData> feeBayIncomingData = CombineDownloadedData(payOutList, transactionList, orderList);
+            var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var incomingOutputPath = $@"D:\Exports\eBay_IncomingData_{incomingTimestamp}.csv";
+            CsvExporter.WriteIncomingDataToCsv(feeBayIncomingData, incomingOutputPath);
+            MessageBox.Show(
+                $"Successfully exported {feeBayIncomingData.Count} incoming rows to:\n\n{incomingOutputPath}",
+                "Incoming Data Export Successful",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            // await FormatToSendToGnuCash(orderList, financialTransactionList, payOutList);;
+        }
+
+        private List<FeeBayIncomingData> CombineDownloadedData(List<Payout> payOutList, List<Transaction> transactionList, List<Order> orderList)
+        {
+            var results = new List<FeeBayIncomingData>();
+
+            var payoutsById = payOutList
+                .Where(p => string.IsNullOrWhiteSpace(p.PayoutId) == false)
+                .GroupBy(p => p.PayoutId)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var ohioOrderInOrders = orderList.Where(o => o.OrderId == "09-14052-99669");
+            var ohioOrderInTransactions = transactionList.Where(o => o.OrderId == "09-14052-99669");
+           // var ohioOrderInPayouts = payOutList.Where(o => o.)
+
+            foreach (var order in orderList)
+            {
+                if (order.LineItems == null || order.LineItems.Any() == false)
+                {
+                    continue;
+                }
+
+                var orderTransactions = transactionList
+                    .Where(t => string.Equals(t.OrderId, order.OrderId, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                foreach (var lineItem in order.LineItems)
+                {
+                    var lineTransactions = orderTransactions
+                        .Where(t => t.OrderLineItems != null && t.OrderLineItems.Any(ol => string.Equals(ol.LineItemId, lineItem.LineItemId, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
+
+                    var sourceTransactions = lineTransactions.Any() ? lineTransactions : orderTransactions;
+                    var primaryTransaction = sourceTransactions.FirstOrDefault();
+
+                    Payout? payout = null;
+                    if (primaryTransaction != null && string.IsNullOrWhiteSpace(primaryTransaction.PayoutId) == false)
+                    {
+                        payoutsById.TryGetValue(primaryTransaction.PayoutId, out payout);
+                    }
+
+                    var grossAmount = FirstNonEmpty(
+                        lineItem.Total?.Value,
+                        primaryTransaction?.Amount?.Value,
+                        "0.00");
+
+                    var itemSubtotal = FirstNonEmpty(
+                        lineItem.LineItemCost?.Value,
+                        primaryTransaction?.TotalFeeBasisAmount?.Value,
+                        grossAmount,
+                        "0.00");
+
+                    var shippingAndHandling = FirstNonEmpty(
+                        lineItem.DeliveryCost?.ShippingCost?.Value,
+                        "0.00");
+
+                    var belowStandardFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.BELOW_STANDARD_FEE);
+                    var charityDonation = SumDonations(sourceTransactions, lineItem.LineItemId);
+                    var depositProcessingFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.DEPOSIT_PROCESSING_FEE);
+                    var finalValueFeeFixed = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER);
+                    var finalValueFeeVariable = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.FINAL_VALUE_FEE);
+                    var internationalFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.INTERNATIONAL_FEE);
+                    var inadFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.HIGH_ITEM_NOT_AS_DESCRIBED_FEE);
+                    var regulatoryFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.REGULATORY_OPERATING_FEE);
+
+                    var ebayCollectedTax = SumAmounts(sourceTransactions.Select(t => t.EBayCollectedTaxAmount));
+                    var sellerCollectedTax = SumAmounts(lineItem.Taxes?.Select(t => t.Amount));
+
+                    var netAmount = ParseAmount(grossAmount)
+                        - belowStandardFee
+                        - charityDonation
+                        - depositProcessingFee
+                        - finalValueFeeFixed
+                        - finalValueFeeVariable
+                        - internationalFee
+                        - inadFee
+                        - regulatoryFee;
+
+                    var row = new FeeBayIncomingData
+                    {
+                        Below_standard_performance_fee = ToMoney(belowStandardFee),
+                        Buyer_name = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.FullName, order.Buyer?.Username, string.Empty),
+                        Buyer_username = FirstNonEmpty(order.Buyer?.Username, string.Empty),
+                        Charity_donation = ToMoney(charityDonation),
+                        Deposit_processing_fee = ToMoney(depositProcessingFee),
+                        Description = FirstNonEmpty(primaryTransaction?.TransactionMemo, lineItem.Title, string.Empty),
+                        Exchange_rate = FirstNonEmpty(primaryTransaction?.Amount?.ExchangeRate, payout?.Amount?.ExchangeRate, "1.00"),
+                        feeBay_collected_tax = ToMoney(ebayCollectedTax),
+                        FVF_fixed = ToMoney(finalValueFeeFixed),
+                        FVF_variable = ToMoney(finalValueFeeVariable),
+                        Gross_transaction_amount = grossAmount,
+                        International_fee = ToMoney(internationalFee),
+                        Item_ID = FirstNonEmpty(lineItem.LegacyItemId, lineItem.LineItemId, string.Empty),
+                        Item_not_as_described_fee = ToMoney(inadFee),
+                        Item_subtotal = itemSubtotal,
+                        Item_title = FirstNonEmpty(lineItem.Title, string.Empty),
+                        Legacy_order_ID = FirstNonEmpty(order.SalesRecordReference, order.OrderId, string.Empty),
+                        Net_amount = ToMoney(netAmount),
+                        Order_number = FirstNonEmpty(order.OrderId, string.Empty),
+                        Payout_currency = FirstNonEmpty(payout?.Amount?.Currency?.ToString(), payout?.TotalAmount?.Currency?.ToString(), primaryTransaction?.Amount?.Currency?.ToString(), string.Empty),
+                        Payout_date = FirstNonEmpty(payout?.PayoutDate, string.Empty),
+                        Payout_ID = FirstNonEmpty(primaryTransaction?.PayoutId, payout?.PayoutId, string.Empty),
+                        Payout_method = FirstNonEmpty(payout?.PayoutInstrument?.InstrumentType, string.Empty),
+                        Payout_status = FirstNonEmpty(payout?.PayoutStatus?.ToString(), payout?.PayoutStatusDescription, string.Empty),
+                        Quantity = lineItem.Quantity.ToString(CultureInfo.InvariantCulture),
+                        Reason_for_hold = FirstNonEmpty(payout?.PayoutStatusDescription, string.Empty),
+                        Reference_ID = FirstNonEmpty(primaryTransaction?.References?.FirstOrDefault()?.ReferenceId, order.SalesRecordReference, string.Empty),
+                        Regulatory_operating_fee = ToMoney(regulatoryFee),
+                        Seller_collected_tax = ToMoney(sellerCollectedTax),
+                        Ship_to_city = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.City, string.Empty),
+                        Ship_to_country = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.Country?.ToString(), string.Empty),
+                        Ship_to_state = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.StateOrProvince, string.Empty),
+                        Ship_to_zip = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.PostalCode, string.Empty),
+                        Shipping_and_handling = shippingAndHandling,
+                        Sku = FirstNonEmpty(lineItem.SKU, string.Empty),
+                        Transaction_creation_date = FirstNonEmpty(primaryTransaction?.TransactionDate, order.CreationDate, string.Empty),
+                        Transaction_currency = FirstNonEmpty(primaryTransaction?.Amount?.Currency?.ToString(), lineItem.Total?.Currency?.ToString(), string.Empty),
+                        Transaction_ID = FirstNonEmpty(primaryTransaction?.TransactionId, string.Empty),
+                        Type = FirstNonEmpty(primaryTransaction?.TransactionType?.ToString(), string.Empty)
+                    };
+
+                    results.Add(row);
+                }
+            }
+
+            return results;
+        }
+
+        private static decimal SumMarketplaceFee(IEnumerable<Transaction>? transactions, string? lineItemId, FeeTypeEnum feeType)
+        {
+            if (transactions == null)
+            {
+                return 0m;
+            }
+
+            decimal total = 0m;
+
+            foreach (var transaction in transactions)
+            {
+                if (transaction?.OrderLineItems == null)
+                {
+                    continue;
+                }
+
+                foreach (var orderLine in transaction.OrderLineItems)
+                {
+                    if (orderLine == null)
+                    {
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(lineItemId) == false && string.Equals(orderLine.LineItemId, lineItemId, StringComparison.OrdinalIgnoreCase) == false)
+                    {
+                        continue;
+                    }
+
+                    if (orderLine.MarketplaceFees == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var fee in orderLine.MarketplaceFees)
+                    {
+                        if (fee?.FeeType == feeType)
+                        {
+                            total += ParseAmount(fee.Amount?.Value);
+                        }
+                    }
+                }
+            }
+
+            return total;
+        }
+
+        private static decimal SumDonations(IEnumerable<Transaction>? transactions, string? lineItemId)
+        {
+            if (transactions == null)
+            {
+                return 0m;
+            }
+
+            decimal total = 0m;
+
+            foreach (var transaction in transactions)
+            {
+                if (transaction?.OrderLineItems == null)
+                {
+                    continue;
+                }
+
+                foreach (var orderLine in transaction.OrderLineItems)
+                {
+                    if (orderLine == null)
+                    {
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(lineItemId) == false && string.Equals(orderLine.LineItemId, lineItemId, StringComparison.OrdinalIgnoreCase) == false)
+                    {
+                        continue;
+                    }
+
+                    if (orderLine.Donations == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var donation in orderLine.Donations)
+                    {
+                        total += ParseAmount(donation?.Amount?.Value);
+                    }
+                }
+            }
+
+            return total;
+        }
+
+        private static decimal SumAmounts(IEnumerable<Amount?>? amounts)
+        {
+            if (amounts == null)
+            {
+                return 0m;
+            }
+
+            decimal total = 0m;
+            foreach (var amount in amounts)
+            {
+                total += ParseAmount(amount?.Value);
+            }
+            return total;
+        }
+
+        private static decimal ParseAmount(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return 0m;
+            }
+
+            return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed)
+                ? parsed
+                : 0m;
+        }
+
+        private static string ToMoney(decimal value)
+        {
+            return value.ToString("0.00", CultureInfo.InvariantCulture);
+        }
+
+        private static string FirstNonEmpty(params string?[] values)
+        {
+            foreach (var value in values)
+            {
+                if (string.IsNullOrWhiteSpace(value) == false)
+                {
+                    return value;
+                }
+            }
+
+            return string.Empty;
         }
 
         private void Form1_Load(object sender, EventArgs e)
