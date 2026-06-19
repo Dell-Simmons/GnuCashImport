@@ -1,6 +1,7 @@
 using EbaySharp.Entities.Common;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
+using System.Globalization;
 using System.Linq;
 
 namespace FeeBayConnectionTester.Extensions
@@ -44,19 +45,28 @@ namespace FeeBayConnectionTester.Extensions
         /// Converts the Amount's Value property to a decimal.
         /// Returns null if the Value is null or cannot be parsed.
         /// </summary>
-        public static decimal? DollarAmount(this Amount amount)
+        public static decimal? DollarAmount(this Amount? amount)
         {
-            if (amount?.Value == null)
+            if (string.IsNullOrWhiteSpace(amount?.Value))
             {
                 return null;
             }
 
-            if (decimal.TryParse(amount.Value, out decimal result))
-            {
-                return result;
-            }
+            return decimal.TryParse(
+                amount.Value,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out decimal result)
+                ? result
+                : null;
+        }
 
-            return null;
+        /// <summary>
+        /// Converts Amount.Value to decimal, returning fallback when missing or invalid.
+        /// </summary>
+        public static decimal DollarAmountOrDefault(this Amount? amount, decimal fallback = 0m)
+        {
+            return amount.DollarAmount() ?? fallback;
         }
     }
 }
