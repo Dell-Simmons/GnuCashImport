@@ -112,20 +112,67 @@ namespace FeeBayConnectionTester
 
             var ohioOrderInOrders = orderList.Where(o => o.OrderId == "09-14052-99669");
             var ohioOrderInTransactions = transactionList.Where(o => o.OrderId == "09-14052-99669");
+            var groupedTransactions = transactionList
+                .Where(t => string.IsNullOrWhiteSpace(t.PayoutId) == false)
+                .GroupBy(t => t.PayoutId!)
+                .ToDictionary(g => g.Key, g => g.ToList());
            // var ohioOrderInPayouts = payOutList.Where(o => o.)
-
-            foreach (var order in orderList)
+            //! rely on transactions not orders.  Use orders only to get at orderItem
+            //! specifics not available in Transaction orderItems.  Like title and SKU
+            //! that should be about it.  Otherwise pull from transactions!
+            foreach (var payout in payOutList)
             {
-                if (order.LineItems == null || order.LineItems.Any() == false)
+                var payoutId = payout.PayoutId;
+                int? numTransactionsInPayout = payout.TransactionCount;
+                List<Transaction>? transactionsInThisPayout;
+                groupedTransactions.TryGetValue(payoutId, out transactionsInThisPayout);
+                if (transactionsInThisPayout == null)
                 {
                     continue;
                 }
+                if(transactionsInThisPayout.Count != numTransactionsInPayout)
+                {
+                    //! only try to reconcile transactions that are in a completed payout
+                    continue;
+                }
+               
+                foreach(var transaction in transactionsInThisPayout)
+                {
+                    var look = transaction.TransactionType;
+
+                    if (transaction.OrderLineItems == null || transaction.OrderLineItems.Any() == false)
+                    {
+                        continue;
+                    }
+                    //! Need the order to get the selling prices of each item
+                    var associatedOrder = orderList.Where(o=>o.OrderId == transaction.OrderId).FirstOrDefault();
+                    if (associatedOrder == null)
+                    {
+                        continue;
+                    }
+                    var orderItemsCount = associatedOrder.LineItems.Count();
+                    var orderTotalSalePrice = associatedOrder.PricingSummary.PriceSubtotal.DollarAmount();
+                    var orderTotalShippingCharge = associatedOrder.PricingSummary.DeliveryCost.DollarAmount();
+                    var orderTotal = associatedOrder.PricingSummary.Total.DollarAmount();
+                    var orderFees = associatedOrder.TotalMarketplaceFee.DollarAmount();
+                        
+                    foreach(var orderLineItem in associatedOrder.LineItems)
+                    {
+                       
+                    }
+                }
+            }
+            return results;
+        }
+          /*   foreach (var order in orderList)
+            {
+              
 
                 var orderTransactions = transactionList
                     .Where(t => string.Equals(t.OrderId, order.OrderId, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                    .ToList(); */
 
-                foreach (var lineItem in order.LineItems)
+              /*   foreach (var lineItem in order.LineItems)
                 {
                     var lineTransactions = orderTransactions
                         .Where(t => t.OrderLineItems != null && t.OrderLineItems.Any(ol => string.Equals(ol.LineItemId, lineItem.LineItemId, StringComparison.OrdinalIgnoreCase)))
@@ -139,8 +186,8 @@ namespace FeeBayConnectionTester
                     {
                         payoutsById.TryGetValue(primaryTransaction.PayoutId, out payout);
                     }
-
-                    var grossAmount = FirstNonEmpty(
+ */
+                  /*   var grossAmount = FirstNonEmpty(
                         lineItem.Total?.Value,
                         primaryTransaction?.Amount?.Value,
                         "0.00");
@@ -153,9 +200,9 @@ namespace FeeBayConnectionTester
 
                     var shippingAndHandling = FirstNonEmpty(
                         lineItem.DeliveryCost?.ShippingCost?.Value,
-                        "0.00");
+                        "0.00"); */
 
-                    var belowStandardFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.BELOW_STANDARD_FEE);
+                    /* var belowStandardFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.BELOW_STANDARD_FEE);
                     var charityDonation = SumDonations(sourceTransactions, lineItem.LineItemId);
                     var depositProcessingFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.DEPOSIT_PROCESSING_FEE);
                     var finalValueFeeFixed = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER);
@@ -221,11 +268,11 @@ namespace FeeBayConnectionTester
                     };
 
                     results.Add(row);
-                }
-            }
+                } */
+            
 
-            return results;
-        }
+           // return results;
+        
 
         private static decimal SumMarketplaceFee(IEnumerable<Transaction>? transactions, string? lineItemId, FeeTypeEnum feeType)
         {
