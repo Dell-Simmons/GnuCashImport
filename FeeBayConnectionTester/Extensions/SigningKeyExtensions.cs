@@ -8,9 +8,9 @@ namespace FeeBayConnectionTester.Extensions
         /// <summary>
         /// Convert EbaySharp API entity to database entity
         /// </summary>
-        public static FeeBaySigningKeys? ToFeeBaySigningKey(this SigningKey apiKey)
+        public static FeeBaySigningKeys ToFeeBaySigningKey(this SigningKey apiKey)
         {
-            if (apiKey == null) return null;
+            if (apiKey == null) throw new ArgumentNullException(nameof(apiKey));
 
             return new FeeBaySigningKeys
             {

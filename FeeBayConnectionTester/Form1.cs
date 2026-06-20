@@ -27,7 +27,7 @@ namespace FeeBayConnectionTester
         private readonly ILocalDbConnectionManager _localDbConnectionManager;
         private readonly IOAuthTokenService _oAuthTokenService;
         
-        private EbayController _eBayController;
+        private EbayController _eBayController = null!;
         #endregion
 
         #region Constructors
@@ -55,6 +55,15 @@ namespace FeeBayConnectionTester
             // to verify the identity of the requester and ensure they have the necessary
             // permissions to perform the requested actions.
             string? token = await _oAuthTokenService.GetOAuthTokenAsync("Simmons_Ink");
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                MessageBox.Show(
+                    "Unable to acquire an OAuth token for Simmons_Ink.",
+                    "Authentication Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
 
             _eBayController = _ebayControllerFactory(token);
             // The signing key is used to create digital signatures for API requests,
@@ -110,8 +119,8 @@ namespace FeeBayConnectionTester
                 .GroupBy(p => p.PayoutId)
                 .ToDictionary(g => g.Key, g => g.First());
 
-            var ohioOrderInOrders = orderList.Where(o => o.OrderId == "09-14052-99669");
-            var ohioOrderInTransactions = transactionList.Where(o => o.OrderId == "09-14052-99669");
+          //  var ohioOrderInOrders = orderList.Where(o => o.OrderId == "09-14052-99669");
+          //  var ohioOrderInTransactions = transactionList.Where(o => o.OrderId == "09-14052-99669");
             var groupedTransactions = transactionList
                 .Where(t => string.IsNullOrWhiteSpace(t.PayoutId) == false)
                 .GroupBy(t => t.PayoutId!)
@@ -138,18 +147,57 @@ namespace FeeBayConnectionTester
                
                 foreach(var transaction in transactionsInThisPayout)
                 {
-                    var look = transaction.TransactionType;
+                    var associatedOrder = orderList.Where(o=>o.OrderId == transaction.OrderId).FirstOrDefault();
+                   /*  if (associatedOrder == null)
+                    {
+                        continue;
+                    }  */
+                    switch (transaction.TransactionType)
+                    {
+                        case TransactionTypeEnum.SALE:
+                        HandleSale(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.REFUND:
+                        HandleRefund(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.CREDIT:
+                        HandleCredit(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.DISPUTE:
+                        HandleDispute(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.SHIPPING_LABEL:
+                        HandleShipping_Label(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.TRANSFER:
+                        HanedleTransfer(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.NON_SALE_CHARGE:
+                        HandleNon_Sale_Charge(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.ADJUSTMENT:
+                        HandleAdjustment(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.WITHDRAWAL:
+                        HandleWithdrawal(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.LOAN_REPAYMENT:
+                        HandleLoan_Repayment(transaction,associatedOrder);
+                        break;
+                        case TransactionTypeEnum.PURCHASE:
+                        HandlePurchase(transaction,associatedOrder);
+                        break;
+                        case null:
+                        default:
+                            continue;
+                    }
 
                     if (transaction.OrderLineItems == null || transaction.OrderLineItems.Any() == false)
                     {
                         continue;
                     }
                     //! Need the order to get the selling prices of each item
-                    var associatedOrder = orderList.Where(o=>o.OrderId == transaction.OrderId).FirstOrDefault();
-                    if (associatedOrder == null)
-                    {
-                        continue;
-                    }
+                   
                     var orderItemsCount = associatedOrder.LineItems.Count();
                     var orderTotalSalePrice = associatedOrder.PricingSummary.PriceSubtotal.DollarAmount();
                     var orderTotalShippingCharge = associatedOrder.PricingSummary.DeliveryCost.DollarAmount();
@@ -164,115 +212,333 @@ namespace FeeBayConnectionTester
             }
             return results;
         }
-          /*   foreach (var order in orderList)
+
+        private void HandlePurchase(Transaction transaction, Order associatedOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleLoan_Repayment(Transaction transaction, Order associatedOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleWithdrawal(Transaction transaction, Order associatedOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleAdjustment(Transaction transaction, Order associatedOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleNon_Sale_Charge(Transaction transaction, Order associatedOrder)
+        {
+            //throw new NotImplementedException();
+        }
+
+        private void HanedleTransfer(Transaction transaction, Order associatedOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleShipping_Label(Transaction transaction, Order associatedOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleDispute(Transaction transaction, Order associatedOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleCredit(Transaction transaction, Order associatedOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleRefund(Transaction transaction, Order associatedOrder)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void HandleSale(Transaction transaction, Order associatedOrder)
+        {
+          foreach(var transactionLineItem in transaction.OrderLineItems)
             {
-              
-
-                var orderTransactions = transactionList
-                    .Where(t => string.Equals(t.OrderId, order.OrderId, StringComparison.OrdinalIgnoreCase))
-                    .ToList(); */
-
-              /*   foreach (var lineItem in order.LineItems)
+                var orderLineItem = associatedOrder.LineItems.Where(l => l.LineItemId == transactionLineItem.LineItemId).Single();
+                var itemFees = transactionLineItem.MarketplaceFees;
+                var skusInOrder = orderLineItem.SKU;
+                var orderDate = associatedOrder.CreationDate;
+                var orderId = transaction.OrderId;
+                var sellingPrice = orderLineItem.LineItemCost.DollarAmount();//order.Sum(x => decimal.Parse(x.Item_subtotal));
+                var shippingPrice = orderLineItem.DeliveryCost.ShippingCost.DollarAmount();
+                var fixedFees = itemFees
+                                    .Where(f=>f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER)
+                                    .Single().Amount.DollarAmount(); 
+                var variableFees = itemFees
+                                    .Where(f =>f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)
+                                    .Single().Amount.DollarAmount(); 
+                //var net = order.Sum(x => decimal.Parse(x.Net_amount));
+              //  var internationalFees = order.Sum(x => decimal.Parse(x.International_fee));
+              //  var gross = order.Sum(x => decimal.Parse(x.Gross_transaction_amount));
+              //  var numberSold = order.Count(x => !string.Equals(x.Sku, "--", StringComparison.Ordinal));
+              //  if (sellingPrice + shippingPrice != gross)
+             //   {
+               //     MessageBox.Show(
+            //            $"Gross amount {gross} does not equal selling price {sellingPrice} + shipping price {shippingPrice}");
+             //   }
+              //  if (gross + fixedFees + variableFees + internationalFees != net)
                 {
-                    var lineTransactions = orderTransactions
-                        .Where(t => t.OrderLineItems != null && t.OrderLineItems.Any(ol => string.Equals(ol.LineItemId, lineItem.LineItemId, StringComparison.OrdinalIgnoreCase)))
-                        .ToList();
+              //      MessageBox.Show(
+               //         $"Net amount {net} does not equal gross amount {gross} - fixed fees {fixedFees} - variable fees {variableFees}");
+                //}
+          //      var incomeLineDescription = string.Empty;
+          //      if (numberSold == 1)
+         //       {
+          //          incomeLineDescription = $"feeBay Order #{orderId} - {order.First().Item_title}";
+            //    }
+           //     else
+            //    {
+             //       incomeLineDescription = $"feeBay Order #{orderId} - {numberSold} items sold";
+              //  }
 
-                    var sourceTransactions = lineTransactions.Any() ? lineTransactions : orderTransactions;
-                    var primaryTransaction = sourceTransactions.FirstOrDefault();
+                // income line
+             /*    try
+                {
+                    var incomeLine = new Stripe.StripeModels.OutputData();
+                    incomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+                    incomeLine.Account = $"Income:{feeBayName2} Sales";
+                    incomeLine.Description = incomeLineDescription;
+                    incomeLine.Amount = sellingPrice + shippingPrice;
+                    incomeLine.TransactionId = orderId;
+                    incomeLine.SortOrder = 1;
+                    outputData.Add(incomeLine);
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
 
-                    Payout? payout = null;
-                    if (primaryTransaction != null && string.IsNullOrWhiteSpace(primaryTransaction.PayoutId) == false)
+                // fixed fee Line
+                try
+                {
+                    var fixedFeeLine = new Stripe.StripeModels.OutputData();
+                    fixedFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+                    fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBayName1}:Fixed Fee Per Sale";
+                    fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                    fixedFeeLine.Amount = fixedFees;
+                    fixedFeeLine.TransactionId = orderId;
+                    fixedFeeLine.SortOrder = 2;
+                    outputData.Add(fixedFeeLine);
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+
+                // variable fee line
+                try
+                {
+                    var variableFeeLine = new Stripe.StripeModels.OutputData();
+                    variableFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+                    variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBayName1}:Final Value Fees";
+                    variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                    variableFeeLine.Amount = variableFees;
+                    variableFeeLine.TransactionId = orderId;
+                    variableFeeLine.SortOrder = 3;
+                    outputData.Add(variableFeeLine);
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+
+                //add the remaining money to feeBay current assett
+                try
+                {
+                    var netIncomeLine = new Stripe.StripeModels.OutputData();
+                    netIncomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+                    netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBayName2}";
+                    netIncomeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                    netIncomeLine.Amount = -net;
+                    netIncomeLine.TransactionId = orderId;
+                    netIncomeLine.SortOrder = 4;
+                    outputData.Add(netIncomeLine);
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+
+                //international fees line
+                try
+                {
+                    if (internationalFees != 0)
                     {
-                        payoutsById.TryGetValue(primaryTransaction.PayoutId, out payout);
+                        var internationalFeeLine = new Stripe.StripeModels.OutputData();
+                        internationalFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+                        internationalFeeLine.Account = $"Expenses:FeeBay Fees:{feeBayName1}:International Fee";
+                        internationalFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                        internationalFeeLine.Amount = internationalFees;
+                        internationalFeeLine.TransactionId = orderId;
+                        internationalFeeLine.SortOrder = 5;
+                        outputData.Add(internationalFeeLine);
                     }
- */
-                  /*   var grossAmount = FirstNonEmpty(
-                        lineItem.Total?.Value,
-                        primaryTransaction?.Amount?.Value,
-                        "0.00");
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
 
-                    var itemSubtotal = FirstNonEmpty(
-                        lineItem.LineItemCost?.Value,
-                        primaryTransaction?.TotalFeeBasisAmount?.Value,
-                        grossAmount,
-                        "0.00");
+                // And add to the cost of goods sold
+                try
+                {
+                    Stripe.StripeModels.OutputData feeBayCOGSRecord = new();
+                    feeBayCOGSRecord.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+                    feeBayCOGSRecord.Account = "Expenses:Cost of Goods Sold";
+                    feeBayCOGSRecord.Description = $"{incomeLineDescription} COGS";
+                    feeBayCOGSRecord.Amount = MakeCogsForFullOrder(sellingPrice, skusInOrder);
+                    feeBayCOGSRecord.TransactionId = orderId;
+                    feeBayCOGSRecord.SortOrder = 6;
+                    outputData.Add(feeBayCOGSRecord);
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
 
-                    var shippingAndHandling = FirstNonEmpty(
-                        lineItem.DeliveryCost?.ShippingCost?.Value,
-                        "0.00"); */
+                // now subtract the cost of the sold stuff from inventory
+                try
+                {
+                    Stripe.StripeModels.OutputData feeBayInventoryRecord = new();
+                    feeBayInventoryRecord.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+                    feeBayInventoryRecord.Account = "Assets:INVENTORY";
+                    feeBayInventoryRecord.Description = $"{incomeLineDescription} COGS";
+                    feeBayInventoryRecord.Amount = -MakeCogsForFullOrder(sellingPrice, skusInOrder);
+                    feeBayInventoryRecord.TransactionId = orderId;
+                    feeBayInventoryRecord.SortOrder = 7;
+                    outputData.Add(feeBayInventoryRecord);
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+              */         
+            } 
+        }
+        }
 
-                    /* var belowStandardFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.BELOW_STANDARD_FEE);
-                    var charityDonation = SumDonations(sourceTransactions, lineItem.LineItemId);
-                    var depositProcessingFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.DEPOSIT_PROCESSING_FEE);
-                    var finalValueFeeFixed = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER);
-                    var finalValueFeeVariable = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.FINAL_VALUE_FEE);
-                    var internationalFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.INTERNATIONAL_FEE);
-                    var inadFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.HIGH_ITEM_NOT_AS_DESCRIBED_FEE);
-                    var regulatoryFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.REGULATORY_OPERATING_FEE);
+        /*   foreach (var order in orderList)
+ {
 
-                    var ebayCollectedTax = SumAmounts(sourceTransactions.Select(t => t.EBayCollectedTaxAmount));
-                    var sellerCollectedTax = SumAmounts(lineItem.Taxes?.Select(t => t.Amount));
 
-                    var netAmount = ParseAmount(grossAmount)
-                        - belowStandardFee
-                        - charityDonation
-                        - depositProcessingFee
-                        - finalValueFeeFixed
-                        - finalValueFeeVariable
-                        - internationalFee
-                        - inadFee
-                        - regulatoryFee;
+     var orderTransactions = transactionList
+         .Where(t => string.Equals(t.OrderId, order.OrderId, StringComparison.OrdinalIgnoreCase))
+         .ToList(); */
 
-                    var row = new FeeBayIncomingData
-                    {
-                        Below_standard_performance_fee = ToMoney(belowStandardFee),
-                        Buyer_name = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.FullName, order.Buyer?.Username, string.Empty),
-                        Buyer_username = FirstNonEmpty(order.Buyer?.Username, string.Empty),
-                        Charity_donation = ToMoney(charityDonation),
-                        Deposit_processing_fee = ToMoney(depositProcessingFee),
-                        Description = FirstNonEmpty(primaryTransaction?.TransactionMemo, lineItem.Title, string.Empty),
-                        Exchange_rate = FirstNonEmpty(primaryTransaction?.Amount?.ExchangeRate, payout?.Amount?.ExchangeRate, "1.00"),
-                        feeBay_collected_tax = ToMoney(ebayCollectedTax),
-                        FVF_fixed = ToMoney(finalValueFeeFixed),
-                        FVF_variable = ToMoney(finalValueFeeVariable),
-                        Gross_transaction_amount = grossAmount,
-                        International_fee = ToMoney(internationalFee),
-                        Item_ID = FirstNonEmpty(lineItem.LegacyItemId, lineItem.LineItemId, string.Empty),
-                        Item_not_as_described_fee = ToMoney(inadFee),
-                        Item_subtotal = itemSubtotal,
-                        Item_title = FirstNonEmpty(lineItem.Title, string.Empty),
-                        Legacy_order_ID = FirstNonEmpty(order.SalesRecordReference, order.OrderId, string.Empty),
-                        Net_amount = ToMoney(netAmount),
-                        Order_number = FirstNonEmpty(order.OrderId, string.Empty),
-                        Payout_currency = FirstNonEmpty(payout?.Amount?.Currency?.ToString(), payout?.TotalAmount?.Currency?.ToString(), primaryTransaction?.Amount?.Currency?.ToString(), string.Empty),
-                        Payout_date = FirstNonEmpty(payout?.PayoutDate, string.Empty),
-                        Payout_ID = FirstNonEmpty(primaryTransaction?.PayoutId, payout?.PayoutId, string.Empty),
-                        Payout_method = FirstNonEmpty(payout?.PayoutInstrument?.InstrumentType, string.Empty),
-                        Payout_status = FirstNonEmpty(payout?.PayoutStatus?.ToString(), payout?.PayoutStatusDescription, string.Empty),
-                        Quantity = lineItem.Quantity.ToString(CultureInfo.InvariantCulture),
-                        Reason_for_hold = FirstNonEmpty(payout?.PayoutStatusDescription, string.Empty),
-                        Reference_ID = FirstNonEmpty(primaryTransaction?.References?.FirstOrDefault()?.ReferenceId, order.SalesRecordReference, string.Empty),
-                        Regulatory_operating_fee = ToMoney(regulatoryFee),
-                        Seller_collected_tax = ToMoney(sellerCollectedTax),
-                        Ship_to_city = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.City, string.Empty),
-                        Ship_to_country = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.Country?.ToString(), string.Empty),
-                        Ship_to_state = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.StateOrProvince, string.Empty),
-                        Ship_to_zip = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.PostalCode, string.Empty),
-                        Shipping_and_handling = shippingAndHandling,
-                        Sku = FirstNonEmpty(lineItem.SKU, string.Empty),
-                        Transaction_creation_date = FirstNonEmpty(primaryTransaction?.TransactionDate, order.CreationDate, string.Empty),
-                        Transaction_currency = FirstNonEmpty(primaryTransaction?.Amount?.Currency?.ToString(), lineItem.Total?.Currency?.ToString(), string.Empty),
-                        Transaction_ID = FirstNonEmpty(primaryTransaction?.TransactionId, string.Empty),
-                        Type = FirstNonEmpty(primaryTransaction?.TransactionType?.ToString(), string.Empty)
-                    };
+        /*   foreach (var lineItem in order.LineItems)
+          {
+              var lineTransactions = orderTransactions
+                  .Where(t => t.OrderLineItems != null && t.OrderLineItems.Any(ol => string.Equals(ol.LineItemId, lineItem.LineItemId, StringComparison.OrdinalIgnoreCase)))
+                  .ToList();
 
-                    results.Add(row);
-                } */
-            
+              var sourceTransactions = lineTransactions.Any() ? lineTransactions : orderTransactions;
+              var primaryTransaction = sourceTransactions.FirstOrDefault();
 
-           // return results;
-        
+              Payout? payout = null;
+              if (primaryTransaction != null && string.IsNullOrWhiteSpace(primaryTransaction.PayoutId) == false)
+              {
+                  payoutsById.TryGetValue(primaryTransaction.PayoutId, out payout);
+              }
+*/
+        /*   var grossAmount = FirstNonEmpty(
+              lineItem.Total?.Value,
+              primaryTransaction?.Amount?.Value,
+              "0.00");
+
+          var itemSubtotal = FirstNonEmpty(
+              lineItem.LineItemCost?.Value,
+              primaryTransaction?.TotalFeeBasisAmount?.Value,
+              grossAmount,
+              "0.00");
+
+          var shippingAndHandling = FirstNonEmpty(
+              lineItem.DeliveryCost?.ShippingCost?.Value,
+              "0.00"); */
+
+        /* var belowStandardFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.BELOW_STANDARD_FEE);
+        var charityDonation = SumDonations(sourceTransactions, lineItem.LineItemId);
+        var depositProcessingFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.DEPOSIT_PROCESSING_FEE);
+        var finalValueFeeFixed = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER);
+        var finalValueFeeVariable = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.FINAL_VALUE_FEE);
+        var internationalFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.INTERNATIONAL_FEE);
+        var inadFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.HIGH_ITEM_NOT_AS_DESCRIBED_FEE);
+        var regulatoryFee = SumMarketplaceFee(sourceTransactions, lineItem.LineItemId, FeeTypeEnum.REGULATORY_OPERATING_FEE);
+
+        var ebayCollectedTax = SumAmounts(sourceTransactions.Select(t => t.EBayCollectedTaxAmount));
+        var sellerCollectedTax = SumAmounts(lineItem.Taxes?.Select(t => t.Amount));
+
+        var netAmount = ParseAmount(grossAmount)
+            - belowStandardFee
+            - charityDonation
+            - depositProcessingFee
+            - finalValueFeeFixed
+            - finalValueFeeVariable
+            - internationalFee
+            - inadFee
+            - regulatoryFee;
+
+        var row = new FeeBayIncomingData
+        {
+            Below_standard_performance_fee = ToMoney(belowStandardFee),
+            Buyer_name = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.FullName, order.Buyer?.Username, string.Empty),
+            Buyer_username = FirstNonEmpty(order.Buyer?.Username, string.Empty),
+            Charity_donation = ToMoney(charityDonation),
+            Deposit_processing_fee = ToMoney(depositProcessingFee),
+            Description = FirstNonEmpty(primaryTransaction?.TransactionMemo, lineItem.Title, string.Empty),
+            Exchange_rate = FirstNonEmpty(primaryTransaction?.Amount?.ExchangeRate, payout?.Amount?.ExchangeRate, "1.00"),
+            feeBay_collected_tax = ToMoney(ebayCollectedTax),
+            FVF_fixed = ToMoney(finalValueFeeFixed),
+            FVF_variable = ToMoney(finalValueFeeVariable),
+            Gross_transaction_amount = grossAmount,
+            International_fee = ToMoney(internationalFee),
+            Item_ID = FirstNonEmpty(lineItem.LegacyItemId, lineItem.LineItemId, string.Empty),
+            Item_not_as_described_fee = ToMoney(inadFee),
+            Item_subtotal = itemSubtotal,
+            Item_title = FirstNonEmpty(lineItem.Title, string.Empty),
+            Legacy_order_ID = FirstNonEmpty(order.SalesRecordReference, order.OrderId, string.Empty),
+            Net_amount = ToMoney(netAmount),
+            Order_number = FirstNonEmpty(order.OrderId, string.Empty),
+            Payout_currency = FirstNonEmpty(payout?.Amount?.Currency?.ToString(), payout?.TotalAmount?.Currency?.ToString(), primaryTransaction?.Amount?.Currency?.ToString(), string.Empty),
+            Payout_date = FirstNonEmpty(payout?.PayoutDate, string.Empty),
+            Payout_ID = FirstNonEmpty(primaryTransaction?.PayoutId, payout?.PayoutId, string.Empty),
+            Payout_method = FirstNonEmpty(payout?.PayoutInstrument?.InstrumentType, string.Empty),
+            Payout_status = FirstNonEmpty(payout?.PayoutStatus?.ToString(), payout?.PayoutStatusDescription, string.Empty),
+            Quantity = lineItem.Quantity.ToString(CultureInfo.InvariantCulture),
+            Reason_for_hold = FirstNonEmpty(payout?.PayoutStatusDescription, string.Empty),
+            Reference_ID = FirstNonEmpty(primaryTransaction?.References?.FirstOrDefault()?.ReferenceId, order.SalesRecordReference, string.Empty),
+            Regulatory_operating_fee = ToMoney(regulatoryFee),
+            Seller_collected_tax = ToMoney(sellerCollectedTax),
+            Ship_to_city = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.City, string.Empty),
+            Ship_to_country = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.Country?.ToString(), string.Empty),
+            Ship_to_state = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.StateOrProvince, string.Empty),
+            Ship_to_zip = FirstNonEmpty(order.Buyer?.BuyerRegistrationAddress?.ContactAddress?.PostalCode, string.Empty),
+            Shipping_and_handling = shippingAndHandling,
+            Sku = FirstNonEmpty(lineItem.SKU, string.Empty),
+            Transaction_creation_date = FirstNonEmpty(primaryTransaction?.TransactionDate, order.CreationDate, string.Empty),
+            Transaction_currency = FirstNonEmpty(primaryTransaction?.Amount?.Currency?.ToString(), lineItem.Total?.Currency?.ToString(), string.Empty),
+            Transaction_ID = FirstNonEmpty(primaryTransaction?.TransactionId, string.Empty),
+            Type = FirstNonEmpty(primaryTransaction?.TransactionType?.ToString(), string.Empty)
+        };
+
+        results.Add(row);
+    } */
+
+
+        // return results;
+
 
         private static decimal SumMarketplaceFee(IEnumerable<Transaction>? transactions, string? lineItemId, FeeTypeEnum feeType)
         {
