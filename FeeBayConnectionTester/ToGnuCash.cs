@@ -13,7 +13,7 @@ namespace FeeBayConnectionTester
         /// <summary>
         /// Transaction date
         /// </summary>
-        public DateTime Date { get; set; }
+        public DateOnly Date { get; set; }
 
         /// <summary>
         /// GnuCash account path (e.g., "Income:eBay SI Sales:Product Sale")

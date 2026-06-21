@@ -288,7 +288,7 @@ namespace FeeBayConnectionTester.Services
                     entries.Add(
                         new ToGnuCash
                         {
-                            Date = DateTime.Parse(transaction.TransactionDate),
+                            Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate)),
                             Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Store Monthly Fee",
                             Description = $"{transaction.TransactionMemo}",
                             Amount = -transaction.Amount?.DollarAmount() ?? 0,
@@ -298,7 +298,7 @@ namespace FeeBayConnectionTester.Services
                     entries.Add(
                         new ToGnuCash
                         {
-                            Date = DateTime.Parse(transaction.TransactionDate),
+                            Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate)),
                             Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                             Description = string.Empty,//$"{transaction.TransactionMemo}",
                             Amount = transaction.Amount?.DollarAmount() ?? 0,
@@ -321,7 +321,7 @@ namespace FeeBayConnectionTester.Services
                     entries.Add(
                         new ToGnuCash
                         {
-                            Date = DateTime.Parse(transaction.TransactionDate),
+                            Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate)),
                             Account = $"Expenses:eBay Fees:{userMapping.FeeAccount}:Promoted Listings Fee",
                             Description = $"{transaction.TransactionMemo}",
                             Amount = -transaction.Amount?.DollarAmount() ?? 0,
@@ -331,7 +331,7 @@ namespace FeeBayConnectionTester.Services
                     entries.Add(
                         new ToGnuCash
                         {
-                            Date = DateTime.Parse(transaction.TransactionDate),
+                            Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate)),
                             Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                             Description = string.Empty,//$"{transaction.TransactionMemo}",
                             Amount = transaction.Amount?.DollarAmount() ?? 0,
@@ -435,7 +435,7 @@ namespace FeeBayConnectionTester.Services
             
             var entries = new List<ToGnuCash>();
             var userMapping = FeeBayUserNameMap[feeBayUserName];
-            var refundDate = DateTime.Parse(transaction.TransactionDate);
+            var refundDate = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
             var transactionId = $"{order.OrderId}-{lineItem.LineItemId}";
 
             // (1) Product Sale Income - REVERSED
@@ -574,7 +574,7 @@ namespace FeeBayConnectionTester.Services
         {
             var entries = new List<ToGnuCash>();
             var userMapping = FeeBayUserNameMap[feeBayUserName];
-            var orderDate = DateTime.Parse(order.CreationDate);
+            var orderDate = DateOnly.FromDateTime(DateTime.Parse(order.CreationDate));
             var transactionId = $"{order.OrderId}";
             if (transaction.TransactionId == "06-14118-68052")
             {
@@ -709,7 +709,7 @@ namespace FeeBayConnectionTester.Services
             entries.Add(
                 new ToGnuCash
                 {
-                    Date = DateTime.Parse(transaction.TransactionDate),
+                    Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate)),
                     Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                     Description = $"{transaction.OrderId} - {transaction.TransactionMemo}",
                     Amount = transaction.Amount?.DollarAmount() ?? 0,
@@ -720,7 +720,7 @@ namespace FeeBayConnectionTester.Services
             entries.Add(
                 new ToGnuCash
                 {
-                    Date = DateTime.Parse(transaction.TransactionDate),
+                    Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate)),
                     Account = $"Expenses:Postage and Delivery",
                     Description = string.Empty,//$"{transaction.OrderId} - {transaction.TransactionMemo}",
                     Amount = -transaction.Amount?.DollarAmount() ?? 0,
@@ -737,7 +737,7 @@ namespace FeeBayConnectionTester.Services
             entries.Add(
                 new ToGnuCash
                 {
-                    Date = DateTime.Parse(payout.PayoutDate),
+                    Date = DateOnly.FromDateTime(DateTime.Parse(payout.PayoutDate)),
                     Account = $"Assets:Current Assets:eBay:{userMapping.AssetAccount}",
                     Description = $"{payout.PayoutId} - {payout.PayoutMemo}",
                     Amount = payout.Amount?.DollarAmount() ?? 0,
@@ -748,7 +748,7 @@ namespace FeeBayConnectionTester.Services
             entries.Add(
                 new ToGnuCash
                 {
-                    Date = DateTime.Parse(payout.PayoutDate),
+                    Date = DateOnly.FromDateTime(DateTime.Parse(payout.PayoutDate)),
                     Account = $"Assets:Current Assets:TCCU Business Checking",
                     Description = string.Empty,//$"{transaction.OrderId} - {transaction.TransactionMemo}",
                     Amount = -payout.Amount?.DollarAmount() ?? 0,
@@ -781,9 +781,9 @@ namespace FeeBayConnectionTester.Services
         private List<ToGnuCash> ProcessTransaction(
             Transaction transaction,
             string feeBayUserName,
-            Order order = null,
-            LineItem lineItem = null,
-            OrderLineItem financeLineItem = null)
+            Order? order = null,
+            LineItem? lineItem = null,
+            OrderLineItem? financeLineItem = null)
         {
             if (!transaction.TransactionType.HasValue)
             {
@@ -792,18 +792,22 @@ namespace FeeBayConnectionTester.Services
 
             return transaction.TransactionType.Value switch
             {
-                TransactionTypeEnum.SALE => ProcessSaleLineItem(
-                    lineItem,
-                    order,
-                    financeLineItem,
-                    transaction,
-                    feeBayUserName),
-                TransactionTypeEnum.REFUND => ProcessRefund(
-                    lineItem,
-                    order,
-                    financeLineItem,
-                    transaction,
-                    feeBayUserName),
+                TransactionTypeEnum.SALE => lineItem is null || order is null || financeLineItem is null
+                    ? throw new InvalidOperationException($"SALE transaction {transaction.TransactionId} is missing order/line item context")
+                    : ProcessSaleLineItem(
+                        lineItem,
+                        order,
+                        financeLineItem,
+                        transaction,
+                        feeBayUserName),
+                TransactionTypeEnum.REFUND => lineItem is null || order is null || financeLineItem is null
+                    ? throw new InvalidOperationException($"REFUND transaction {transaction.TransactionId} is missing order/line item context")
+                    : ProcessRefund(
+                        lineItem,
+                        order,
+                        financeLineItem,
+                        transaction,
+                        feeBayUserName),
                 TransactionTypeEnum.CREDIT => ProcessCredit(transaction),
                 TransactionTypeEnum.DISPUTE => ProcessDispute(transaction),
                 TransactionTypeEnum.SHIPPING_LABEL => ProcessShippingLabel(transaction, feeBayUserName),

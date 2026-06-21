@@ -2,25 +2,6 @@
 {
     public class FeeBayIncomingData
     {
-        #region Constants and Fields
-        private string _below_Standard_Performance_Fee;
-        private string _charity_Donation;
-        private string _deposit_Processing_Fee;
-        private string _exchange_Rate;
-        private string _feeBay_Collected_Tax;
-        private string _fVF_Fixed;
-        private string _fVF_Variable;
-        private string _gross_Transaction_Amount;
-        private string _international_Fee;
-        private string _item_Not_As_Described_Fee;
-        private string _item_Subtotal;
-        private string _net_Amount;
-        private string _quantity;
-        private string _regulatory_Operating_Fee;
-        private string _seller_Collected_Tax;
-        private string _shipping_And_Handling;
-        #endregion
-
         #region Public properties
         public required string Below_standard_performance_fee
         {

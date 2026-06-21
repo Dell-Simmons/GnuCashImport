@@ -148,10 +148,10 @@ namespace FeeBayConnectionTester
                 foreach(var transaction in transactionsInThisPayout)
                 {
                     var associatedOrder = orderList.Where(o=>o.OrderId == transaction.OrderId).FirstOrDefault();
-                   /*  if (associatedOrder == null)
+                    if (associatedOrder == null)
                     {
                         continue;
-                    }  */
+                    }
                     switch (transaction.TransactionType)
                     {
                         case TransactionTypeEnum.SALE:
@@ -265,7 +265,14 @@ namespace FeeBayConnectionTester
 
         private void HandleSale(Transaction transaction, Order associatedOrder)
         {
-          foreach(var transactionLineItem in transaction.OrderLineItems)
+            if (transaction.OrderLineItems == null || !transaction.OrderLineItems.Any())
+            {
+                return;
+            }
+                var feeBaySellerID = "Simmons Ink";
+                var outputData = new List<ToGnuCash>();
+            
+            foreach(var transactionLineItem in transaction.OrderLineItems)
             {
                 var orderLineItem = associatedOrder.LineItems.Where(l => l.LineItemId == transactionLineItem.LineItemId).Single();
                 var itemFees = transactionLineItem.MarketplaceFees;
@@ -274,70 +281,36 @@ namespace FeeBayConnectionTester
                 var orderId = transaction.OrderId;
                 var sellingPrice = orderLineItem.LineItemCost.DollarAmount();//order.Sum(x => decimal.Parse(x.Item_subtotal));
                 var shippingPrice = orderLineItem.DeliveryCost.ShippingCost.DollarAmount();
-                var fixedFees = itemFees
-                                    .Where(f=>f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER)
-                                    .Single().Amount.DollarAmount(); 
-                var variableFees = itemFees
-                                    .Where(f =>f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)
-                                    .Single().Amount.DollarAmount(); 
-                //var net = order.Sum(x => decimal.Parse(x.Net_amount));
-              //  var internationalFees = order.Sum(x => decimal.Parse(x.International_fee));
-              //  var gross = order.Sum(x => decimal.Parse(x.Gross_transaction_amount));
-              //  var numberSold = order.Count(x => !string.Equals(x.Sku, "--", StringComparison.Ordinal));
-              //  if (sellingPrice + shippingPrice != gross)
-             //   {
-               //     MessageBox.Show(
-            //            $"Gross amount {gross} does not equal selling price {sellingPrice} + shipping price {shippingPrice}");
-             //   }
-              //  if (gross + fixedFees + variableFees + internationalFees != net)
-                {
-              //      MessageBox.Show(
-               //         $"Net amount {net} does not equal gross amount {gross} - fixed fees {fixedFees} - variable fees {variableFees}");
-                //}
-          //      var incomeLineDescription = string.Empty;
-          //      if (numberSold == 1)
-         //       {
-          //          incomeLineDescription = $"feeBay Order #{orderId} - {order.First().Item_title}";
-            //    }
-           //     else
-            //    {
-             //       incomeLineDescription = $"feeBay Order #{orderId} - {numberSold} items sold";
-              //  }
+                var fixedFees = itemFees.Single(f=>f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER).Amount.DollarAmount() ?? 0m;
+                var variableFees = itemFees.Single(f =>f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE).Amount.DollarAmount() ?? 0m;
+                var internationalFees = itemFees.Single(f =>f.FeeType == FeeTypeEnum.INTERNATIONAL_FEE).Amount.DollarAmount() ?? 0m;
+                var gross = orderLineItem.Total.DollarAmount() ?? 0m;
+                var net = gross - fixedFees - variableFees - internationalFees;
+                var numberSold = orderLineItem.Quantity;
+                var title = orderLineItem.Title;
+                var incomeLineDescription = $"feeBay Order #{orderId} SKU: {skusInOrder} - {title} ";
+      
 
                 // income line
-             /*    try
-                {
-                    var incomeLine = new Stripe.StripeModels.OutputData();
-                    incomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
-                    incomeLine.Account = $"Income:{feeBayName2} Sales";
-                    incomeLine.Description = incomeLineDescription;
-                    incomeLine.Amount = sellingPrice + shippingPrice;
-                    incomeLine.TransactionId = orderId;
-                    incomeLine.SortOrder = 1;
-                    outputData.Add(incomeLine);
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
+                var incomeLine = new ToGnuCash();
+                incomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));// 
+                incomeLine.Account = $"Income:{feeBaySellerID} Sales";
+                incomeLine.Description = incomeLineDescription;
+                incomeLine.Amount = gross;
+                incomeLine.TransactionId = orderId;
+                incomeLine.SortOrder = 1;
+                outputData.Add(incomeLine);
 
-                // fixed fee Line
-                try
-                {
-                    var fixedFeeLine = new Stripe.StripeModels.OutputData();
-                    fixedFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
-                    fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBayName1}:Fixed Fee Per Sale";
-                    fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                    fixedFeeLine.Amount = fixedFees;
-                    fixedFeeLine.TransactionId = orderId;
-                    fixedFeeLine.SortOrder = 2;
-                    outputData.Add(fixedFeeLine);
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
-
+                // fixed fee line
+                var fixedFeeLine = new ToGnuCash();
+                fixedFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+                fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBaySellerID}:Fixed Fee Per Sale";
+                fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                fixedFeeLine.Amount = fixedFees;
+                fixedFeeLine.TransactionId = orderId;
+                fixedFeeLine.SortOrder = 2;
+                outputData.Add(fixedFeeLine);
+                /*
                 // variable fee line
                 try
                 {
@@ -427,7 +400,6 @@ namespace FeeBayConnectionTester
                 }
               */         
             } 
-        }
         }
 
         /*   foreach (var order in orderList)
