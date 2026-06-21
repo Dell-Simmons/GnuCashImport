@@ -17,7 +17,7 @@ namespace LocalDBConnections.StampDataDB.StampDataRepositories
             _connectionString = connection.ConnectionString ?? throw new ArgumentException("Connection string cannot be null or empty", nameof(connection));
         }
 
-        public Decimal? GetStampCostById(int stampId)
+        public Decimal? GetStampCostById(string stampId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {

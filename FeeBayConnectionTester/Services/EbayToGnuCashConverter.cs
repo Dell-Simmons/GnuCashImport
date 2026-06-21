@@ -194,7 +194,7 @@ namespace FeeBayConnectionTester.Services
                     return sellingPrice * 0.5m;
                 }
 
-                var stampCost = _localDbConnectionManager.GetStampCOGS(skuInt);
+                var stampCost = _localDbConnectionManager.GetStampCOGS(sku);
 
                 if (stampCost == null || stampCost == 0.0m)
                 {

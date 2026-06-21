@@ -10,12 +10,13 @@ namespace LocalDBConnections
 {
     public interface ILocalDbConnectionManager
     {
-        decimal? GetStampCOGS(int sku);
+       
         #region Events
         // event EventHandler<MyEventArgs<string>> DataBaseTableChanged;
         #endregion
 
-        #region Methods
+        #region Methods 
+        decimal? GetStampCOGS(string sku);
         string? GetRefreshToken(string feeBayUser);
         DateTime? GetRefreshTokenExpireTime(string feeBayUser);
         string? GetUserToken(string feeBayUser);
@@ -24,6 +25,7 @@ namespace LocalDBConnections
         bool SaveUserToken(string access_token, DateTime expireTime, string feeBayUser);
         Task<bool> SaveSigningKeyAsync(FeeBaySigningKeys signingKey);
         Task<FeeBaySigningKeys?> GetSigningKeyAsync();
+      //  decimal GetStampCostById(string sku);
         #endregion
         // IEnumerable<MisslItem> GetMisslItems();
     }

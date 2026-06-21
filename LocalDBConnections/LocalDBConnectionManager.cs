@@ -56,7 +56,7 @@ namespace LocalDBConnections
             return feeBayOAuthTokenData?.OAuthTokenExpire;
         }
         #endregion
-            public decimal? GetStampCOGS(int sku)
+            public decimal? GetStampCOGS(string sku)
         {
             return _stampRepository.GetStampCostById(sku);
         }
