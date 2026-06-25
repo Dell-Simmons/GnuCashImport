@@ -155,11 +155,13 @@ namespace FeeBayConnectionTester
             //! rely on transactions not orders.  Use orders only to get at orderItem
             //! specifics not available in Transaction orderItems.  Like title and SKU
             //! that should be about it.  Otherwise pull from transactions!
+            int lookAtOrderCount = 0; 
             foreach(var payout in payOutList)
             {
                 var payoutId = payout.PayoutId;
                 int? numTransactionsInPayout = payout.TransactionCount;
                 List<Transaction>? transactionsInThisPayout;
+               
                 groupedTransactions.TryGetValue(payoutId, out transactionsInThisPayout);
                 if(transactionsInThisPayout == null)
                 {
@@ -175,9 +177,14 @@ namespace FeeBayConnectionTester
                 //!
                 foreach(var transaction in transactionsInThisPayout)
                 {
+                    //! HERE HERE HERE 
+                    //! as a test of refund handling only generate ToGnuCash for one order
+                    //! that got a full retund (actually lost in the mail)
+                    //! HERE HERE HERE
+                    var transactionId = transaction.TransactionId;
                     if(transaction.OrderId == "21-14418-07465")
                     {
-                        
+                        lookAtOrderCount += 1;
                     }
                     var associatedOrder = orderList.Where(o => o.OrderId == transaction.OrderId).FirstOrDefault();
                     if(associatedOrder == null)
@@ -258,6 +265,7 @@ namespace FeeBayConnectionTester
                     }
                 }
             }
+          MessageBox.Show(  $"For Order 21-14418-07465 found {lookAtOrderCount} transactions (expected 2)");
             return results;
         }
 
