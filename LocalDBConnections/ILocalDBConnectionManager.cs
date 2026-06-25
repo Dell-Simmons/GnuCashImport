@@ -16,7 +16,7 @@ namespace LocalDBConnections
         #endregion
 
         #region Methods 
-        decimal? GetStampCOGS(string sku);
+        decimal GetStampCOGS(string sku);
         string? GetRefreshToken(string feeBayUser);
         DateTime? GetRefreshTokenExpireTime(string feeBayUser);
         string? GetUserToken(string feeBayUser);

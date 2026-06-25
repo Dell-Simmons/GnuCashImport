@@ -56,9 +56,11 @@ namespace LocalDBConnections
             return feeBayOAuthTokenData?.OAuthTokenExpire;
         }
         #endregion
-            public decimal? GetStampCOGS(string sku)
+            public decimal GetStampCOGS(string sku)
         {
-            return _stampRepository.GetStampCostById(sku);
+            var cogsFromStampDb = _stampRepository.GetStampCostById(sku) ?? 0m;
+            return cogsFromStampDb;
+
         }
         #region Token Write Operations
         public bool SaveUserToken(FeeBayOAuthTokens tokens)

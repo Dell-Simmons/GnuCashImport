@@ -92,7 +92,7 @@ namespace FeeBayConnectionTester
             string ordersFilter = "creationdate:[2025-12-25T00:00:00.000Z..2026-06-14T23:59:59.999Z]";
             List<Order> orderList = await GetAllOrdersPaginated(ordersFilter, limit: 50);
 
-            List<FeeBayIncomingData> feeBayIncomingData = await CombineDownloadedData(
+            List<ToGnuCash> feeBayIncomingData = await CombineDownloadedData(
                 payOutList,
                 transactionList,
                 orderList);
@@ -120,12 +120,12 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region Private Methods
-        private async Task<List<FeeBayIncomingData>> CombineDownloadedData(
+        private async Task<List<ToGnuCash>> CombineDownloadedData(
             List<Payout> payOutList,
             List<Transaction> transactionList,
             List<Order> orderList)
         {
-            var results = new List<FeeBayIncomingData>();
+            var results = new List<ToGnuCash>();
             //! just as a check look for transactions not associated with any payout
             var transactionsWithoutPayout = transactionList
                 .Where(t => string.IsNullOrWhiteSpace(t.PayoutId))
@@ -175,6 +175,10 @@ namespace FeeBayConnectionTester
                 //!
                 foreach(var transaction in transactionsInThisPayout)
                 {
+                    if(transaction.OrderId == "21-14418-07465")
+                    {
+                        
+                    }
                     var associatedOrder = orderList.Where(o => o.OrderId == transaction.OrderId).FirstOrDefault();
                     if(associatedOrder == null)
                     {
@@ -183,57 +187,69 @@ namespace FeeBayConnectionTester
                     switch(transaction.TransactionType)
                     {
                         case TransactionTypeEnum.SALE:
-                            HandleSale(transaction, associatedOrder);
+                            List<ToGnuCash> saleLines = HandleSale(transaction, associatedOrder);
+                            results.AddRange(saleLines);
                             break;
 
                         case TransactionTypeEnum.REFUND:
                             if(associatedOrder?.OrderPaymentStatus == OrderPaymentStatusEnum.FULLY_REFUNDED)
                             {
-                                HandleFullRefund(transaction, associatedOrder);
+                              List<ToGnuCash> refundLines =  HandleFullRefund(transaction, associatedOrder);
+                              results.AddRange(refundLines);
                                 break;
                             }
                             if(associatedOrder?.OrderPaymentStatus == OrderPaymentStatusEnum.PARTIALLY_REFUNDED)
                             {
-                                HandlePartialRefund();
+                               List<ToGnuCash> refundLines = HandlePartialRefund();
+                               results.AddRange(refundLines);
                                 break;
                             }
                             throw new NotSupportedException(
                                 $"Unsupported order payment status in REFUND: {associatedOrder.OrderPaymentStatus}");
 
                         case TransactionTypeEnum.CREDIT:
-                            HandleCredit(associatedOrder);
+                          List<ToGnuCash> creditLines =  HandleCredit(associatedOrder);
+                           results.AddRange(creditLines);
                             break;
 
                         case TransactionTypeEnum.DISPUTE:
-                            HandleDispute(associatedOrder);
+                              List<ToGnuCash> disputeLines = HandleDispute(associatedOrder);
+                            results.AddRange(disputeLines);
                             break;
 
                         case TransactionTypeEnum.SHIPPING_LABEL:
-                            HandleShipping_Label(transaction);
+                             List<ToGnuCash> shippingLabelLines =  HandleShipping_Label(transaction);
+                           results.AddRange(shippingLabelLines);
                             break;
 
                         case TransactionTypeEnum.TRANSFER:
-                            HanedleTransfer(associatedOrder);
+                            List<ToGnuCash> transferLines =   HanedleTransfer(associatedOrder);
+                            results.AddRange(transferLines);
                             break;
 
                         case TransactionTypeEnum.NON_SALE_CHARGE:
-                            HandleNon_Sale_Charge(transaction);
+                             List<ToGnuCash> nonSaleChargeLines =  HandleNon_Sale_Charge(transaction);
+                            results.AddRange(nonSaleChargeLines);
                             break;
 
                         case TransactionTypeEnum.ADJUSTMENT:
-                            HandleAdjustment(associatedOrder);
+                              List<ToGnuCash> adjustmentLines = HandleAdjustment(associatedOrder);
+                            results.AddRange(adjustmentLines);
                             break;
 
                         case TransactionTypeEnum.WITHDRAWAL:
-                            HandleWithdrawal(associatedOrder);
+                              List<ToGnuCash> withdrawalLines = HandleWithdrawal(associatedOrder);
+                            results.AddRange(withdrawalLines);
                             break;
 
                         case TransactionTypeEnum.LOAN_REPAYMENT:
-                            HandleLoan_Repayment(associatedOrder);
+                              List<ToGnuCash> loanRepaymentLines = HandleLoan_Repayment(associatedOrder);
+                            results.AddRange(loanRepaymentLines);
                             break;
 
                         case TransactionTypeEnum.PURCHASE:
-                            HandlePurchase(associatedOrder);
+                              List<ToGnuCash> purchaseLines = HandlePurchase(associatedOrder);
+                           results.AddRange(purchaseLines);
                             break;
 
                         case null:
@@ -378,35 +394,36 @@ namespace FeeBayConnectionTester
             return key;
         }
 
-        private void HandleAdjustment(Order? associatedOrder)
+        private List<ToGnuCash> HandleAdjustment(Order? associatedOrder)
         {
             if(associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
-            // throw new NotImplementedException();
+            return new List<ToGnuCash>();
         }
 
-        private void HandleCredit(Order? associatedOrder)
+        private List<ToGnuCash> HandleCredit(Order? associatedOrder)
         {
             if(associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
-            //throw new NotImplementedException();
+            return new List<ToGnuCash>();
         }
 
-        private void HandleDispute(Order? associatedOrder)
+        private List<ToGnuCash> HandleDispute(Order? associatedOrder)
         {
             if(associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
-            // throw new NotImplementedException();
+            return new List<ToGnuCash>();
         }
 
-        private void HandleFullRefund(Transaction transaction, Order? associatedOrder)
+        private List<ToGnuCash> HandleFullRefund(Transaction transaction, Order? associatedOrder)
         {
+            
             if(associatedOrder == null)
             {
                 // associated order is null, cannot handle refund
@@ -417,7 +434,9 @@ namespace FeeBayConnectionTester
             {
             }
             // this works leave it alone
-         
+            var feeBaySellerID = "Simmons Ink";
+            var outputData = new List<ToGnuCash>();
+
             //
             foreach(var transactionLineItem in transaction.OrderLineItems)
             {
@@ -427,136 +446,189 @@ namespace FeeBayConnectionTester
                
                 //! NEED TO FIND A FULL REFUND TO TEST
 
-                //var cogs = _db.GetStampCostById(int.Parse(refund.Sku));
-                // var refundDate = refund.Payout_date;
-                // var orderId = refund.Order_number;
-                // var sellingPriceRefunded = Decimal.Parse(refund.Net_amount);
-                // var fixedFeesRefunded = Decimal.Parse(refund.FVF_fixed);
-                // var variableFeesRefunded = Decimal.Parse(refund.FVF_variable);
+                //! ASSUME FOR NOW THAT A FULL REFUND INDICATES THE STAMP WAS RETURNED
+                //! not true in all cases (e.g. lost in the mail ), but assume for now
+               
+
+                var cogs =_localDbConnectionManager.GetStampCOGS(orderLineItem.SKU);
+                var refundDate = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
+                var orderId = transaction.OrderId;
+                var sellingPriceRefunded = orderLineItem.LineItemCost.DollarAmount()  ?? 0m;
+                var shippingPriceRefunded = orderLineItem.DeliveryCost.DollarAmount()  ?? 0m;
+                var totalRefund = SumUpRefunds(orderLineItem.Refunds);
+                var fixedFeesRefunded = FindFixedFeesRefunded(transactionLineItem.MarketplaceFees);            // var variableFeesRefunded = Decimal.Parse(refund.FVF_variable);
+                var variableFeesRefunded = FindVariableFeesRefunded(transactionLineItem.MarketplaceFees);
+                var internationalFeesRefunded = FindInternationalFeesRefunded(transactionLineItem.MarketplaceFees);
                 // var netRefund = Decimal.Parse(refund.Net_amount);
                 // var internationalFeesRefunded = Decimal.Parse(refund.International_fee);
                 // var grossRefund = Decimal.Parse(refund.Gross_transaction_amount);
 
                 // income line
-                    // var incomeLine = new Stripe.StripeModels.OutputData();
-                    // incomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(refundDate));
-                    // incomeLine.Account = $"Income:{feeBayName2} Sales";
-                    // incomeLine.Description = $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED";
-                    // incomeLine.Amount = grossRefund;// + shippingPrice;
-                    // incomeLine.TransactionId = orderId;
-                    // incomeLine.SortOrder = 1;
-                    // outputData.Add(incomeLine);
+                var incomeLine = new ToGnuCash();
+                incomeLine.Date = refundDate;
+                incomeLine.Account = $"Income:{feeBaySellerID} Sales";                  // incomeLine.Description = $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED";
+                incomeLine.Amount = -totalRefund;// + shippingPrice;
+                incomeLine.TransactionId = transaction.TransactionId;
+                incomeLine.SortOrder = 1;
+                outputData.Add(incomeLine);
 
                     // feeBay current assett
-                    // var netIncomeLine = new Stripe.StripeModels.OutputData();
-                    // netIncomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(refundDate));
-                    // netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBayName2}";
-                    // netIncomeLine.Description = string.Empty;
-                    // netIncomeLine.Amount = -netRefund;
-                    // netIncomeLine.TransactionId = orderId;
-                    // netIncomeLine.SortOrder = 2;
-                    // outputData.Add(netIncomeLine);
+                    var netIncomeLine = new ToGnuCash();
+                    netIncomeLine.Date = refundDate;
+                    netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
+                    netIncomeLine.Description = string.Empty;
+                    netIncomeLine.Amount = totalRefund;
+                    netIncomeLine.TransactionId = transaction.TransactionId;
+                    netIncomeLine.SortOrder = 2;
+                    outputData.Add(netIncomeLine);
 
                     // fixed fee Line
-                    // var fixedFeeLine = new Stripe.StripeModels.OutputData();
-                    // fixedFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(refundDate));
-                    // fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBayName1}:Fixed Fee Per Sale";
-                    // fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                    // fixedFeeLine.Amount = fixedFeesRefunded;
-                    // fixedFeeLine.TransactionId = orderId;
-                    // fixedFeeLine.SortOrder = 3;
-                    // outputData.Add(fixedFeeLine);
+                    var fixedFeeLine = new ToGnuCash();
+                    fixedFeeLine.Date = refundDate;
+                    fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBaySellerID}:Fixed Fee Per Sale";
+                    fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                    fixedFeeLine.Amount = -fixedFeesRefunded;
+                    fixedFeeLine.TransactionId = transaction.TransactionId;
+                    fixedFeeLine.SortOrder = 3;
+                    outputData.Add(fixedFeeLine);
 
                     // variable fee line
-                    // var variableFeeLine = new Stripe.StripeModels.OutputData();
-                    // variableFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(refundDate));
-                    // variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBayName1}:Final Value Fees";
-                    // variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                    // variableFeeLine.Amount = variableFeesRefunded;
-                    // variableFeeLine.TransactionId = orderId;
-                    // variableFeeLine.SortOrder = 4;
-                    // outputData.Add(variableFeeLine);
+                    var variableFeeLine = new ToGnuCash();
+                    variableFeeLine.Date = refundDate;
+                    variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Final Value Fees";
+                    variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                    variableFeeLine.Amount = -variableFeesRefunded;
+                    variableFeeLine.TransactionId = transaction.TransactionId;
+                    variableFeeLine.SortOrder = 4;
+                    outputData.Add(variableFeeLine);
 
                     //international fees line
-                    // if (internationalFeesRefunded != 0)
-                    // {
-                    //     var internationalFeeLine = new Stripe.StripeModels.OutputData();
-                    //     internationalFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(refundDate));
-                    //     internationalFeeLine.Account = $"Expenses:FeeBay Fees:{feeBayName1}:International Fee";
-                    //     internationalFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                    //     internationalFeeLine.Amount = internationalFeesRefunded;
-                    //     internationalFeeLine.TransactionId = orderId;
-                    //     internationalFeeLine.SortOrder = 5;
-                    //     outputData.Add(internationalFeeLine);
-                    // }
+                    if (internationalFeesRefunded != 0)
+                    {
+                        var internationalFeeLine = new ToGnuCash();
+                        internationalFeeLine.Date = refundDate;
+                        internationalFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:International Fee";
+                        internationalFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                        internationalFeeLine.Amount = -internationalFeesRefunded;
+                        internationalFeeLine.TransactionId = transaction.TransactionId;
+                        internationalFeeLine.SortOrder = 5;
+                        outputData.Add(internationalFeeLine);
+                    }
 
-                    // Define COGS as 1/2 of sale price
-                    // And add to the cost of goods sold
-                //     Stripe.StripeModels.OutputData feeBayCOGSRecord = new();
-                //     feeBayCOGSRecord.Date = DateOnly.FromDateTime(DateTime.Parse(refundDate));
-                //     feeBayCOGSRecord.Account = "Expenses:Cost of Goods Sold";
-                //     feeBayCOGSRecord.Description = string.Empty;// $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED COGS";
-                //     if ((cogs == null) || (cogs == 0.0m))
-                //     {
-                //         feeBayCOGSRecord.Amount = -(sellingPriceRefunded / 2);
-                //     }
-                //     else
-                //     {
-                //         feeBayCOGSRecord.Amount = (decimal)-(cogs);
-                //     }
-                //     feeBayCOGSRecord.TransactionId = orderId;
-                //     feeBayCOGSRecord.SortOrder = 6;
-                //     outputData.Add(feeBayCOGSRecord);
+                    
+                    // cost of goods sold goes down as we are assumiing a full refund has been returned back into inventory
+                    var feeBayCOGSRecord = new ToGnuCash();
+                    feeBayCOGSRecord.Date = refundDate;
+                    feeBayCOGSRecord.Account = "Expenses:Cost of Goods Sold";
+                    feeBayCOGSRecord.Description = string.Empty;// $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED COGS";
+                    if (cogs == 0.0m)
+                    {
+                        feeBayCOGSRecord.Amount = -(sellingPriceRefunded / 2);
+                    }
+                    else
+                    {
+                        feeBayCOGSRecord.Amount = (decimal)-(cogs);
+                    }
+                    feeBayCOGSRecord.TransactionId = transaction.TransactionId;
+                    feeBayCOGSRecord.SortOrder = 6;
+                    outputData.Add(feeBayCOGSRecord);
 
-                //     // now subtract the cost of the sold stuff from inventory
-                //     Stripe.StripeModels.OutputData feeBayInventoryRecord = new();
-                //     feeBayInventoryRecord.Date = DateOnly.FromDateTime(DateTime.Parse(refundDate));
-                //     feeBayInventoryRecord.Account = "Assets:INVENTORY";
-                //     feeBayInventoryRecord.Description = string.Empty;// incomeLineDescription;
-                //     feeBayInventoryRecord.Amount = -(sellingPriceRefunded / 2);
-                //     feeBayInventoryRecord.TransactionId = orderId;
-                //     feeBayInventoryRecord.SortOrder = 7;
-                //     outputData.Add(feeBayInventoryRecord);
+                    // value of inventory goes up as stamp is added back in
+                    var feeBayInventoryRecord = new ToGnuCash();
+                    feeBayInventoryRecord.Date = refundDate;
+                    feeBayInventoryRecord.Account = "Assets:INVENTORY";
+                    feeBayInventoryRecord.Description = string.Empty;// incomeLineDescription;
+                    if (cogs == 0.0m)
+                    {
+                        feeBayInventoryRecord.Amount = (sellingPriceRefunded / 2);
+                    }
+                    else
+                    {
+                        feeBayInventoryRecord.Amount = (decimal)(cogs);
+                    }
+                    feeBayInventoryRecord.TransactionId = orderId;
+                    feeBayInventoryRecord.SortOrder = 7;
+                    outputData.Add(feeBayInventoryRecord);
             }
-            // throw new NotImplementedException();
+            return outputData;
         }
 
-        private void HandleLoan_Repayment(Order? associatedOrder)
+        private decimal FindInternationalFeesRefunded(List<MarketplaceFee> marketplaceFees)
+        {
+            if(marketplaceFees == null)
+            {
+                return 0m;
+            }
+            return marketplaceFees.Where(f => f.FeeType == FeeTypeEnum.INTERNATIONAL_FEE)
+                                    .Sum(f => f.Amount.DollarAmount() ?? 0m);
+        }
+
+        private decimal FindVariableFeesRefunded(List<MarketplaceFee> marketplaceFees)
+        {
+            if(marketplaceFees == null)
+            {
+                return 0m;
+            }
+            return marketplaceFees.Where(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)
+                                    .Sum(f => f.Amount.DollarAmount() ?? 0m);
+        }
+
+        private decimal FindFixedFeesRefunded(List<MarketplaceFee> marketplaceFees)
+        {
+            if(marketplaceFees == null)
+            {
+                return 0m;
+            }
+            return marketplaceFees.Where(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER)
+                                    .Sum(f => f.Amount.DollarAmount() ?? 0m);
+        }
+
+        private decimal SumUpRefunds(List<Refund> refunds)
+        { 
+            if(refunds == null)
+            {
+                return 0m;
+            }   
+            return (decimal)(refunds.Sum(r => r.Amount.DollarAmount() ?? 0m));
+        }
+
+        private List<ToGnuCash> HandleLoan_Repayment(Order? associatedOrder)
         {
             if(associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
-            // throw new NotImplementedException();
+            return new List<ToGnuCash>();
         }
 
-        private void HandleNon_Sale_Charge(Transaction transaction)
+        private List<ToGnuCash> HandleNon_Sale_Charge(Transaction transaction)
         {
             //! figure out what type of fee this is
             var feeTypes = transaction.References;
             if(feeTypes == null)
             {
                 //!must be a store subscription charge
-                HandleStoreSubscriptionCharge();
-                return;
+              return  HandleStoreSubscriptionCharge();
             }
             foreach(var fee in feeTypes)
             {
                 switch(fee.ReferenceType,transaction.TransactionMemo)
                 {
                     case (ReferenceTypeEnum.ITEM_ID, "Promoted Listings - Priority fee"):
-                        HandlePromotedListingsPriorityFees(transaction, fee.ReferenceId);
-                        break;
+                       return HandlePromotedListingsPriorityFees(transaction, fee.ReferenceId);
                     default:
                         throw new NotImplementedException();
-                        break;
                 }
             }
+            return new List<ToGnuCash>();
         }
 
-        private void HandlePartialRefund() => throw new NotImplementedException();
+        private List<ToGnuCash> HandlePartialRefund()
+        {
+            return new List<ToGnuCash>();
+        }
 
-        private void HandlePromotedListingsPriorityFees(Transaction transaction, string itemId)
+        private List<ToGnuCash> HandlePromotedListingsPriorityFees(Transaction transaction, string itemId)
         {
             // Implement handling of Promoted Listings - Priority fees here
             var feeBaySellerID = "Simmons Ink";
@@ -579,28 +651,29 @@ namespace FeeBayConnectionTester
             otherFeeLineTo.TransactionId = transaction.TransactionId;
             otherFeeLineTo.SortOrder = 2;
             outputData.Add(otherFeeLineTo);
+
+            return outputData;
         }
 
-        private void HandlePurchase(Order? associatedOrder)
+        private List<ToGnuCash> HandlePurchase(Order? associatedOrder)
         {
             if(associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
 
-            // throw new NotImplementedException();
+           return new List<ToGnuCash>();
         }
 
-        private void HandleSale(Transaction transaction, Order? associatedOrder)
+        private List<ToGnuCash> HandleSale(Transaction transaction, Order? associatedOrder)
         {
             if(associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
-                return;
             }
             if(transaction.OrderLineItems == null || !transaction.OrderLineItems.Any())
             {
-                return;
+                return new List<ToGnuCash>();
             }
             var feeBaySellerID = "Simmons Ink";
             var outputData = new List<ToGnuCash>();
@@ -618,14 +691,11 @@ namespace FeeBayConnectionTester
                 var sellingPrice = orderLineItem.LineItemCost.DollarAmount() ?? 0m;//order.Sum(x => decimal.Parse(x.Item_subtotal));
                 var shippingPrice = orderLineItem.DeliveryCost.ShippingCost.DollarAmount();
                 var fixedFees = itemFees.SingleOrDefault(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER)?.Amount?.DollarAmount(
-                        ) ??
-                    0m;
+                        ) ?? 0m;
                 var variableFees = itemFees.SingleOrDefault(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)?.Amount?.DollarAmount(
-                        ) ??
-                    0m;
+                        ) ?? 0m;
                 var internationalFees = itemFees.SingleOrDefault(f => f.FeeType == FeeTypeEnum.INTERNATIONAL_FEE)?.Amount?.DollarAmount(
-                        ) ??
-                    0m;
+                        ) ?? 0m;
                 var gross = orderLineItem.Total.DollarAmount() ?? 0m;
                 var net = gross - fixedFees - variableFees - internationalFees;
                 var numberSold = orderLineItem.Quantity;
@@ -705,15 +775,12 @@ namespace FeeBayConnectionTester
                 feeBayInventoryRecord.SortOrder = 7;
                 outputData.Add(feeBayInventoryRecord);
             }
+            return outputData;
         }
 
-        private void HandleShipping_Label(Transaction label)//, Order? associatedOrder)
+        private List<ToGnuCash> HandleShipping_Label(Transaction label)//, Order? associatedOrder)
         {
-            // if (associatedOrder == null)
-            // {
-            //     throw new ArgumentNullException(nameof(associatedOrder));
-            // }
-
+         
             var feeBaySellerID = "Simmons Ink";
             var outputData = new List<ToGnuCash>();
             var labelLineFrom = new ToGnuCash();
@@ -733,9 +800,11 @@ namespace FeeBayConnectionTester
             labelLineTo.TransactionId = label.TransactionId;
             labelLineTo.SortOrder = 2;
             outputData.Add(labelLineTo);
+           
+            return outputData;
         }
 
-        private void HandleStoreSubscriptionCharge()
+        private List<ToGnuCash> HandleStoreSubscriptionCharge()
         {
             //   var otherFeeLineFrom = new Stripe.StripeModels.OutputData();
             //         otherFeeLineFrom.Date = DateOnly.FromDateTime(DateTime.Parse(otherFee.Transaction_creation_date));
@@ -754,25 +823,25 @@ namespace FeeBayConnectionTester
             //         otherFeeLineTo.TransactionId = otherFee.Reference_ID;
             //         otherFeeLineTo.SortOrder = 2;
             //         outputData.Add(otherFeeLineTo);
-            //throw new NotImplementedException();
+            return new List<ToGnuCash>();
         }
 
-        private void HandleWithdrawal(Order? associatedOrder)
+        private List<ToGnuCash> HandleWithdrawal(Order? associatedOrder)
         {
             if(associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
-            // throw new NotImplementedException();
+            return new List<ToGnuCash>();
         }
 
-        private void HanedleTransfer(Order? associatedOrder)
+        private List<ToGnuCash> HanedleTransfer(Order? associatedOrder)
         {
             if(associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
-            //throw new NotImplementedException();
+            return new List<ToGnuCash>();
         }
 
         private decimal MakeCogsForFullOrder(decimal sellingPrice, string sku)
@@ -784,7 +853,7 @@ namespace FeeBayConnectionTester
             }
 
             var singleStampCogs = _localDbConnectionManager.GetStampCOGS(sku);
-            if((singleStampCogs == null) || (singleStampCogs == 0.0m))
+            if(singleStampCogs == 0.0m)
             {
                 singleStampCogs = -(sellingPrice / 2);
             } else
