@@ -24,7 +24,7 @@ namespace EbaySharp.Controllers
         public async Task<TransactionSummary> GetTransactionSummary(SigningKey signingKey, string filter)
         {
             string requestUrl = $"{Constants.APIZ_SERVER_URL}{Constants.DEVELOP.SELLING_APPS.ENDPOINT_URL}{Constants.DEVELOP.SELLING_APPS.ACCOUNT_MANAGEMENT.FINANCES.ENDPOINT_URL}{Constants.DEVELOP.SELLING_APPS.ACCOUNT_MANAGEMENT.FINANCES.METHODS.GET_TRANSACTION_SUMMARY}";
-            requestUrl = string.IsNullOrEmpty(filter) ? requestUrl : $"{requestUrl}?filter=" + filter;
+            requestUrl = string.IsNullOrEmpty(filter) ? requestUrl : $"{requestUrl}&filter=" + filter;
             return await new RequestExecuter().ExecuteGetRequest<TransactionSummary>(requestUrl, $"Bearer {accessToken}", signingKey);
         }
 
@@ -41,7 +41,7 @@ namespace EbaySharp.Controllers
         public async Task<PayoutList> GetPayouts(SigningKey signingKey, string filter, string sort, int limit = 0, int offset = 0)
         {
             string requestUrl = $"{Constants.APIZ_SERVER_URL}{Constants.DEVELOP.SELLING_APPS.ENDPOINT_URL}{Constants.DEVELOP.SELLING_APPS.ACCOUNT_MANAGEMENT.FINANCES.ENDPOINT_URL}{string.Format(Constants.DEVELOP.SELLING_APPS.ACCOUNT_MANAGEMENT.FINANCES.METHODS.GET_PAYOUTS, limit, offset)}";
-            requestUrl = string.IsNullOrEmpty(filter) ? requestUrl : $"{requestUrl}?filter=" + filter;
+            requestUrl = string.IsNullOrEmpty(filter) ? requestUrl : $"{requestUrl}&filter=" + filter;
             requestUrl = string.IsNullOrEmpty(sort) ? requestUrl : $"{requestUrl}&sort=" + sort;
             return await new RequestExecuter().ExecuteGetRequest<PayoutList>(requestUrl, $"Bearer {accessToken}", signingKey);
         }
