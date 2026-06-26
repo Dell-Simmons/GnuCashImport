@@ -120,153 +120,6 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region Private Methods
-        private async Task<List<ToGnuCash>> CombineDownloadedData(
-            List<Payout> payOutList,
-            List<Transaction> transactionList,
-            List<Order> orderList)
-        {
-            var results = new List<ToGnuCash>();
-            //! just as a check look for transactions not associated with any payout
-            var transactionsWithoutPayout = transactionList
-                .Where(t => string.IsNullOrWhiteSpace(t.PayoutId))
-                .ToList();
-            if(transactionsWithoutPayout.Any())
-            {
-                MessageBox.Show(
-                    $"Found {transactionsWithoutPayout.Count} transactions not associated with any payout.",
-                    "Transactions Without Payout",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }
-
-
-            var payoutsById = payOutList
-                .Where(p => string.IsNullOrWhiteSpace(p.PayoutId) == false)
-                .GroupBy(p => p.PayoutId)
-                .ToDictionary(g => g.Key, g => g.First());
-
-            //  var ohioOrderInOrders = orderList.Where(o => o.OrderId == "09-14052-99669");
-            //  var ohioOrderInTransactions = transactionList.Where(o => o.OrderId == "09-14052-99669");
-            var groupedTransactions = transactionList
-                .Where(t => string.IsNullOrWhiteSpace(t.PayoutId) == false)
-                .GroupBy(t => t.PayoutId!)
-                .ToDictionary(g => g.Key, g => g.ToList());
-            // var ohioOrderInPayouts = payOutList.Where(o => o.)
-            //! rely on transactions not orders.  Use orders only to get at orderItem
-            //! specifics not available in Transaction orderItems.  Like title and SKU
-            //! that should be about it.  Otherwise pull from transactions!
-            foreach(var payout in payOutList)
-            {
-                var payoutId = payout.PayoutId;
-                int? numTransactionsInPayout = payout.TransactionCount;
-                List<Transaction>? transactionsInThisPayout;
-               
-                groupedTransactions.TryGetValue(payoutId, out transactionsInThisPayout);
-                if(transactionsInThisPayout == null)
-                {
-                    continue;
-                }
-                if(transactionsInThisPayout.Count != numTransactionsInPayout)
-                {
-                    //! only try to reconcile transactions that are in a completed payout
-                    continue;
-                }
-                //!                }
-                //! no i think some transactions like store fees and others not associated with an order might be missing
-                //!
-                foreach(var transaction in transactionsInThisPayout)
-                {
-                    //! HERE HERE HERE 
-                    //! as a test of refund handling only generate ToGnuCash for one order
-                    //! that got a full retund (actually lost in the mail)
-                    //! HERE HERE HERE
-                    var transactionId = transaction.TransactionId;
-                    if(transaction.OrderId != "21-14418-07465")
-                    {
-                       continue;
-                    }
-                    var associatedOrder = orderList.Where(o => o.OrderId == transaction.OrderId).FirstOrDefault();
-                    if(associatedOrder == null)
-                    {
-                        // continue;
-                    }
-                    switch(transaction.TransactionType)
-                    {
-                        case TransactionTypeEnum.SALE:
-                            List<ToGnuCash> saleLines = HandleSale(transaction, associatedOrder);
-                            results.AddRange(saleLines);
-                            break;
-
-                        case TransactionTypeEnum.REFUND:
-                            if(associatedOrder?.OrderPaymentStatus == OrderPaymentStatusEnum.FULLY_REFUNDED)
-                            {
-                              List<ToGnuCash> refundLines =  HandleFullRefund(transaction, associatedOrder);
-                              results.AddRange(refundLines);
-                                break;
-                            }
-                            if(associatedOrder?.OrderPaymentStatus == OrderPaymentStatusEnum.PARTIALLY_REFUNDED)
-                            {
-                               List<ToGnuCash> refundLines = HandlePartialRefund();
-                               results.AddRange(refundLines);
-                                break;
-                            }
-                            throw new NotSupportedException(
-                                $"Unsupported order payment status in REFUND: {associatedOrder.OrderPaymentStatus}");
-
-                        case TransactionTypeEnum.CREDIT:
-                          List<ToGnuCash> creditLines =  HandleCredit(associatedOrder);
-                           results.AddRange(creditLines);
-                            break;
-
-                        case TransactionTypeEnum.DISPUTE:
-                              List<ToGnuCash> disputeLines = HandleDispute(associatedOrder);
-                            results.AddRange(disputeLines);
-                            break;
-
-                        case TransactionTypeEnum.SHIPPING_LABEL:
-                             List<ToGnuCash> shippingLabelLines =  HandleShipping_Label(transaction);
-                           results.AddRange(shippingLabelLines);
-                            break;
-
-                        case TransactionTypeEnum.TRANSFER:
-                            List<ToGnuCash> transferLines =   HanedleTransfer(associatedOrder);
-                            results.AddRange(transferLines);
-                            break;
-
-                        case TransactionTypeEnum.NON_SALE_CHARGE:
-                             List<ToGnuCash> nonSaleChargeLines =  HandleNon_Sale_Charge(transaction);
-                            results.AddRange(nonSaleChargeLines);
-                            break;
-
-                        case TransactionTypeEnum.ADJUSTMENT:
-                              List<ToGnuCash> adjustmentLines = HandleAdjustment(associatedOrder);
-                            results.AddRange(adjustmentLines);
-                            break;
-
-                        case TransactionTypeEnum.WITHDRAWAL:
-                              List<ToGnuCash> withdrawalLines = HandleWithdrawal(associatedOrder);
-                            results.AddRange(withdrawalLines);
-                            break;
-
-                        case TransactionTypeEnum.LOAN_REPAYMENT:
-                              List<ToGnuCash> loanRepaymentLines = HandleLoan_Repayment(associatedOrder);
-                            results.AddRange(loanRepaymentLines);
-                            break;
-
-                        case TransactionTypeEnum.PURCHASE:
-                              List<ToGnuCash> purchaseLines = HandlePurchase(associatedOrder);
-                           results.AddRange(purchaseLines);
-                            break;
-
-                        case null:
-                        default:
-                            continue;
-                    }
-                }
-            }
-            return results;
-        }
-
         #region Download Financials
         private async Task<List<Order>> GetAllOrdersPaginated(string filter, int limit = 50)
         {
@@ -377,6 +230,159 @@ namespace FeeBayConnectionTester
 
         #endregion
         #region TransactionTypes
+        private async Task<List<ToGnuCash>> CombineDownloadedData(
+            List<Payout> payOutList,
+            List<Transaction> transactionList,
+            List<Order> orderList)
+        {
+            var results = new List<ToGnuCash>();
+            //! just as a check look for transactions not associated with any payout
+            var transactionsWithoutPayout = transactionList
+                .Where(t => string.IsNullOrWhiteSpace(t.PayoutId))
+                .ToList();
+            if(transactionsWithoutPayout.Any())
+            {
+                MessageBox.Show(
+                    $"Found {transactionsWithoutPayout.Count} transactions not associated with any payout.",
+                    "Transactions Without Payout",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+
+
+            var payoutsById = payOutList
+                .Where(p => string.IsNullOrWhiteSpace(p.PayoutId) == false)
+                .GroupBy(p => p.PayoutId)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            //  var ohioOrderInOrders = orderList.Where(o => o.OrderId == "09-14052-99669");
+            //  var ohioOrderInTransactions = transactionList.Where(o => o.OrderId == "09-14052-99669");
+            var groupedTransactions = transactionList
+                .Where(t => string.IsNullOrWhiteSpace(t.PayoutId) == false)
+                .GroupBy(t => t.PayoutId!)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            // var ohioOrderInPayouts = payOutList.Where(o => o.)
+            //! rely on transactions not orders.  Use orders only to get at orderItem
+            //! specifics not available in Transaction orderItems.  Like title and SKU
+            //! that should be about it.  Otherwise pull from transactions!
+            foreach(var payout in payOutList)
+            {
+                var payoutId = payout.PayoutId;
+                int? numTransactionsInPayout = payout.TransactionCount;
+                List<Transaction>? transactionsInThisPayout;
+               
+                groupedTransactions.TryGetValue(payoutId, out transactionsInThisPayout);
+                if(transactionsInThisPayout == null)
+                {
+                    continue;
+                }
+                if(transactionsInThisPayout.Count != numTransactionsInPayout)
+                {
+                    //! only try to reconcile transactions that are in a completed payout
+                    continue;
+                }
+                //!                }
+                //! no i think some transactions like store fees and others not associated with an order might be missing
+                //!
+                foreach(var transaction in transactionsInThisPayout)
+                {
+                    //! HERE HERE HERE 
+                    //! as a test of refund handling only generate ToGnuCash for one order
+                    //! that got a full retund (actually lost in the mail)
+                    //! HERE HERE HERE
+                    var transactionId = transaction.TransactionId;
+                    if(transaction.OrderId != "21-14418-07465")
+                    {
+                       continue;
+                    }
+                    if(transaction.TransactionType == TransactionTypeEnum.REFUND)
+                    {
+                        continue;
+                    }
+                    //! HERE HERE HERE
+                    //! above here
+                    var associatedOrder = orderList.Where(o => o.OrderId == transaction.OrderId).FirstOrDefault();
+                    if(associatedOrder == null)
+                    {
+                        // continue;
+                    }
+                    switch(transaction.TransactionType)
+                    {
+                        case TransactionTypeEnum.SALE:
+                            List<ToGnuCash> saleLines = HandleSale(transaction, associatedOrder);
+                            results.AddRange(saleLines);
+                            break;
+
+                        case TransactionTypeEnum.REFUND:
+                            if(associatedOrder?.OrderPaymentStatus == OrderPaymentStatusEnum.FULLY_REFUNDED)
+                            {
+                              List<ToGnuCash> refundLines =  HandleFullRefund(transaction, associatedOrder);
+                              results.AddRange(refundLines);
+                                break;
+                            }
+                            if(associatedOrder?.OrderPaymentStatus == OrderPaymentStatusEnum.PARTIALLY_REFUNDED)
+                            {
+                               List<ToGnuCash> refundLines = HandlePartialRefund();
+                               results.AddRange(refundLines);
+                                break;
+                            }
+                            throw new NotSupportedException(
+                                $"Unsupported order payment status in REFUND: {associatedOrder.OrderPaymentStatus}");
+
+                        case TransactionTypeEnum.CREDIT:
+                          List<ToGnuCash> creditLines =  HandleCredit(associatedOrder);
+                           results.AddRange(creditLines);
+                            break;
+
+                        case TransactionTypeEnum.DISPUTE:
+                              List<ToGnuCash> disputeLines = HandleDispute(associatedOrder);
+                            results.AddRange(disputeLines);
+                            break;
+
+                        case TransactionTypeEnum.SHIPPING_LABEL:
+                             List<ToGnuCash> shippingLabelLines =  HandleShipping_Label(transaction);
+                           results.AddRange(shippingLabelLines);
+                            break;
+
+                        case TransactionTypeEnum.TRANSFER:
+                            List<ToGnuCash> transferLines =   HanedleTransfer(associatedOrder);
+                            results.AddRange(transferLines);
+                            break;
+
+                        case TransactionTypeEnum.NON_SALE_CHARGE:
+                             List<ToGnuCash> nonSaleChargeLines =  HandleNon_Sale_Charge(transaction);
+                            results.AddRange(nonSaleChargeLines);
+                            break;
+
+                        case TransactionTypeEnum.ADJUSTMENT:
+                              List<ToGnuCash> adjustmentLines = HandleAdjustment(associatedOrder);
+                            results.AddRange(adjustmentLines);
+                            break;
+
+                        case TransactionTypeEnum.WITHDRAWAL:
+                              List<ToGnuCash> withdrawalLines = HandleWithdrawal(associatedOrder);
+                            results.AddRange(withdrawalLines);
+                            break;
+
+                        case TransactionTypeEnum.LOAN_REPAYMENT:
+                              List<ToGnuCash> loanRepaymentLines = HandleLoan_Repayment(associatedOrder);
+                            results.AddRange(loanRepaymentLines);
+                            break;
+
+                        case TransactionTypeEnum.PURCHASE:
+                              List<ToGnuCash> purchaseLines = HandlePurchase(associatedOrder);
+                           results.AddRange(purchaseLines);
+                            break;
+
+                        case null:
+                        default:
+                            continue;
+                    }
+                }
+            }
+            return results;
+        }
+
         private List<ToGnuCash> HandleAdjustment(Order? associatedOrder)
         {
             if (associatedOrder == null)
@@ -403,12 +409,6 @@ namespace FeeBayConnectionTester
             }
             return new List<ToGnuCash>();
         }
-
-
-
-
-
-
 
         private List<ToGnuCash> HandleFullRefund(Transaction transaction, Order? associatedOrder)
         {
