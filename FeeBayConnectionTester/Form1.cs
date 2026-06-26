@@ -267,20 +267,21 @@ namespace FeeBayConnectionTester
             return results;
         }
 
+        #region Download Financials
         private async Task<List<Order>> GetAllOrdersPaginated(string filter, int limit = 50)
         {
             var allOrders = new List<Order>();
             int offset = 0;
             bool hasMore = true;
 
-            while(hasMore)
+            while (hasMore)
             {
                 // Append offset to filter if not the first page
                 string paginatedFilter = offset > 0 ? $"{filter},offset:{offset}" : filter;
 
                 Orders ordersContainer = await _eBayController.GetOrders(filter, limit, offset);
 
-                if(ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
+                if (ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
                 {
                     allOrders.AddRange(ordersContainer.OrderList);
                     Console.WriteLine(
@@ -292,7 +293,7 @@ namespace FeeBayConnectionTester
                 offset += limit;
 
                 // Safety check: if we've retrieved all orders
-                if(allOrders.Count >= ordersContainer.Total)
+                if (allOrders.Count >= ordersContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -308,7 +309,7 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while(hasMore)
+            while (hasMore)
             {
                 // Append offset to filter if not the first page
                 string paginatedFilter = offset > 0 ? $"{filter},offset:{offset}" : filter;
@@ -316,7 +317,7 @@ namespace FeeBayConnectionTester
                 PayoutList payoutsContainer = await _eBayController.GetPayouts(filter, null, limit, offset);
 
 
-                if(payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
+                if (payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
                 {
                     allPayouts.AddRange(payoutsContainer.Payouts);
                     Console.WriteLine(
@@ -328,7 +329,7 @@ namespace FeeBayConnectionTester
                 offset += limit;
 
                 // Safety check: if we've retrieved all transactions
-                if(allPayouts.Count >= payoutsContainer.Total)
+                if (allPayouts.Count >= payoutsContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -344,7 +345,7 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while(hasMore)
+            while (hasMore)
             {
                 // Append offset to filter if not the first page
                 string paginatedFilter = offset > 0 ? $"{filter},offset:{offset}" : filter;
@@ -352,7 +353,7 @@ namespace FeeBayConnectionTester
                 Transactions transactionsContainer = await _eBayController.GetTransactions(filter, null, limit, offset);
 
 
-                if(transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
+                if (transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
                 {
                     allTransactions.AddRange(transactionsContainer.TransactionList);
                     Console.WriteLine(
@@ -364,7 +365,7 @@ namespace FeeBayConnectionTester
                 offset += limit;
 
                 // Safety check: if we've retrieved all transactions
-                if(allTransactions.Count >= transactionsContainer.Total)
+                if (allTransactions.Count >= transactionsContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -374,35 +375,11 @@ namespace FeeBayConnectionTester
             return allTransactions;
         }
 
-        private async Task<SigningKey> GetOrCreateSigningKey(EbayController ebayController)
-        {
-            // 1. Try to get from database
-            FeeBaySigningKeys? cachedKey = null;
-
-            cachedKey = await _localDbConnectionManager.GetSigningKeyAsync();
-
-            //// cachedKey = null; // Force create new key for testing
-            if(cachedKey != null)
-            {
-                return cachedKey.ToSigningKey();
-            }
-
-            SigningKey key;
-
-            {
-                // 2. Create new if none exist
-                key = await ebayController.CreateSigningKey();
-            }
-
-            // 3. Store in database
-            await _localDbConnectionManager.SaveSigningKeyAsync(key.ToFeeBaySigningKey());
-
-            return key;
-        }
-
+        #endregion
+        #region TransactionTypes
         private List<ToGnuCash> HandleAdjustment(Order? associatedOrder)
         {
-            if(associatedOrder == null)
+            if (associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
@@ -411,7 +388,7 @@ namespace FeeBayConnectionTester
 
         private List<ToGnuCash> HandleCredit(Order? associatedOrder)
         {
-            if(associatedOrder == null)
+            if (associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
@@ -420,23 +397,29 @@ namespace FeeBayConnectionTester
 
         private List<ToGnuCash> HandleDispute(Order? associatedOrder)
         {
-            if(associatedOrder == null)
+            if (associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
             return new List<ToGnuCash>();
         }
 
+
+
+
+
+
+
         private List<ToGnuCash> HandleFullRefund(Transaction transaction, Order? associatedOrder)
         {
-            
-            if(associatedOrder == null)
+
+            if (associatedOrder == null)
             {
                 // associated order is null, cannot handle refund
                 throw new ArgumentNullException(nameof(associatedOrder));
             }
 
-            if(associatedOrder.LineItems.First().Title.Contains("RW8"))
+            if (associatedOrder.LineItems.First().Title.Contains("RW8"))
             {
             }
             // this works leave it alone
@@ -444,23 +427,23 @@ namespace FeeBayConnectionTester
             var outputData = new List<ToGnuCash>();
 
             //
-            foreach(var transactionLineItem in transaction.OrderLineItems)
+            foreach (var transactionLineItem in transaction.OrderLineItems)
             {
                 var orderLineItem = associatedOrder.LineItems
                     .Where(l => l.LineItemId == transactionLineItem.LineItemId)
                     .Single();
-               
+
                 //! NEED TO FIND A FULL REFUND TO TEST
 
                 //! ASSUME FOR NOW THAT A FULL REFUND INDICATES THE STAMP WAS RETURNED
                 //! not true in all cases (e.g. lost in the mail ), but assume for now
-               
 
-                var cogs =_localDbConnectionManager.GetStampCOGS(orderLineItem.SKU);
+
+                var cogs = _localDbConnectionManager.GetStampCOGS(orderLineItem.SKU);
                 var refundDate = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
                 var orderId = transaction.OrderId;
-                var sellingPriceRefunded = orderLineItem.LineItemCost.DollarAmount()  ?? 0m;
-                var shippingPriceRefunded = orderLineItem.DeliveryCost.DollarAmount()  ?? 0m;
+                var sellingPriceRefunded = orderLineItem.LineItemCost.DollarAmount() ?? 0m;
+                var shippingPriceRefunded = orderLineItem.DeliveryCost.DollarAmount() ?? 0m;
                 var totalRefund = SumUpRefunds(orderLineItem.Refunds);
                 var fixedFeesRefunded = FindFixedFeesRefunded(transactionLineItem.MarketplaceFees);            // var variableFeesRefunded = Decimal.Parse(refund.FVF_variable);
                 var variableFeesRefunded = FindVariableFeesRefunded(transactionLineItem.MarketplaceFees);
@@ -472,131 +455,92 @@ namespace FeeBayConnectionTester
                 // income line
                 var incomeLine = new ToGnuCash();
                 incomeLine.Date = refundDate;
-                incomeLine.Account = $"Income:{feeBaySellerID} Sales";    
-                incomeLine.Description =  $"feeBay Order #{orderId} - {orderLineItem.Title} REFUNDED";               // incomeLine.Description = $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED";
+                incomeLine.Account = $"Income:{feeBaySellerID} Sales";
+                incomeLine.Description = $"feeBay Order #{orderId} - {orderLineItem.Title} REFUNDED";               // incomeLine.Description = $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED";
                 incomeLine.Amount = -totalRefund;// + shippingPrice;
                 incomeLine.TransactionId = transaction.TransactionId;
                 incomeLine.SortOrder = 1;
                 outputData.Add(incomeLine);
 
-                    // feeBay current assett
-                    var netIncomeLine = new ToGnuCash();
-                    netIncomeLine.Date = refundDate;
-                    netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
-                    netIncomeLine.Description = string.Empty;
-                    netIncomeLine.Amount = totalRefund;
-                    netIncomeLine.TransactionId = transaction.TransactionId;
-                    netIncomeLine.SortOrder = 2;
-                    outputData.Add(netIncomeLine);
+                // feeBay current assett
+                var netIncomeLine = new ToGnuCash();
+                netIncomeLine.Date = refundDate;
+                netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
+                netIncomeLine.Description = string.Empty;
+                netIncomeLine.Amount = totalRefund;
+                netIncomeLine.TransactionId = transaction.TransactionId;
+                netIncomeLine.SortOrder = 2;
+                outputData.Add(netIncomeLine);
 
-                    // fixed fee Line
-                    var fixedFeeLine = new ToGnuCash();
-                    fixedFeeLine.Date = refundDate;
-                    fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBaySellerID}:Fixed Fee Per Sale";
-                    fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                    fixedFeeLine.Amount = -fixedFeesRefunded;
-                    fixedFeeLine.TransactionId = transaction.TransactionId;
-                    fixedFeeLine.SortOrder = 3;
-                    outputData.Add(fixedFeeLine);
+                // fixed fee Line
+                var fixedFeeLine = new ToGnuCash();
+                fixedFeeLine.Date = refundDate;
+                fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBaySellerID}:Fixed Fee Per Sale";
+                fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                fixedFeeLine.Amount = -fixedFeesRefunded;
+                fixedFeeLine.TransactionId = transaction.TransactionId;
+                fixedFeeLine.SortOrder = 3;
+                outputData.Add(fixedFeeLine);
 
-                    // variable fee line
-                    var variableFeeLine = new ToGnuCash();
-                    variableFeeLine.Date = refundDate;
-                    variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Final Value Fees";
-                    variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                    variableFeeLine.Amount = -variableFeesRefunded;
-                    variableFeeLine.TransactionId = transaction.TransactionId;
-                    variableFeeLine.SortOrder = 4;
-                    outputData.Add(variableFeeLine);
+                // variable fee line
+                var variableFeeLine = new ToGnuCash();
+                variableFeeLine.Date = refundDate;
+                variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Final Value Fees";
+                variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                variableFeeLine.Amount = -variableFeesRefunded;
+                variableFeeLine.TransactionId = transaction.TransactionId;
+                variableFeeLine.SortOrder = 4;
+                outputData.Add(variableFeeLine);
 
-                    //international fees line
-                    if (internationalFeesRefunded != 0)
-                    {
-                        var internationalFeeLine = new ToGnuCash();
-                        internationalFeeLine.Date = refundDate;
-                        internationalFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:International Fee";
-                        internationalFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                        internationalFeeLine.Amount = -internationalFeesRefunded;
-                        internationalFeeLine.TransactionId = transaction.TransactionId;
-                        internationalFeeLine.SortOrder = 5;
-                        outputData.Add(internationalFeeLine);
-                    }
+                //international fees line
+                if (internationalFeesRefunded != 0)
+                {
+                    var internationalFeeLine = new ToGnuCash();
+                    internationalFeeLine.Date = refundDate;
+                    internationalFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:International Fee";
+                    internationalFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                    internationalFeeLine.Amount = -internationalFeesRefunded;
+                    internationalFeeLine.TransactionId = transaction.TransactionId;
+                    internationalFeeLine.SortOrder = 5;
+                    outputData.Add(internationalFeeLine);
+                }
 
-                    
-                    // cost of goods sold goes down as we are assumiing a full refund has been returned back into inventory
-                    var feeBayCOGSRecord = new ToGnuCash();
-                    feeBayCOGSRecord.Date = refundDate;
-                    feeBayCOGSRecord.Account = "Expenses:Cost of Goods Sold";
-                    feeBayCOGSRecord.Description = string.Empty;// $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED COGS";
-                    if (cogs == 0.0m)
-                    {
-                        feeBayCOGSRecord.Amount = -(sellingPriceRefunded / 2);
-                    }
-                    else
-                    {
-                        feeBayCOGSRecord.Amount = (decimal)-(cogs);
-                    }
-                    feeBayCOGSRecord.TransactionId = transaction.TransactionId;
-                    feeBayCOGSRecord.SortOrder = 6;
-                    outputData.Add(feeBayCOGSRecord);
 
-                    // value of inventory goes up as stamp is added back in
-                    var feeBayInventoryRecord = new ToGnuCash();
-                    feeBayInventoryRecord.Date = refundDate;
-                    feeBayInventoryRecord.Account = "Assets:INVENTORY";
-                    feeBayInventoryRecord.Description = string.Empty;// incomeLineDescription;
-                    if (cogs == 0.0m)
-                    {
-                        feeBayInventoryRecord.Amount = (sellingPriceRefunded / 2);
-                    }
-                    else
-                    {
-                        feeBayInventoryRecord.Amount = (decimal)(cogs);
-                    }
-                    feeBayInventoryRecord.TransactionId = transaction.TransactionId;
-                    feeBayInventoryRecord.SortOrder = 7;
-                    outputData.Add(feeBayInventoryRecord);
+                // cost of goods sold goes down as we are assumiing a full refund has been returned back into inventory
+                var feeBayCOGSRecord = new ToGnuCash();
+                feeBayCOGSRecord.Date = refundDate;
+                feeBayCOGSRecord.Account = "Expenses:Cost of Goods Sold";
+                feeBayCOGSRecord.Description = string.Empty;// $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED COGS";
+                if (cogs == 0.0m)
+                {
+                    feeBayCOGSRecord.Amount = -(sellingPriceRefunded / 2);
+                }
+                else
+                {
+                    feeBayCOGSRecord.Amount = (decimal)-(cogs);
+                }
+                feeBayCOGSRecord.TransactionId = transaction.TransactionId;
+                feeBayCOGSRecord.SortOrder = 6;
+                outputData.Add(feeBayCOGSRecord);
+
+                // value of inventory goes up as stamp is added back in
+                var feeBayInventoryRecord = new ToGnuCash();
+                feeBayInventoryRecord.Date = refundDate;
+                feeBayInventoryRecord.Account = "Assets:INVENTORY";
+                feeBayInventoryRecord.Description = string.Empty;// incomeLineDescription;
+                if (cogs == 0.0m)
+                {
+                    feeBayInventoryRecord.Amount = (sellingPriceRefunded / 2);
+                }
+                else
+                {
+                    feeBayInventoryRecord.Amount = (decimal)(cogs);
+                }
+                feeBayInventoryRecord.TransactionId = transaction.TransactionId;
+                feeBayInventoryRecord.SortOrder = 7;
+                outputData.Add(feeBayInventoryRecord);
             }
             return outputData;
-        }
-
-        private decimal FindInternationalFeesRefunded(List<MarketplaceFee> marketplaceFees)
-        {
-            if(marketplaceFees == null)
-            {
-                return 0m;
-            }
-            return marketplaceFees.Where(f => f.FeeType == FeeTypeEnum.INTERNATIONAL_FEE)
-                                    .Sum(f => f.Amount.DollarAmount() ?? 0m);
-        }
-
-        private decimal FindVariableFeesRefunded(List<MarketplaceFee> marketplaceFees)
-        {
-            if(marketplaceFees == null)
-            {
-                return 0m;
-            }
-            return marketplaceFees.Where(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)
-                                    .Sum(f => f.Amount.DollarAmount() ?? 0m);
-        }
-
-        private decimal FindFixedFeesRefunded(List<MarketplaceFee> marketplaceFees)
-        {
-            if(marketplaceFees == null)
-            {
-                return 0m;
-            }
-            return marketplaceFees.Where(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER)
-                                    .Sum(f => f.Amount.DollarAmount() ?? 0m);
-        }
-
-        private decimal SumUpRefunds(List<Refund> refunds)
-        { 
-            if(refunds == null)
-            {
-                return 0m;
-            }   
-            return (decimal)(refunds.Sum(r => r.Amount.DollarAmount() ?? 0m));
         }
 
         private List<ToGnuCash> HandleLoan_Repayment(Order? associatedOrder)
@@ -607,7 +551,6 @@ namespace FeeBayConnectionTester
             }
             return new List<ToGnuCash>();
         }
-
         private List<ToGnuCash> HandleNon_Sale_Charge(Transaction transaction)
         {
             //! figure out what type of fee this is
@@ -629,39 +572,10 @@ namespace FeeBayConnectionTester
             }
             return new List<ToGnuCash>();
         }
-
         private List<ToGnuCash> HandlePartialRefund()
         {
             return new List<ToGnuCash>();
         }
-
-        private List<ToGnuCash> HandlePromotedListingsPriorityFees(Transaction transaction, string itemId)
-        {
-            // Implement handling of Promoted Listings - Priority fees here
-            var feeBaySellerID = "Simmons Ink";
-            var outputData = new List<ToGnuCash>();
-
-            var otherFeeLineFrom = new ToGnuCash();
-            otherFeeLineFrom.Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
-            otherFeeLineFrom.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
-            otherFeeLineFrom.Description = $"{transaction.TransactionMemo} ItemId {itemId}";
-            otherFeeLineFrom.Amount = -transaction.Amount.DollarAmount() ?? 0m;
-            otherFeeLineFrom.TransactionId = transaction.TransactionId;
-            otherFeeLineFrom.SortOrder = 1;
-            outputData.Add(otherFeeLineFrom);
-
-            var otherFeeLineTo = new ToGnuCash();
-            otherFeeLineTo.Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
-            otherFeeLineTo.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Promoted Listings Fee";
-            otherFeeLineTo.Description = string.Empty; //  payout.Description;
-            otherFeeLineTo.Amount = transaction.Amount.DollarAmount() ?? 0m;
-            otherFeeLineTo.TransactionId = transaction.TransactionId;
-            otherFeeLineTo.SortOrder = 2;
-            outputData.Add(otherFeeLineTo);
-
-            return outputData;
-        }
-
         private List<ToGnuCash> HandlePurchase(Order? associatedOrder)
         {
             if(associatedOrder == null)
@@ -671,7 +585,6 @@ namespace FeeBayConnectionTester
 
            return new List<ToGnuCash>();
         }
-
         private List<ToGnuCash> HandleSale(Transaction transaction, Order? associatedOrder)
         {
             if(associatedOrder == null)
@@ -784,7 +697,6 @@ namespace FeeBayConnectionTester
             }
             return outputData;
         }
-
         private List<ToGnuCash> HandleShipping_Label(Transaction label)//, Order? associatedOrder)
         {
          
@@ -810,6 +722,108 @@ namespace FeeBayConnectionTester
            
             return outputData;
         }
+        private List<ToGnuCash> HanedleTransfer(Order? associatedOrder)
+        {
+            if(associatedOrder == null)
+            {
+                throw new ArgumentNullException(nameof(associatedOrder));
+            }
+            return new List<ToGnuCash>();
+        }
+        private List<ToGnuCash> HandleWithdrawal(Order? associatedOrder)
+        {
+            if(associatedOrder == null)
+            {
+                throw new ArgumentNullException(nameof(associatedOrder));
+            }
+            return new List<ToGnuCash>();
+        }
+        #endregion
+        #region Helpers
+        private decimal FindFixedFeesRefunded(List<MarketplaceFee> marketplaceFees)
+        {
+            if (marketplaceFees == null)
+            {
+                return 0m;
+            }
+            return marketplaceFees.Where(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER)
+                                    .Sum(f => f.Amount.DollarAmount() ?? 0m);
+        }
+
+
+
+        private decimal FindInternationalFeesRefunded(List<MarketplaceFee> marketplaceFees)
+        {
+            if (marketplaceFees == null)
+            {
+                return 0m;
+            }
+            return marketplaceFees.Where(f => f.FeeType == FeeTypeEnum.INTERNATIONAL_FEE)
+                                    .Sum(f => f.Amount.DollarAmount() ?? 0m);
+        }
+        private decimal FindVariableFeesRefunded(List<MarketplaceFee> marketplaceFees)
+        {
+            if (marketplaceFees == null)
+            {
+                return 0m;
+            }
+            return marketplaceFees.Where(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)
+                                    .Sum(f => f.Amount.DollarAmount() ?? 0m);
+        }
+
+
+        private async Task<SigningKey> GetOrCreateSigningKey(EbayController ebayController)
+        {
+            // 1. Try to get from database
+            FeeBaySigningKeys? cachedKey = null;
+
+            cachedKey = await _localDbConnectionManager.GetSigningKeyAsync();
+
+            //// cachedKey = null; // Force create new key for testing
+            if(cachedKey != null)
+            {
+                return cachedKey.ToSigningKey();
+            }
+
+            SigningKey key;
+
+            {
+                // 2. Create new if none exist
+                key = await ebayController.CreateSigningKey();
+            }
+
+            // 3. Store in database
+            await _localDbConnectionManager.SaveSigningKeyAsync(key.ToFeeBaySigningKey());
+
+            return key;
+        }
+
+        private List<ToGnuCash> HandlePromotedListingsPriorityFees(Transaction transaction, string itemId)
+        {
+            // Implement handling of Promoted Listings - Priority fees here
+            var feeBaySellerID = "Simmons Ink";
+            var outputData = new List<ToGnuCash>();
+
+            var otherFeeLineFrom = new ToGnuCash();
+            otherFeeLineFrom.Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
+            otherFeeLineFrom.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
+            otherFeeLineFrom.Description = $"{transaction.TransactionMemo} ItemId {itemId}";
+            otherFeeLineFrom.Amount = -transaction.Amount.DollarAmount() ?? 0m;
+            otherFeeLineFrom.TransactionId = transaction.TransactionId;
+            otherFeeLineFrom.SortOrder = 1;
+            outputData.Add(otherFeeLineFrom);
+
+            var otherFeeLineTo = new ToGnuCash();
+            otherFeeLineTo.Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
+            otherFeeLineTo.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Promoted Listings Fee";
+            otherFeeLineTo.Description = string.Empty; //  payout.Description;
+            otherFeeLineTo.Amount = transaction.Amount.DollarAmount() ?? 0m;
+            otherFeeLineTo.TransactionId = transaction.TransactionId;
+            otherFeeLineTo.SortOrder = 2;
+            outputData.Add(otherFeeLineTo);
+
+            return outputData;
+        }
 
         private List<ToGnuCash> HandleStoreSubscriptionCharge()
         {
@@ -832,25 +846,6 @@ namespace FeeBayConnectionTester
             //         outputData.Add(otherFeeLineTo);
             return new List<ToGnuCash>();
         }
-
-        private List<ToGnuCash> HandleWithdrawal(Order? associatedOrder)
-        {
-            if(associatedOrder == null)
-            {
-                throw new ArgumentNullException(nameof(associatedOrder));
-            }
-            return new List<ToGnuCash>();
-        }
-
-        private List<ToGnuCash> HanedleTransfer(Order? associatedOrder)
-        {
-            if(associatedOrder == null)
-            {
-                throw new ArgumentNullException(nameof(associatedOrder));
-            }
-            return new List<ToGnuCash>();
-        }
-
         private decimal MakeCogsForFullOrder(decimal sellingPrice, string sku)
         {
             decimal fullOrderCogs = 0.0m;
@@ -871,6 +866,17 @@ namespace FeeBayConnectionTester
 
             return fullOrderCogs;
         }
+
+        private decimal SumUpRefunds(List<Refund> refunds)
+        {
+            if (refunds == null)
+            {
+                return 0m;
+            }
+            return (decimal)(refunds.Sum(r => r.Amount.DollarAmount() ?? 0m));
+        }
+
+        #endregion
         #endregion
         #endregion
     }
