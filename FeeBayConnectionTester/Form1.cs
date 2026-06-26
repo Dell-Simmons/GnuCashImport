@@ -155,7 +155,6 @@ namespace FeeBayConnectionTester
             //! rely on transactions not orders.  Use orders only to get at orderItem
             //! specifics not available in Transaction orderItems.  Like title and SKU
             //! that should be about it.  Otherwise pull from transactions!
-            int lookAtOrderCount = 0; 
             foreach(var payout in payOutList)
             {
                 var payoutId = payout.PayoutId;
@@ -182,9 +181,9 @@ namespace FeeBayConnectionTester
                     //! that got a full retund (actually lost in the mail)
                     //! HERE HERE HERE
                     var transactionId = transaction.TransactionId;
-                    if(transaction.OrderId == "21-14418-07465")
+                    if(transaction.OrderId != "21-14418-07465")
                     {
-                        lookAtOrderCount += 1;
+                       continue;
                     }
                     var associatedOrder = orderList.Where(o => o.OrderId == transaction.OrderId).FirstOrDefault();
                     if(associatedOrder == null)
@@ -265,7 +264,6 @@ namespace FeeBayConnectionTester
                     }
                 }
             }
-          MessageBox.Show(  $"For Order 21-14418-07465 found {lookAtOrderCount} transactions (expected 2)");
             return results;
         }
 
@@ -474,7 +472,8 @@ namespace FeeBayConnectionTester
                 // income line
                 var incomeLine = new ToGnuCash();
                 incomeLine.Date = refundDate;
-                incomeLine.Account = $"Income:{feeBaySellerID} Sales";                  // incomeLine.Description = $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED";
+                incomeLine.Account = $"Income:{feeBaySellerID} Sales";    
+                incomeLine.Description =  $"feeBay Order #{orderId} - {orderLineItem.Title} REFUNDED";               // incomeLine.Description = $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED";
                 incomeLine.Amount = -totalRefund;// + shippingPrice;
                 incomeLine.TransactionId = transaction.TransactionId;
                 incomeLine.SortOrder = 1;
@@ -554,7 +553,7 @@ namespace FeeBayConnectionTester
                     {
                         feeBayInventoryRecord.Amount = (decimal)(cogs);
                     }
-                    feeBayInventoryRecord.TransactionId = orderId;
+                    feeBayInventoryRecord.TransactionId = transaction.TransactionId;
                     feeBayInventoryRecord.SortOrder = 7;
                     outputData.Add(feeBayInventoryRecord);
             }
@@ -745,7 +744,7 @@ namespace FeeBayConnectionTester
                 netIncomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
                 netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
                 netIncomeLine.Description = string.Empty;
-                netIncomeLine.Amount = -net;
+                netIncomeLine.Amount = net;
                 netIncomeLine.TransactionId = transactionId;//orderId;
                 netIncomeLine.SortOrder = 4;
                 outputData.Add(netIncomeLine);
@@ -767,7 +766,7 @@ namespace FeeBayConnectionTester
                 ToGnuCash feeBayCOGSRecord = new();
                 feeBayCOGSRecord.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
                 feeBayCOGSRecord.Account = "Expenses:Cost of Goods Sold";
-                feeBayCOGSRecord.Description = $"{incomeLineDescription} COGS";
+                feeBayCOGSRecord.Description = string.Empty;//$"{incomeLineDescription} COGS";
                 feeBayCOGSRecord.Amount = MakeCogsForFullOrder(sellingPrice, skusInOrder);
                 feeBayCOGSRecord.TransactionId = transactionId;//orderId;
                 feeBayCOGSRecord.SortOrder = 6;
@@ -777,7 +776,7 @@ namespace FeeBayConnectionTester
                 ToGnuCash feeBayInventoryRecord = new();
                 feeBayInventoryRecord.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
                 feeBayInventoryRecord.Account = "Assets:INVENTORY";
-                feeBayInventoryRecord.Description = $"{incomeLineDescription} COGS";
+                feeBayInventoryRecord.Description = string.Empty;//$"{incomeLineDescription} COGS";
                 feeBayInventoryRecord.Amount = -MakeCogsForFullOrder(sellingPrice, skusInOrder);
                 feeBayInventoryRecord.TransactionId = transactionId;//orderId;
                 feeBayInventoryRecord.SortOrder = 7;
