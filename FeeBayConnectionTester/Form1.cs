@@ -291,14 +291,14 @@ namespace FeeBayConnectionTester
                     //! that got a full retund (actually lost in the mail)
                     //! HERE HERE HERE
                     var transactionId = transaction.TransactionId;
-                    if(transaction.OrderId != "21-14418-07465")
+                    if(transaction.OrderId != "04-14077-74357")
                     {
                        continue;
                     }
-                    if(transaction.TransactionType == TransactionTypeEnum.REFUND)
-                    {
-                        continue;
-                    }
+                    // if(transaction.TransactionType == TransactionTypeEnum.REFUND)
+                    // {
+                    //     continue;
+                    // }
                     //! HERE HERE HERE
                     //! above here
                     var associatedOrder = orderList.Where(o => o.OrderId == transaction.OrderId).FirstOrDefault();
@@ -322,7 +322,7 @@ namespace FeeBayConnectionTester
                             }
                             if(associatedOrder?.OrderPaymentStatus == OrderPaymentStatusEnum.PARTIALLY_REFUNDED)
                             {
-                               List<ToGnuCash> refundLines = HandlePartialRefund();
+                               List<ToGnuCash> refundLines = HandlePartialRefund(transaction, associatedOrder   );
                                results.AddRange(refundLines);
                                 break;
                             }
@@ -412,6 +412,9 @@ namespace FeeBayConnectionTester
 
         private List<ToGnuCash> HandleFullRefund(Transaction transaction, Order? associatedOrder)
         {
+            //! THIS WORKS THIS WORKS THIS WORKS DON'T CHANGE IT
+            //! THIS WORKS THIS WORKS THIS WORKS DON'T CHANGE IT
+            //! DO NOT MODIFY ANY OF THE LOGIC BELOW THIS LINE WITHOUT THOROUGH TESTING
 
             if (associatedOrder == null)
             {
@@ -433,8 +436,6 @@ namespace FeeBayConnectionTester
                     .Where(l => l.LineItemId == transactionLineItem.LineItemId)
                     .Single();
 
-                //! NEED TO FIND A FULL REFUND TO TEST
-
                 //! ASSUME FOR NOW THAT A FULL REFUND INDICATES THE STAMP WAS RETURNED
                 //! not true in all cases (e.g. lost in the mail ), but assume for now
 
@@ -443,101 +444,105 @@ namespace FeeBayConnectionTester
                 var refundDate = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
                 var orderId = transaction.OrderId;
                 var sellingPriceRefunded = orderLineItem.LineItemCost.DollarAmount() ?? 0m;
-                var shippingPriceRefunded = orderLineItem.DeliveryCost.DollarAmount() ?? 0m;
+                var shippingPriceRefunded = orderLineItem.DeliveryCost.ShippingCost.DollarAmount() ?? 0m;
                 var totalRefund = SumUpRefunds(orderLineItem.Refunds);
                 var fixedFeesRefunded = FindFixedFeesRefunded(transactionLineItem.MarketplaceFees);            // var variableFeesRefunded = Decimal.Parse(refund.FVF_variable);
                 var variableFeesRefunded = FindVariableFeesRefunded(transactionLineItem.MarketplaceFees);
                 var internationalFeesRefunded = FindInternationalFeesRefunded(transactionLineItem.MarketplaceFees);
+                  var skusInOrder = orderLineItem.SKU;
+                 var numberSold = orderLineItem.Quantity;
+                var title = orderLineItem.Title;
+                var incomeLineDescription = $"feeBay Order #{orderId} SKU: {skusInOrder} - {title} - REFUND";
+                var netRefund = totalRefund - fixedFeesRefunded - variableFeesRefunded - internationalFeesRefunded;
+            
                 // var netRefund = Decimal.Parse(refund.Net_amount);
                 // var internationalFeesRefunded = Decimal.Parse(refund.International_fee);
                 // var grossRefund = Decimal.Parse(refund.Gross_transaction_amount);
-
-                // income line
+                //! income line - product
                 var incomeLine = new ToGnuCash();
-                incomeLine.Date = refundDate;
+                incomeLine.Date = refundDate; // 
                 incomeLine.Account = $"Income:{feeBaySellerID} Sales";
-                incomeLine.Description = $"feeBay Order #{orderId} - {orderLineItem.Title} REFUNDED";               // incomeLine.Description = $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED";
-                incomeLine.Amount = -totalRefund;// + shippingPrice;
-                incomeLine.TransactionId = transaction.TransactionId;
+                incomeLine.Description = incomeLineDescription;
+                // set the income line amount to the negative of the selling price   
+                incomeLine.Amount = -sellingPriceRefunded;
+                incomeLine.TransactionId = transaction.TransactionId;//orderId;
                 incomeLine.SortOrder = 1;
                 outputData.Add(incomeLine);
 
-                // feeBay current assett
-                var netIncomeLine = new ToGnuCash();
-                netIncomeLine.Date = refundDate;
-                netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
-                netIncomeLine.Description = string.Empty;
-                netIncomeLine.Amount = totalRefund;
-                netIncomeLine.TransactionId = transaction.TransactionId;
-                netIncomeLine.SortOrder = 2;
-                outputData.Add(netIncomeLine);
+                //! income line - shipping
+                var shippingIncomeLine = new ToGnuCash();
+                shippingIncomeLine.Date = refundDate;
+                shippingIncomeLine.Account = $"Income:{feeBaySellerID} Shipping";
+                shippingIncomeLine.Description = string.Empty;//$"feeBay Order #{orderId} SKU: {skusInOrder} - {title} ";//";
+               // set the shipping line amount to the negative of the shipping price
+                shippingIncomeLine.Amount = -shippingPriceRefunded;
+                shippingIncomeLine.TransactionId = transaction.TransactionId;//orderId;
+                shippingIncomeLine.SortOrder = 2;
+                outputData.Add(shippingIncomeLine);
 
-                // fixed fee Line
+                //! fixed fee line
                 var fixedFeeLine = new ToGnuCash();
                 fixedFeeLine.Date = refundDate;
                 fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBaySellerID}:Fixed Fee Per Sale";
                 fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                fixedFeeLine.Amount = -fixedFeesRefunded;
-                fixedFeeLine.TransactionId = transaction.TransactionId;
+               // feeBay refunds the fees back to you so this is positive
+                fixedFeeLine.Amount = fixedFeesRefunded;
+                fixedFeeLine.TransactionId = transaction.TransactionId;//orderId;
                 fixedFeeLine.SortOrder = 3;
                 outputData.Add(fixedFeeLine);
 
-                // variable fee line
+                //! variable fee line
                 var variableFeeLine = new ToGnuCash();
                 variableFeeLine.Date = refundDate;
                 variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Final Value Fees";
                 variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                variableFeeLine.Amount = -variableFeesRefunded;
-                variableFeeLine.TransactionId = transaction.TransactionId;
+                // feeBay refunds the fees back to you so this is positive
+                variableFeeLine.Amount = variableFeesRefunded;
+                variableFeeLine.TransactionId = transaction.TransactionId;//orderId;
                 variableFeeLine.SortOrder = 4;
                 outputData.Add(variableFeeLine);
 
-                //international fees line
-                if (internationalFeesRefunded != 0)
+                //!remove the remaining money from feeBay current assett
+                var netIncomeLine = new ToGnuCash();
+                netIncomeLine.Date = refundDate;
+                netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
+                netIncomeLine.Description = string.Empty;
+                netIncomeLine.Amount =  netRefund;
+                netIncomeLine.TransactionId = transaction.TransactionId;//orderId;
+                netIncomeLine.SortOrder = 5;
+                outputData.Add(netIncomeLine);
+
+                //!international fees line
+                if(internationalFeesRefunded != 0)
                 {
                     var internationalFeeLine = new ToGnuCash();
                     internationalFeeLine.Date = refundDate;
                     internationalFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:International Fee";
                     internationalFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                    internationalFeeLine.Amount = -internationalFeesRefunded;
-                    internationalFeeLine.TransactionId = transaction.TransactionId;
-                    internationalFeeLine.SortOrder = 5;
+                    internationalFeeLine.Amount = internationalFeesRefunded;
+                    internationalFeeLine.TransactionId = transaction.TransactionId;//orderId;
+                    internationalFeeLine.SortOrder = 6;
                     outputData.Add(internationalFeeLine);
                 }
 
-
-                // cost of goods sold goes down as we are assumiing a full refund has been returned back into inventory
-                var feeBayCOGSRecord = new ToGnuCash();
+                //! cost of goods sold goes down as items are refunded
+                ToGnuCash feeBayCOGSRecord = new();
                 feeBayCOGSRecord.Date = refundDate;
                 feeBayCOGSRecord.Account = "Expenses:Cost of Goods Sold";
-                feeBayCOGSRecord.Description = string.Empty;// $"feeBay Order #{orderId} - {refund.Item_title} REFUNDED COGS";
-                if (cogs == 0.0m)
-                {
-                    feeBayCOGSRecord.Amount = -(sellingPriceRefunded / 2);
-                }
-                else
-                {
-                    feeBayCOGSRecord.Amount = (decimal)-(cogs);
-                }
-                feeBayCOGSRecord.TransactionId = transaction.TransactionId;
-                feeBayCOGSRecord.SortOrder = 6;
+                feeBayCOGSRecord.Description = string.Empty;//$"{incomeLineDescription} COGS";
+                feeBayCOGSRecord.Amount = -MakeCogsForFullOrder(sellingPriceRefunded, skusInOrder);
+                feeBayCOGSRecord.TransactionId = transaction.TransactionId;//orderId;
+                feeBayCOGSRecord.SortOrder = 7;
                 outputData.Add(feeBayCOGSRecord);
 
-                // value of inventory goes up as stamp is added back in
-                var feeBayInventoryRecord = new ToGnuCash();
+                //! inventory value goes up as stamp is added back in . . . LOL
+                ToGnuCash feeBayInventoryRecord = new();
                 feeBayInventoryRecord.Date = refundDate;
                 feeBayInventoryRecord.Account = "Assets:INVENTORY";
-                feeBayInventoryRecord.Description = string.Empty;// incomeLineDescription;
-                if (cogs == 0.0m)
-                {
-                    feeBayInventoryRecord.Amount = (sellingPriceRefunded / 2);
-                }
-                else
-                {
-                    feeBayInventoryRecord.Amount = (decimal)(cogs);
-                }
-                feeBayInventoryRecord.TransactionId = transaction.TransactionId;
-                feeBayInventoryRecord.SortOrder = 7;
+                feeBayInventoryRecord.Description = string.Empty;//$"{incomeLineDescription} COGS";
+                feeBayInventoryRecord.Amount = MakeCogsForFullOrder(sellingPriceRefunded, skusInOrder);
+                feeBayInventoryRecord.TransactionId = transaction.TransactionId;//orderId;
+                feeBayInventoryRecord.SortOrder = 8;
                 outputData.Add(feeBayInventoryRecord);
             }
             return outputData;
@@ -572,10 +577,82 @@ namespace FeeBayConnectionTester
             }
             return new List<ToGnuCash>();
         }
-        private List<ToGnuCash> HandlePartialRefund()
+        private List<ToGnuCash> HandlePartialRefund(Transaction transaction, Order? associatedOrder)
         {
-            return new List<ToGnuCash>();
+                if (associatedOrder == null)
+            {
+                // associated order is null, cannot handle refund
+                throw new ArgumentNullException(nameof(associatedOrder));
+            }
+
+            // this works leave it alone
+            var feeBaySellerID = "Simmons Ink";
+            var outputData = new List<ToGnuCash>();
+            var refundDate = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
+           var orderId = associatedOrder.OrderId;
+            //! determine if the partial refund is less than the total shipping charges
+            //! if it is then treat the refund as a shipping refund rather than a product refund
+            var totalShippingCharges = associatedOrder.LineItems.Sum(li => li.DeliveryCost.ShippingCost.DollarAmount() ?? 0m);
+            var partialRefundAmount = (transaction.Amount.DollarAmount() ?? 0m) + (transaction.TotalFeeAmount.DollarAmount() ?? 0m);
+            var feeBasisAmount = transaction.TotalFeeBasisAmount.DollarAmount() ?? 0m;
+             //  var internationalFeesRefunded = FindInternationalFeesRefunded(transactionLineItem.MarketplaceFees);
+             
+
+            if(partialRefundAmount != feeBasisAmount)
+            {
+                // nope 
+            }
+            if(transaction.Amount.DollarAmount() < totalShippingCharges)
+            {
+                //! treat the refund as a shipping refund
+                //! THIS WORKS
+                outputData = HandlePartialShippingRefund(transaction, refundDate, partialRefundAmount, feeBaySellerID, orderId);
+            }
+            else
+            {
+                //! treat the refund as a product refund
+                //! THIS WORKS
+                outputData = HandlePartialProductRefund(transaction, associatedOrder);
+            }
+            return outputData;   
         }
+
+        private List<ToGnuCash> HandlePartialProductRefund(Transaction transaction, Order associatedOrder)
+        {
+            var feeBaySellerID = "Simmons Ink";
+            var outputData = new List<ToGnuCash>();
+            var refundDate = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
+            var orderId = associatedOrder.OrderId;
+            //! determine if the partial refund is less than the total shipping charges
+            //! if it is then treat the refund as a shipping refund rather than a product refund
+            var totalShippingCharges = associatedOrder.LineItems.Sum(li => li.DeliveryCost.ShippingCost.DollarAmount() ?? 0m);
+            var partialRefundAmount = (transaction.Amount.DollarAmount() ?? 0m) + (transaction.TotalFeeAmount.DollarAmount() ?? 0m);
+         foreach(var orderLineItem in associatedOrder.LineItems)
+         {
+            var orderLineItemPrice = orderLineItem.LineItemCost.DollarAmount() ?? 0m;
+            if(partialRefundAmount == orderLineItemPrice)
+            {
+                   // since the partial refund amount matches the price of this order line item, 
+                   // assume that this itemis the one being refunded.  
+                   // it can be treated as a full refund for this specific item  
+            }
+            else
+            {
+                // since the partial refund amount does not match the price of this order line item,
+                // prorate the partial refund amount across all line items in the order
+                var totalLineItemPrices = associatedOrder.LineItems.Sum(li => li.LineItemCost.DollarAmount() ?? 0m);
+                foreach(var lineItem in associatedOrder.LineItems)
+                {
+                    var lineItemPrice = lineItem.LineItemCost.DollarAmount() ?? 0m;
+                    var proratedRefundAmount = partialRefundAmount * (lineItemPrice / totalLineItemPrices);
+                    // apply the proratedRefundAmount to this line item
+                    // cogs does not change b/c item is not returned, just has a reduced selling price
+                }
+            }
+         }
+            return outputData;   
+        }
+
         private List<ToGnuCash> HandlePurchase(Order? associatedOrder)
         {
             if(associatedOrder == null)
@@ -587,6 +664,10 @@ namespace FeeBayConnectionTester
         }
         private List<ToGnuCash> HandleSale(Transaction transaction, Order? associatedOrder)
         {
+            //! THIS WORKS THIS WORKS THIS WORKS DON'T CHANGE IT
+            //! THIS WORKS THIS WORKS THIS WORKS DON'T CHANGE IT
+            //! DO NOT MODIFY ANY OF THE LOGIC BELOW THIS LINE WITHOUT THOROUGH TESTING
+
             if(associatedOrder == null)
             {
                 throw new ArgumentNullException(nameof(associatedOrder));
@@ -609,7 +690,7 @@ namespace FeeBayConnectionTester
                 var orderId = transaction.OrderId;
                 var transactionId = transaction.TransactionId;
                 var sellingPrice = orderLineItem.LineItemCost.DollarAmount() ?? 0m;//order.Sum(x => decimal.Parse(x.Item_subtotal));
-                var shippingPrice = orderLineItem.DeliveryCost.ShippingCost.DollarAmount();
+                var shippingPrice = orderLineItem.DeliveryCost.ShippingCost.DollarAmount() ?? 0m;
                 var fixedFees = itemFees.SingleOrDefault(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE_FIXED_PER_ORDER)?.Amount?.DollarAmount(
                         ) ?? 0m;
                 var variableFees = itemFees.SingleOrDefault(f => f.FeeType == FeeTypeEnum.FINAL_VALUE_FEE)?.Amount?.DollarAmount(
@@ -622,34 +703,44 @@ namespace FeeBayConnectionTester
                 var title = orderLineItem.Title;
                 var incomeLineDescription = $"feeBay Order #{orderId} SKU: {skusInOrder} - {title} ";
 
-                // income line
+                //! income line - product
                 var incomeLine = new ToGnuCash();
                 incomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));// 
                 incomeLine.Account = $"Income:{feeBaySellerID} Sales";
                 incomeLine.Description = incomeLineDescription;
-                incomeLine.Amount = gross;
+                incomeLine.Amount = sellingPrice;
                 incomeLine.TransactionId = transactionId;//orderId;
                 incomeLine.SortOrder = 1;
                 outputData.Add(incomeLine);
 
-                // fixed fee line
+                //! income line - shipping
+                var shippingIncomeLine = new ToGnuCash();
+                shippingIncomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
+                shippingIncomeLine.Account = $"Income:{feeBaySellerID} Shipping";
+                shippingIncomeLine.Description = string.Empty;//$"feeBay Order #{orderId} SKU: {skusInOrder} - {title} ";//";
+                shippingIncomeLine.Amount = shippingPrice;
+                shippingIncomeLine.TransactionId = transactionId;//orderId;
+                shippingIncomeLine.SortOrder = 2;
+                outputData.Add(shippingIncomeLine);
+
+                //! fixed fee line
                 var fixedFeeLine = new ToGnuCash();
                 fixedFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
                 fixedFeeLine.Account = $"Expences:FeeBay Fees:{feeBaySellerID}:Fixed Fee Per Sale";
                 fixedFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                fixedFeeLine.Amount = fixedFees;
+                fixedFeeLine.Amount = -fixedFees;
                 fixedFeeLine.TransactionId = transactionId;//orderId;
-                fixedFeeLine.SortOrder = 2;
+                fixedFeeLine.SortOrder = 3;
                 outputData.Add(fixedFeeLine);
 
-                // variable fee line
+                //! variable fee line
                 var variableFeeLine = new ToGnuCash();
                 variableFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
                 variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Final Value Fees";
                 variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                variableFeeLine.Amount = variableFees;
+                variableFeeLine.Amount = -variableFees;
                 variableFeeLine.TransactionId = transactionId;//orderId;
-                variableFeeLine.SortOrder = 3;
+                variableFeeLine.SortOrder = 4;
                 outputData.Add(variableFeeLine);
 
                 //add the remaining money to feeBay current assett
@@ -657,21 +748,21 @@ namespace FeeBayConnectionTester
                 netIncomeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
                 netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
                 netIncomeLine.Description = string.Empty;
-                netIncomeLine.Amount = net;
+                netIncomeLine.Amount = -net;
                 netIncomeLine.TransactionId = transactionId;//orderId;
-                netIncomeLine.SortOrder = 4;
+                netIncomeLine.SortOrder = 5;
                 outputData.Add(netIncomeLine);
 
-                //international fees line
+                //!international fees line
                 if(internationalFees != 0)
                 {
                     var internationalFeeLine = new ToGnuCash();
                     internationalFeeLine.Date = DateOnly.FromDateTime(DateTime.Parse(orderDate));
                     internationalFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:International Fee";
                     internationalFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
-                    internationalFeeLine.Amount = internationalFees;
+                    internationalFeeLine.Amount = -internationalFees;
                     internationalFeeLine.TransactionId = transactionId;//orderId;
-                    internationalFeeLine.SortOrder = 5;
+                    internationalFeeLine.SortOrder = 6;
                     outputData.Add(internationalFeeLine);
                 }
 
@@ -682,7 +773,7 @@ namespace FeeBayConnectionTester
                 feeBayCOGSRecord.Description = string.Empty;//$"{incomeLineDescription} COGS";
                 feeBayCOGSRecord.Amount = MakeCogsForFullOrder(sellingPrice, skusInOrder);
                 feeBayCOGSRecord.TransactionId = transactionId;//orderId;
-                feeBayCOGSRecord.SortOrder = 6;
+                feeBayCOGSRecord.SortOrder = 7;
                 outputData.Add(feeBayCOGSRecord);
 
                 // now subtract the cost of the sold stuff from inventory
@@ -692,7 +783,7 @@ namespace FeeBayConnectionTester
                 feeBayInventoryRecord.Description = string.Empty;//$"{incomeLineDescription} COGS";
                 feeBayInventoryRecord.Amount = -MakeCogsForFullOrder(sellingPrice, skusInOrder);
                 feeBayInventoryRecord.TransactionId = transactionId;//orderId;
-                feeBayInventoryRecord.SortOrder = 7;
+                feeBayInventoryRecord.SortOrder = 8;
                 outputData.Add(feeBayInventoryRecord);
             }
             return outputData;
@@ -796,6 +887,59 @@ namespace FeeBayConnectionTester
             await _localDbConnectionManager.SaveSigningKeyAsync(key.ToFeeBaySigningKey());
 
             return key;
+        }
+        private List<ToGnuCash> HandlePartialShippingRefund(Transaction transaction, 
+                                                            DateOnly refundDate, 
+                                                            decimal partialRefundAmount, 
+                                                            string feeBaySellerID, 
+                                                            string orderId)
+        {
+            var outputData = new List<ToGnuCash>();
+           //! income line - shipping
+                var shippingIncomeLine = new ToGnuCash();
+                shippingIncomeLine.Date = refundDate;
+                shippingIncomeLine.Account = $"Income:{feeBaySellerID} Shipping";
+                shippingIncomeLine.Description = $"feeBay Order #{orderId} Shipping Refund";//";
+               // set the shipping line amount to the negative of the shipping price
+                shippingIncomeLine.Amount = -partialRefundAmount ;
+                shippingIncomeLine.TransactionId = transaction.TransactionId;//orderId;
+                shippingIncomeLine.SortOrder = 1;
+                outputData.Add(shippingIncomeLine);
+                   //! variable fee line
+                var variableFeeLine = new ToGnuCash();
+                variableFeeLine.Date = refundDate;
+                variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Final Value Fees";
+                variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                // feeBay refunds the fees back to you so this is positive
+                variableFeeLine.Amount = transaction.TotalFeeAmount.DollarAmount() ?? 0m;
+                variableFeeLine.TransactionId = transaction.TransactionId;//orderId;
+                variableFeeLine.SortOrder = 4;
+                outputData.Add(variableFeeLine);
+
+                //!remove the remaining money from feeBay current assett
+                var netIncomeLine = new ToGnuCash();
+                netIncomeLine.Date = refundDate;
+                netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
+                netIncomeLine.Description = string.Empty;
+                netIncomeLine.Amount =  transaction.Amount.DollarAmount() ?? 0m;
+                netIncomeLine.TransactionId = transaction.TransactionId;//orderId;
+                netIncomeLine.SortOrder = 5;
+                outputData.Add(netIncomeLine);
+
+                //!international fees line
+                // if(internationalFeesRefunded != 0)
+                // {
+                //     var internationalFeeLine = new ToGnuCash();
+                //     internationalFeeLine.Date = refundDate;
+                //     internationalFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:International Fee";
+                //     internationalFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                //     internationalFeeLine.Amount = internationalFeesRefunded;
+                //     internationalFeeLine.TransactionId = transaction.TransactionId;//orderId;
+                //     internationalFeeLine.SortOrder = 6;
+                //     outputData.Add(internationalFeeLine);
+                // }
+            
+            return outputData;
         }
 
         private List<ToGnuCash> HandlePromotedListingsPriorityFees(Transaction transaction, string itemId)
