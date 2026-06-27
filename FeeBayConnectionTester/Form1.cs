@@ -625,12 +625,40 @@ namespace FeeBayConnectionTester
             var orderId = associatedOrder.OrderId;
             //! determine if the partial refund is less than the total shipping charges
             //! if it is then treat the refund as a shipping refund rather than a product refund
-            var totalShippingCharges = associatedOrder.LineItems.Sum(li => li.DeliveryCost.ShippingCost.DollarAmount() ?? 0m);
+            var totalShippingCharges = associatedOrder.PricingSummary.DeliveryCost.DollarAmount() ?? 0m;        //.LineItems.Sum(li => li.DeliveryCost.ShippingCost.DollarAmount() ?? 0m);
+            var totalLineItemPrices = associatedOrder.PricingSummary.PriceSubtotal.DollarAmount() ?? 0m;
+            var totalFees = associatedOrder.TotalMarketplaceFee.DollarAmount() ?? 0m;
+            
             var partialRefundAmount = (transaction.Amount.DollarAmount() ?? 0m) + (transaction.TotalFeeAmount.DollarAmount() ?? 0m);
-         foreach(var orderLineItem in associatedOrder.LineItems)
-         {
-            var orderLineItemPrice = orderLineItem.LineItemCost.DollarAmount() ?? 0m;
-            if(partialRefundAmount == orderLineItemPrice)
+            //var summedItemRefunds = 0m; 
+            var summedItemRefunds = associatedOrder.LineItems.Sum(li => li.Refunds.Sum(r => r.Amount.DollarAmount() ?? 0m));    
+             if(summedItemRefunds != partialRefundAmount )
+                {
+                    // handle the case where the summed item refunds do not match the partial refund amount
+                    // this could indicate an inconsistency that needs to be addressed
+                    throw new InvalidOperationException("Summed item refunds do not match the partial refund amount.");
+                }
+        foreach (var transactionLineItem in transaction.OrderLineItems)
+            {
+                var orderLineItem = associatedOrder.LineItems
+                    .Where(l => l.LineItemId == transactionLineItem.LineItemId)
+                    .Single();
+
+            var skusInOrder = orderLineItem.SKU;
+            var numberSold = orderLineItem.Quantity;
+            var title = orderLineItem.Title;
+            var incomeLineDescription = $"feeBay Order #{orderId} SKU: {skusInOrder} - {title} - REFUND";
+             
+            var lineItemRefund = SumUpRefunds(orderLineItem.Refunds);
+            var fixedFeesRefunded = FindFixedFeesRefunded(transactionLineItem.MarketplaceFees);            // var variableFeesRefunded = Decimal.Parse(refund.FVF_variable);
+            var variableFeesRefunded = FindVariableFeesRefunded(transactionLineItem.MarketplaceFees);
+            var internationalFeesRefunded = FindInternationalFeesRefunded(transactionLineItem.MarketplaceFees);
+               
+
+            var lineItemPrice = orderLineItem.LineItemCost.DollarAmount() ?? 0m;
+            //var lineItemRefund = orderLineItem.Refunds.Sum(r => r.Amount.DollarAmount() ?? 0m);
+               
+             if(partialRefundAmount == lineItemPrice)
             {
                    // since the partial refund amount matches the price of this order line item, 
                    // assume that this itemis the one being refunded.  
@@ -640,14 +668,48 @@ namespace FeeBayConnectionTester
             {
                 // since the partial refund amount does not match the price of this order line item,
                 // prorate the partial refund amount across all line items in the order
-                var totalLineItemPrices = associatedOrder.LineItems.Sum(li => li.LineItemCost.DollarAmount() ?? 0m);
-                foreach(var lineItem in associatedOrder.LineItems)
-                {
-                    var lineItemPrice = lineItem.LineItemCost.DollarAmount() ?? 0m;
-                    var proratedRefundAmount = partialRefundAmount * (lineItemPrice / totalLineItemPrices);
-                    // apply the proratedRefundAmount to this line item
-                    // cogs does not change b/c item is not returned, just has a reduced selling price
-                }
+               // var totalLineItemPrices = associatedOrder.LineItems.Sum(li => li.LineItemCost.DollarAmount() ?? 0m);
+               //! income line - product
+                var incomeLine = new ToGnuCash();
+                incomeLine.Date = refundDate; // 
+                incomeLine.Account = $"Income:{feeBaySellerID} Sales";
+                incomeLine.Description = incomeLineDescription;
+                // set the income line amount to the negative of the selling price   
+                incomeLine.Amount = -lineItemRefund;
+                incomeLine.TransactionId = transaction.TransactionId;//orderId;
+                incomeLine.SortOrder = 1;
+                outputData.Add(incomeLine);
+
+                //! income line - shipping
+                // no change
+                //! fixed fee line
+                // no change
+                  //! variable fee line
+                var variableFeeLine = new ToGnuCash();
+                variableFeeLine.Date = refundDate;
+                variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Final Value Fees";
+                variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                // feeBay refunds the fees back to you so this is positive
+               // variableFeeLine.Amount = variableFeesRefunded;
+                variableFeeLine.TransactionId = transaction.TransactionId;//orderId;
+                variableFeeLine.SortOrder = 4;
+                outputData.Add(variableFeeLine);
+
+                 
+                 
+                 
+                 
+                  // cogs does not change b/c item is not returned, just has a reduced selling price
+               
+               
+               
+               
+               
+                
+               
+
+
+
             }
          }
             return outputData;   
