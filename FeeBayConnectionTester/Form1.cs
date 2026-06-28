@@ -653,13 +653,16 @@ namespace FeeBayConnectionTester
             var fixedFeesRefunded = FindFixedFeesRefunded(transactionLineItem.MarketplaceFees);            // var variableFeesRefunded = Decimal.Parse(refund.FVF_variable);
             var variableFeesRefunded = FindVariableFeesRefunded(transactionLineItem.MarketplaceFees);
             var internationalFeesRefunded = FindInternationalFeesRefunded(transactionLineItem.MarketplaceFees);
-               
+            var netRefund = lineItemRefund - fixedFeesRefunded - variableFeesRefunded - internationalFeesRefunded;
+              
 
             var lineItemPrice = orderLineItem.LineItemCost.DollarAmount() ?? 0m;
             //var lineItemRefund = orderLineItem.Refunds.Sum(r => r.Amount.DollarAmount() ?? 0m);
                
              if(partialRefundAmount == lineItemPrice)
             {
+                throw new NotImplementedException("Partial refund amount matches the line item price, treat as full refund.");
+                // return outputData;
                    // since the partial refund amount matches the price of this order line item, 
                    // assume that this itemis the one being refunded.  
                    // it can be treated as a full refund for this specific item  
@@ -690,26 +693,38 @@ namespace FeeBayConnectionTester
                 variableFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Final Value Fees";
                 variableFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
                 // feeBay refunds the fees back to you so this is positive
-               // variableFeeLine.Amount = variableFeesRefunded;
+                variableFeeLine.Amount = variableFeesRefunded;
                 variableFeeLine.TransactionId = transaction.TransactionId;//orderId;
                 variableFeeLine.SortOrder = 4;
                 outputData.Add(variableFeeLine);
 
-                 
-                 
-                 
-                 
+                //!remove the remaining money from feeBay current assett
+                var netIncomeLine = new ToGnuCash();
+                netIncomeLine.Date = refundDate;
+                netIncomeLine.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
+                netIncomeLine.Description = string.Empty;
+                netIncomeLine.Amount =  netRefund;
+                netIncomeLine.TransactionId = transaction.TransactionId;//orderId;
+                netIncomeLine.SortOrder = 5;
+                outputData.Add(netIncomeLine);
+
+                //!international fees line
+                if(internationalFeesRefunded != 0)
+                {
+                    var internationalFeeLine = new ToGnuCash();
+                    internationalFeeLine.Date = refundDate;
+                    internationalFeeLine.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:International Fee";
+                    internationalFeeLine.Description = string.Empty;// $"feeBay Order #{orderId} - {numberSold} items sold";
+                    internationalFeeLine.Amount = internationalFeesRefunded;
+                    internationalFeeLine.TransactionId = transaction.TransactionId;//orderId;
+                    internationalFeeLine.SortOrder = 6;
+                    outputData.Add(internationalFeeLine);
+                }
+                //! cost of goods sold               
                   // cogs does not change b/c item is not returned, just has a reduced selling price
-               
-               
-               
-               
-               
-                
-               
-
-
-
+                //! inventory
+                // inventory does not change b/c item is not returned, just has a reduced selling price
+              //  return outputData;
             }
          }
             return outputData;   
