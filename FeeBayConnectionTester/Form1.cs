@@ -98,6 +98,12 @@ namespace FeeBayConnectionTester
                 orderList);
             var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var incomingOutputPath = $@"D:\Exports\eBay_IncomingData_{incomingTimestamp}.csv";
+           
+           //! at least for testing sort the output lines by date
+           feeBayIncomingData = feeBayIncomingData
+                        .OrderBy(d => d.Date)
+                        .ToList();
+           
             CsvExporter.WriteIncomingDataToCsv(feeBayIncomingData, incomingOutputPath);
             MessageBox.Show(
                 $"Successfully exported {feeBayIncomingData.Count} incoming rows to:\n\n{incomingOutputPath}",
@@ -267,6 +273,19 @@ namespace FeeBayConnectionTester
             //! that should be about it.  Otherwise pull from transactions!
             foreach(var payout in payOutList)
             {
+            //    var payout = payOutList
+            //     .OrderBy(p => DateTime.TryParse(
+            //         p.PayoutDate,
+            //         CultureInfo.InvariantCulture,
+            //         DateTimeStyles.RoundtripKind,
+            //         out var payoutDate)
+            //             ? payoutDate
+            //             : DateTime.MaxValue)
+            //     .FirstOrDefault();
+            if (payout == null)
+            {
+               throw new InvalidOperationException("No payouts found.");
+            }
          
                 var payoutId = payout.PayoutId;
                 int? numTransactionsInPayout = payout.TransactionCount;
@@ -1146,7 +1165,7 @@ namespace FeeBayConnectionTester
             otherFeeLineFrom.Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
             otherFeeLineFrom.Account = $"Assets:Current Assets:feeBay:{feeBaySellerID}";
             otherFeeLineFrom.Description = $"{transaction.TransactionMemo} ItemId {itemId}";
-            otherFeeLineFrom.Amount = -transaction.Amount.DollarAmount() ?? 0m;
+            otherFeeLineFrom.Amount = transaction.Amount.DollarAmount() ?? 0m;
             otherFeeLineFrom.TransactionId = transaction.TransactionId;
             otherFeeLineFrom.SortOrder = 1;
             outputData.Add(otherFeeLineFrom);
@@ -1155,7 +1174,7 @@ namespace FeeBayConnectionTester
             otherFeeLineTo.Date = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
             otherFeeLineTo.Account = $"Expenses:FeeBay Fees:{feeBaySellerID}:Promoted Listings Fee";
             otherFeeLineTo.Description = string.Empty; //  payout.Description;
-            otherFeeLineTo.Amount = transaction.Amount.DollarAmount() ?? 0m;
+            otherFeeLineTo.Amount = -transaction.Amount.DollarAmount() ?? 0m;
             otherFeeLineTo.TransactionId = transaction.TransactionId;
             otherFeeLineTo.SortOrder = 2;
             outputData.Add(otherFeeLineTo);
