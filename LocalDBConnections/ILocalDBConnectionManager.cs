@@ -25,7 +25,9 @@ namespace LocalDBConnections
         bool SaveUserToken(string access_token, DateTime expireTime, string feeBayUser);
         Task<bool> SaveSigningKeyAsync(FeeBaySigningKeys signingKey);
         Task<FeeBaySigningKeys?> GetSigningKeyAsync();
-      //  decimal GetStampCostById(string sku);
+        Task<bool> SaveSimpleFinAccessToken(SimpleFinAccessTokens bankAccessToken);
+        Task<SimpleFinAccessTokens> GetSimpleFinAccessToken(string bankName);
+        //  decimal GetStampCostById(string sku);
         #endregion
         // IEnumerable<MisslItem> GetMisslItems();
     }

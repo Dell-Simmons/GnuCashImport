@@ -13,6 +13,7 @@ namespace LocalDBConnections
         private const string _stampDataConnection = "Data Source=SERVER\\SQLEXPRESS;Initial Catalog=StampData;User ID=GenericUser;Password=Mishmash@2!;TrustServerCertificate=True";
         private readonly FeeBayOAuthTokensRepository _feeBayOAuthTokensRepository;
         private readonly FeeBaySigningKeyRepository _feeBaySigningKeysRepository;
+        private readonly SimpleFinAccessTokenRepository _simpleFinAccessTokenRepository;
         private readonly StampRepository _stampRepository;
         #endregion
 
@@ -21,6 +22,7 @@ namespace LocalDBConnections
         {
             _feeBayOAuthTokensRepository = CreateFeeBayOAuthTokensRepository(_stampDataConnection);
             _feeBaySigningKeysRepository = CreateFeeBaySigningKeysRepository(_stampDataConnection);
+            _simpleFinAccessTokenRepository = CreateSimpleFinAccessTokenRepository(_stampDataConnection);
             _stampRepository = CreateFeeBayStampRepository(_stampDataConnection);
         }
 
@@ -107,17 +109,12 @@ namespace LocalDBConnections
             IDbConnection dbConnection = new SqlConnection(stampDataConnection);
             return new FeeBaySigningKeyRepository(dbConnection, new SqlGenerator<FeeBaySigningKeys>());
         }
-
+        private SimpleFinAccessTokenRepository CreateSimpleFinAccessTokenRepository(string stampDataConnection)
+        {
+            IDbConnection dbConnection = new SqlConnection(stampDataConnection);
+            return new SimpleFinAccessTokenRepository(dbConnection, new SqlGenerator<SimpleFinAccessTokens>());
+        }
         public async Task<bool> SaveSigningKeyAsync(FeeBaySigningKeys signingKey) =>
- //var asdf = await _feeBaySigningKeysRepository.FindAsync();
- //if (asdf != null)
- //{
-                //    await _feeBaySigningKeysRepository.DeleteAsync(asdf);
-                //    return await _feeBaySigningKeysRepository.InsertAsync(signingKey);
-                //}
-                //return false;
-                //if (asdf == null)
-                //{
                 await _feeBaySigningKeysRepository.InsertAsync(signingKey);
 
         public async Task<FeeBaySigningKeys?> GetSigningKeyAsync()
@@ -126,6 +123,16 @@ namespace LocalDBConnections
             return feeBaySigningKey.FirstOrDefault();
             //  FeeBaySigningKey feeBaySigningKey = await _feeBaySigningKeysRepository.FindAsync();
             // if (feeBaySigningKey == null) return null;
+        }
+
+        public async Task<bool> SaveSimpleFinAccessToken(SimpleFinAccessTokens bankAccessToken)
+        {
+            return await _simpleFinAccessTokenRepository.InsertAsync(bankAccessToken);
+        }
+        public async Task<SimpleFinAccessTokens?> GetSimpleFinAccessToken(string bankName)
+        {
+            var allBankAccessTokens = await _simpleFinAccessTokenRepository.FindAllAsync();
+            return allBankAccessTokens.Where(t => t.BankName == bankName).FirstOrDefault();
         }
         #endregion
     }
