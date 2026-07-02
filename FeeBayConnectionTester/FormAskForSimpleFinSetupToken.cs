@@ -8,7 +8,7 @@ using System.Windows.Forms;
 
 namespace FeeBayConnectionTester
 {
-    public partial class AskForSimpleFinSetupToken : Form
+    public partial class FormAskForSimpleFinSetupToken : Form
     {
 
         public string SetupToken
@@ -17,7 +17,7 @@ namespace FeeBayConnectionTester
             //set => tbxSetupToken.Text = value;
         }
 
-        public AskForSimpleFinSetupToken()
+        public FormAskForSimpleFinSetupToken()
         {
             InitializeComponent();
         }

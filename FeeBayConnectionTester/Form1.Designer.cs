@@ -40,7 +40,7 @@
             btnFeeBay.TabIndex = 0;
             btnFeeBay.Text = "feeBay";
             btnFeeBay.UseVisualStyleBackColor = true;
-            btnFeeBay.Click += button1_Click;
+            btnFeeBay.Click += btnFeeBay_Click;
             // 
             // btnPeakCu
             // 

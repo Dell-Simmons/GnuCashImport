@@ -42,82 +42,19 @@ namespace FeeBayConnectionTester
 
         #region Event handlers
         #region
-        private async void button1_Click(object sender, EventArgs e)
+        private async void btnFeeBay_Click(object sender, EventArgs e)
         {
-            // token identifies the user and application,
-            // and is used to authenticate API requests.
-            // It is typically obtained through an OAuth flow,
-            // where the user grants permission for the application to access their eBay data.
-            // The token is then included in the Authorization header of API requests
-            // to verify the identity of the requester and ensure they have the necessary
-            // permissions to perform the requested actions.
-            string? token = await _oAuthTokenService.GetOAuthTokenAsync("Simmons_Ink");
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                MessageBox.Show(
-                    "Unable to acquire an OAuth token for Simmons_Ink.",
-                    "Authentication Failed",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-                return;
-            }
-
-            _eBayController = _ebayControllerFactory(token);
-            // The signing key is used to create digital signatures for API requests,
-            // it is associated with the application
-            // and is used to ensure the integrity and authenticity of the requests.
-            // The one stored in the database is good for 3 years from today (5/29/26).
-            // So don't fucking worry about it expiring anytime soon.
-            var signingKey = await GetOrCreateSigningKey(_eBayController);
-
-            string multiFilter;
-
-            // Combine multiple filters into ONE comma-separated string
-
-            //!{PAYOUT} is funds going from feeBay to bank account
-            // multiFilter = "transactionStatus:{PAYOUT},transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
-
-            //TransactionSummary transactionPayoutSummary = 
-            //    await ebayController.GetTransactionSummary(signingKey, multiFilter);
-            ////!{ COMPLETED} is funds going from buyer to feeBay.
-            //multiFilter = "transactionStatus:{COMPLETED},transactionDate:[2026-01-01T00:00:00.000Z..2026-01-31T23:59:59.000Z]";
-
-            //!Get Payouts (transfers from feeBay to checking from someplace
-            //!Extend the Payouts filter by a week to catch payouts from end of month sales
-            string payOutsFilter = "payoutDate:[2026-01-01T00:00:00.000Z..2026-02-14T23:59:59.999Z]";
-            List<Payout> payOutList = await GetAllPayOutsPaginated(payOutsFilter, limit: 50);
-
-            //!GetTransactions with pagination
-            multiFilter = "transactionDate:[2025-12-25T00:00:00.000Z..2026-02-14T23:59:59.000Z]";
-            List<Transaction> transactionList = await GetAllTransactionsPaginated(multiFilter, limit: 50);
-
-            //!GetOrders with pagination
-            string ordersFilter = "creationdate:[2025-12-25T00:00:00.000Z..2026-02-14T23:59:59.999Z]";
-            List<Order> orderList = await GetAllOrdersPaginated(ordersFilter, limit: 50);
-
-            List<ToGnuCash> feeBayIncomingData = await CombineDownloadedData(
-                payOutList,
-                transactionList,
-                orderList);
-            var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-            var incomingOutputPath = $@"D:\Exports\eBay_IncomingData_{incomingTimestamp}.csv";
-
-            //! at least for testing sort the output lines by date
-            feeBayIncomingData = feeBayIncomingData
-                         .OrderBy(d => d.Date)
-                         .ToList();
-
-            CsvExporter.WriteIncomingDataToCsv(feeBayIncomingData, incomingOutputPath);
-            MessageBox.Show(
-                $"Successfully exported {feeBayIncomingData.Count} incoming rows to:\n\n{incomingOutputPath}",
-                "Incoming Data Export Successful",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-            // await FormatToSendToGnuCash(orderList, financialTransactionList, payOutList);;
+            PullFeeBayTransactions();
         }
         #endregion
 
         #region
+
+        private void btnPeakCu_Click(object sender, EventArgs e)
+        {
+            PullPeakCuTransactions();
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
         }
@@ -238,7 +175,7 @@ namespace FeeBayConnectionTester
         }
 
         #endregion
-        #region TransactionTypes
+        #region FeeBayTransactionTypes
         private async Task<List<ToGnuCash>> CombineDownloadedData(
             List<Payout> payOutList,
             List<Transaction> transactionList,
@@ -893,6 +830,35 @@ namespace FeeBayConnectionTester
             return key;
         }
 
+        private async Task<SimpleFinAccessTokens?> GetSimpleFinAccessToken()
+        {
+            var simpleFinAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Peak CU");
+
+            if (simpleFinAccessToken == null)
+            {
+                using var dlg = new FormAskForSimpleFinSetupToken();
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                {
+                    string setupToken = dlg.SetupToken;
+                    var accessToken = await SimpleFin.SimpleFinClient.Connect3(setupToken);
+                    simpleFinAccessToken = new SimpleFinAccessTokens();
+                    simpleFinAccessToken.BankName = "Peak CU";
+                    simpleFinAccessToken.AccessToken = accessToken;
+                    // MessageBox.Show($"New name: {name}");
+                }
+
+                if (simpleFinAccessToken == null)
+                {
+                    throw new NotImplementedException();
+                }
+                _ = await _localDbConnectionManager.SaveSimpleFinAccessToken(simpleFinAccessToken);
+
+                GetSimpleFinAccessToken();
+            }
+
+            return simpleFinAccessToken;
+        }
+
         private List<ToGnuCash> HandlePartialProductRefund(Transaction transaction, Order associatedOrder)
         {
             var feeBaySellerID = "Simmons Ink";
@@ -1245,35 +1211,75 @@ namespace FeeBayConnectionTester
         #endregion
         #endregion
         #endregion
-
-        private void btnPeakCu_Click(object sender, EventArgs e)
+        private async void PullFeeBayTransactions()
         {
-            PullPeakCuTransactions();
-        }
+            // token identifies the user and application,
+            // and is used to authenticate API requests.
+            // It is typically obtained through an OAuth flow,
+            // where the user grants permission for the application to access their eBay data.
+            // The token is then included in the Authorization header of API requests
+            // to verify the identity of the requester and ensure they have the necessary
+            // permissions to perform the requested actions.
+            string? token = await _oAuthTokenService.GetOAuthTokenAsync("Simmons_Ink");
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                MessageBox.Show(
+                    "Unable to acquire an OAuth token for Simmons_Ink.",
+                    "Authentication Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
 
+            _eBayController = _ebayControllerFactory(token);
+            // The signing key is used to create digital signatures for API requests,
+            // it is associated with the application
+            // and is used to ensure the integrity and authenticity of the requests.
+            // The one stored in the database is good for 3 years from today (5/29/26).
+            // So don't fucking worry about it expiring anytime soon.
+            var signingKey = await GetOrCreateSigningKey(_eBayController);
+
+            string multiFilter;
+ 
+            //!Get Payouts (transfers from feeBay to checking from someplace
+            //!Extend the Payouts filter by a week to catch payouts from end of month sales
+            string payOutsFilter = "payoutDate:[2026-01-01T00:00:00.000Z..2026-02-14T23:59:59.999Z]";
+            List<Payout> payOutList = await GetAllPayOutsPaginated(payOutsFilter, limit: 50);
+
+            //!GetTransactions with pagination
+            multiFilter = "transactionDate:[2025-12-25T00:00:00.000Z..2026-02-14T23:59:59.000Z]";
+            List<Transaction> transactionList = await GetAllTransactionsPaginated(multiFilter, limit: 50);
+
+            //!GetOrders with pagination
+            string ordersFilter = "creationdate:[2025-12-25T00:00:00.000Z..2026-02-14T23:59:59.999Z]";
+            List<Order> orderList = await GetAllOrdersPaginated(ordersFilter, limit: 50);
+
+            List<ToGnuCash> feeBayIncomingData = await CombineDownloadedData(
+                payOutList,
+                transactionList,
+                orderList);
+            var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var incomingOutputPath = $@"D:\Exports\eBay_IncomingData_{incomingTimestamp}.csv";
+
+            //! at least for testing sort the output lines by date
+            feeBayIncomingData = feeBayIncomingData
+                         .OrderBy(d => d.Date)
+                         .ToList();
+
+            CsvExporter.WriteIncomingDataToCsv(feeBayIncomingData, incomingOutputPath);
+            MessageBox.Show(
+                $"Successfully exported {feeBayIncomingData.Count} incoming rows to:\n\n{incomingOutputPath}",
+                "Incoming Data Export Successful",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        
         private async void PullPeakCuTransactions()
         {
             // Connect2 works (??)
             // connect doesn't work
-            var simpleFinAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Peak CU");
-
-            if(simpleFinAccessToken == null)
-            {
-                using var dlg = new AskForSimpleFinSetupToken();
-                if (dlg.ShowDialog(this) == DialogResult.OK)
-                {
-                    string setupToken = dlg.SetupToken;
-                    var accessToken = await SimpleFin.SimpleFinClient.Connect3(setupToken);
-                    simpleFinAccessToken = new SimpleFinAccessTokens();
-                    simpleFinAccessToken.BankName = "Peak CU";
-                    simpleFinAccessToken.AccessToken = accessToken;
-                   // MessageBox.Show($"New name: {name}");
-                }
-            }
-            
-            _localDbConnectionManager.SaveSimpleFinAccessToken(simpleFinAccessToken);
-            }
-
-            
+            SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
+            var whatever = await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken);
         }
     }
+}

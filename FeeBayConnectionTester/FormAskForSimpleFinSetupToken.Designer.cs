@@ -1,6 +1,6 @@
 ﻿namespace FeeBayConnectionTester
 {
-    partial class AskForSimpleFinSetupToken
+    partial class FormAskForSimpleFinSetupToken
     {
         /// <summary>
         /// Required designer variable.
