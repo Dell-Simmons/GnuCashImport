@@ -27,7 +27,7 @@
 
         // 2. Fetch data from the claimed Access URL
         AccountResponse jsonResponse = await FetchAccountDataAsync(accessUrl);
-            List<Transaction> transactions = jsonResponse.Accounts.First().Transactions;
+            List<PeakCuTransaction> transactions = jsonResponse.Accounts.First().Transactions;
         
         Console.WriteLine("Account Response num of transactions:");
         Console.WriteLine(jsonResponse.Accounts.First().Transactions.Count);
@@ -180,10 +180,10 @@
         public DateTimeOffset BalanceDate { get { return DateTimeOffset.FromUnixTimeSeconds(BalanceDateUnix); } }
 
         [JsonPropertyName("transactions")]
-        public List<Transaction> Transactions { get; set; } = new();
+        public List<PeakCuTransaction> Transactions { get; set; } = new();
     }
 
-    public class Transaction
+    public class PeakCuTransaction
     {
         [JsonPropertyName("posted")]
         public long PostedDateUnix { get; set; }

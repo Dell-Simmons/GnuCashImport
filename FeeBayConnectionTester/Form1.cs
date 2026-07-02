@@ -9,6 +9,7 @@ using FeeBayConnectionTester.Services;
 using FeeBayOAuth.TokenService;
 using LocalDBConnections;
 using LocalDBConnections.StampDataDB.StampDataEntities;
+using SimpleFin;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -78,9 +79,14 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region PeakCU Button Click Workflow
-        private void btnPeakCu_Click(object sender, EventArgs e)
+        private async void btnPeakCu_Click(object sender, EventArgs e)
         {
-            PullPeakCuTransactions();
+            await ProcessPeakCuTransactions(); 
+        }
+
+        private async Task ProcessPeakCuTransactions()
+        {
+            AccountResponse accountResponse = await PullPeakCuTransactions();
         }
         #endregion
 
@@ -266,10 +272,10 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region PeakCU Data Retrieval
-        private async void PullPeakCuTransactions()
+        private async Task<AccountResponse> PullPeakCuTransactions()
         {
             SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
-            var whatever = await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken);
+            return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken);
         }
         #endregion
 
