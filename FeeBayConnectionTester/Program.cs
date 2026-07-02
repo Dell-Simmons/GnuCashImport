@@ -1,3 +1,4 @@
+using FeeBayConnectionTester.Services;
 using FeeBayOAuth.TokenService;
 using LocalDBConnections;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,6 +46,8 @@ namespace FeeBayConnectionTester
                     services.AddTransient<Form1>();
                     // Register IEbayTokenService
                     services.AddSingleton<IOAuthTokenService, OAuthTokenService>();
+
+                    services.AddScoped<IFeeBayTransactionProcessor, FeeBayTransactionProcessor>();
                 });
         }
     }
