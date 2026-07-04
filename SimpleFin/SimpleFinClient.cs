@@ -75,8 +75,7 @@
                 $"account={sparkBusinessCC}&" +
                 $"start-date={startDate}&" +
                 $"end-date={endDate}";
-            //  string apiUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}{uri.AbsolutePath}/accounts?version=2";
-
+         
             var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
         
         // Attach HTTP Basic Authentication
@@ -100,72 +99,6 @@
 
         return data;
     }
-        //public  async Task Connect()
-        //{
-        //    // 1. Get a Setup Token
-        //   // Console.Write("Setup Token? ");
-        //   // string setupToken = Console.ReadLine()!;
-        //    string setupToken = "aHR0cHM6Ly9iZXRhLWJyaWRnZS5zaW1wbGVmaW4ub3JnL3NpbXBsZWZpbi9jbGFpbS8wODQ2Q0Q5RUYxNURGQjVBM0IxRThFQkEzRDM4NDVCMTBCRTMwODhDQjk1RjM4NTY4MEZCOUJBOTc2QUI3MkY5QTUwNUM3NjFEREQ1RDk5N0JDRTZCMzU4MzM3ODZDMkI2NUVFMDMxMUY0MzVFNDEyNjE1NzkzNTdCMDkwRDNGQw=="; // Replace with your actual setup token
-        //    using HttpClient client = new HttpClient();
-
-        //    // 2. Claim an Access URL
-        //    //!  Once you receive an ACCESS_URL, save it—the corresponding SETUP_TOKEN will no longer work.
-        //    string claimUrl = Encoding.UTF8.GetString(Convert.FromBase64String(setupToken));
-
-        //    HttpResponseMessage response = await client.PostAsync(claimUrl, null);
-        //   // response.EnsureSuccessStatusCode();
-
-        //    string accessUrl = await response.Content.ReadAsStringAsync();
-
-        //    // Parse the access URL
-        //    Uri uri = new Uri(accessUrl);
-
-        //    string username = Uri.UnescapeDataString(uri.UserInfo.Split(':')[0]);
-        //    string password = Uri.UnescapeDataString(uri.UserInfo.Split(':')[1]);
-
-        //    string url = $"{uri.Scheme}://{uri.Host}:{uri.Port}/accounts?version=2";
-
-        //    // Basic Authentication
-        //    string auth =
-        //        Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}"));
-
-        //    client.DefaultRequestHeaders.Authorization =
-        //        new AuthenticationHeaderValue("Basic", auth);
-
-        //    response = await client.GetAsync(url);
-        //   // response.EnsureSuccessStatusCode();
-
-        //    string json = await response.Content.ReadAsStringAsync();
-
-        //    AccountResponse? data = JsonSerializer.Deserialize<AccountResponse>(
-        //        json,
-        //        new JsonSerializerOptions
-        //        {
-        //            PropertyNameCaseInsensitive = true
-        //        });
-
-        //    if (data == null)
-        //        return;
-
-        //    // Process the accounts
-        //    foreach (Account account in data.Accounts)
-        //    {
-        //        DateTime balanceDate =
-        //            DateTimeOffset.FromUnixTimeSeconds(account.BalanceDate).LocalDateTime;
-
-        //        Console.WriteLine();
-        //        Console.WriteLine($"{balanceDate} {account.Balance,8} {account.Name}");
-        //        Console.WriteLine(new string('-', 60));
-
-        //        foreach (Transaction transaction in account.Transactions)
-        //        {
-        //            DateTime posted =
-        //                DateTimeOffset.FromUnixTimeSeconds(transaction.Posted).LocalDateTime;
-
-        //            Console.WriteLine(
-        //                $"{posted} {transaction.Amount,8} {transaction.Description}");
-        //        }
-        //    }
-        //}
+    
     }
 }
