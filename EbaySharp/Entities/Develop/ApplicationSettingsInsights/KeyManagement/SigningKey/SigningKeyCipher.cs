@@ -1,4 +1,4 @@
-﻿namespace EbaySharp.Entities.Develop.KeyManagement.SigningKey
+﻿namespace EbaySharp.Entities.Develop.ApplicationSettingsInsights.KeyManagement.SigningKey
 {
     public enum SigningKeyCipher
     {

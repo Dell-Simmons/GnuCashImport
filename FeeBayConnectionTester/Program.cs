@@ -1,4 +1,5 @@
-using FeeBayConnectionTester.Services;
+using FeeBayConnectionTester.Services.FeeBay;
+using FeeBayConnectionTester.Services.SimpleFin;
 using FeeBayOAuth.TokenService;
 using LocalDBConnections;
 using Microsoft.Extensions.DependencyInjection;

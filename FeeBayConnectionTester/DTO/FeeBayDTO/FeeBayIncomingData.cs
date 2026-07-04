@@ -1,4 +1,4 @@
-﻿namespace FeeBayConnectionTester
+﻿namespace FeeBayConnectionTester.DTO.FeeBayDTO
 {
     public class FeeBayIncomingData
     {

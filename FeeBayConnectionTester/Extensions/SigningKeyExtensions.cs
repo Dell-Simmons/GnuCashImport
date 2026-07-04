@@ -1,4 +1,4 @@
-﻿using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
+﻿using EbaySharp.Entities.Develop.ApplicationSettingsInsights.KeyManagement.SigningKey;
 using LocalDBConnections.StampDataDB.StampDataEntities;
 
 namespace FeeBayConnectionTester.Extensions

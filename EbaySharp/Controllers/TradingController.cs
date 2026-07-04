@@ -1,4 +1,4 @@
-﻿using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
+﻿using EbaySharp.Entities.Develop.ApplicationSettingsInsights.KeyManagement.SigningKey;
 using EbaySharp.Entities.TraditionalSelling.Trading.GetAccount;
 using EbaySharp.Entities.TraditionalSelling.Trading.GetSellerList;
 using EbaySharp.Source;

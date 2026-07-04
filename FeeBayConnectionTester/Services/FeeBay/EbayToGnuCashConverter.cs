@@ -2,6 +2,7 @@ using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Payout;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
 using EbaySharp.Entities.Develop.SellingApps.OrderManagement.Fulfillment.Order;
+using FeeBayConnectionTester.DTO;
 using FeeBayConnectionTester.Extensions;
 using LocalDBConnections;
 using System;
@@ -10,7 +11,7 @@ using System.Reflection.Emit;
 //using System.Transactions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace FeeBayConnectionTester.Services
+namespace FeeBayConnectionTester.Services.FeeBay
 {
     public class EbayToGnuCashConverter
     {

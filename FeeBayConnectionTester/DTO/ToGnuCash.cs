@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace FeeBayConnectionTester
+namespace FeeBayConnectionTester.DTO
 {
     /// <summary>
     /// Represents a single line in a GnuCash CSV import file.

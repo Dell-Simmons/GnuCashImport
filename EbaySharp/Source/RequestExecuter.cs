@@ -1,4 +1,4 @@
-﻿using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
+﻿using EbaySharp.Entities.Develop.ApplicationSettingsInsights.KeyManagement.SigningKey;
 using EbaySharp.Entities.Develop.SellingApps.ListingManagement.Feed.Task;
 using System.Net.Http.Headers;
 using System.Text.Json;

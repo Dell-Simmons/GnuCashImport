@@ -1,5 +1,5 @@
 ﻿using Dapper.Contrib.Extensions;
-using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
+using EbaySharp.Entities.Develop.ApplicationSettingsInsights.KeyManagement.SigningKey;
 using System;
 using System.Collections.Generic;
 using System.Text;

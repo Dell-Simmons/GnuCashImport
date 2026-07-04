@@ -1,6 +1,6 @@
 ﻿using EbaySharp.Entities.Common;
 using EbaySharp.Entities.Develop.ApplicationSettingsInsights.Analytics.RateLimit;
-using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
+using EbaySharp.Entities.Develop.ApplicationSettingsInsights.KeyManagement.SigningKey;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Payout;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
 using EbaySharp.Entities.Develop.SellingApps.Identity.User;

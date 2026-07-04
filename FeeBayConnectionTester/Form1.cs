@@ -1,19 +1,21 @@
 using EbaySharp.Controllers;
-using EbaySharp.Entities.Develop.KeyManagement.SigningKey;
-using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances;
+using EbaySharp.Entities.Develop.ApplicationSettingsInsights.KeyManagement.SigningKey;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Payout;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
 using EbaySharp.Entities.Develop.SellingApps.OrderManagement.Fulfillment.Order;
+using FeeBayConnectionTester.DTO;
 using FeeBayConnectionTester.Extensions;
 using FeeBayConnectionTester.Services;
+using FeeBayConnectionTester.Services.FeeBay;
+using FeeBayConnectionTester.Services.SimpleFin;
 using FeeBayOAuth.TokenService;
 using LocalDBConnections;
 using LocalDBConnections.StampDataDB.StampDataEntities;
 using SimpleFin;
+using SimpleFin.SimpleFinDTO;
 using System;
 using System.Globalization;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace FeeBayConnectionTester
 {
@@ -21,10 +23,10 @@ namespace FeeBayConnectionTester
     {
         #region Constants and Fields
         private readonly Func<string, EbayController> _ebayControllerFactory;
+        private readonly IFeeBayTransactionProcessor _feeBayTransactionProcessor;
         private readonly ILocalDbConnectionManager _localDbConnectionManager;
         private readonly IOAuthTokenService _oAuthTokenService;
         private readonly SimpleFin.SimpleFinClient _simpleFinClient;
-        private readonly IFeeBayTransactionProcessor _feeBayTransactionProcessor;
         private readonly ISimpleFinTransactionProcessor _simpleFinTransactionProcessor;
         private EbayController _eBayController = null!;
         #endregion
@@ -48,11 +50,31 @@ namespace FeeBayConnectionTester
         }
         #endregion
 
-        #region FeeBay Button Click Workflow
-        private async void btnFeeBay_Click(object sender, EventArgs e)
+        #region Event handlers
+        #region
+        private void Form1_Load(object sender, EventArgs e)
         {
-            await ProcessFeeBayTransactions();
         }
+        #endregion
+        #endregion
+        #region Methods
+        #region Public Methods
+        public static string ToEbayDate(DateTime dateTime) => dateTime.ToUniversalTime().ToString("o");
+        #endregion
+
+        #region Private Methods
+        #region SimpleFin Data Retrieval
+        private async Task<AccountResponse> PullSimpleFinTransactions()
+        {
+            SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
+            return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken);
+        }
+        #endregion
+        #endregion
+        #endregion
+
+        #region FeeBay Button Click Workflow
+        private async void btnFeeBay_Click(object sender, EventArgs e) => await ProcessFeeBayTransactions();
 
         private async Task ProcessFeeBayTransactions()
         {
@@ -82,36 +104,23 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region PeakCU Button Click Workflow
-        private async void btnSimpleFin_Click(object sender, EventArgs e)
-        {
-            await ProcessSimpleFinTransactions(); 
-        }
+        private async void btnSimpleFin_Click(object sender, EventArgs e) => await ProcessSimpleFinTransactions();
 
         private async Task ProcessSimpleFinTransactions()
         {
             AccountResponse accountResponse = await PullSimpleFinTransactions();
-            var SparkCCTransactions = accountResponse.Accounts.FirstOrDefault(a => a.Name == "Spark Cash Select (4742)")?.Transactions ?? new List<SimpleFinTransaction>();
-            var PeakCUTransactions = accountResponse.Accounts.FirstOrDefault(a => a.Name == "Business Checking (3904)")?.Transactions ?? new List<SimpleFinTransaction>();   
-            
+            var SparkCCTransactions = accountResponse.Accounts.FirstOrDefault(a => a.Name == "Spark Cash Select (4742)")?.Transactions ??
+                new List<SimpleFinTransaction>();
+            var PeakCUTransactions = accountResponse.Accounts.FirstOrDefault(a => a.Name == "Business Checking (3904)")?.Transactions ??
+                new List<SimpleFinTransaction>();
+
             List<ToGnuCash> sparkCCIncomingData = 
             await _simpleFinTransactionProcessor.ProcessSparkCCTransactionsAsync(SparkCCTransactions);
             List<ToGnuCash> peakCuIncomingData = 
             await _simpleFinTransactionProcessor.ProcessPeakCuTransactionsAsync(PeakCUTransactions);
-      
         }
         #endregion
 
-        #region Form Events
-        private void Form1_Load(object sender, EventArgs e)
-        {
-        }
-        #endregion
-
-        #region Public Methods
-        public static string ToEbayDate(DateTime dateTime) => dateTime.ToUniversalTime().ToString("o");
-        #endregion
-
-        #region Private Methods
         #region API Pagination
         private async Task<List<Order>> GetAllOrdersPaginated(string filter, int limit = 50)
         {
@@ -119,11 +128,11 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while (hasMore)
+            while(hasMore)
             {
                 Orders ordersContainer = await _eBayController.GetOrders(filter, limit, offset);
 
-                if (ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
+                if(ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
                 {
                     allOrders.AddRange(ordersContainer.OrderList);
                     Console.WriteLine(
@@ -133,7 +142,7 @@ namespace FeeBayConnectionTester
                 hasMore = !string.IsNullOrEmpty(ordersContainer.Next);
                 offset += limit;
 
-                if (allOrders.Count >= ordersContainer.Total)
+                if(allOrders.Count >= ordersContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -149,11 +158,11 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while (hasMore)
+            while(hasMore)
             {
                 PayoutList payoutsContainer = await _eBayController.GetPayouts(filter, null, limit, offset);
 
-                if (payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
+                if(payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
                 {
                     allPayouts.AddRange(payoutsContainer.Payouts);
                     Console.WriteLine(
@@ -163,7 +172,7 @@ namespace FeeBayConnectionTester
                 hasMore = !string.IsNullOrEmpty(payoutsContainer.Next);
                 offset += limit;
 
-                if (allPayouts.Count >= payoutsContainer.Total)
+                if(allPayouts.Count >= payoutsContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -179,11 +188,11 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while (hasMore)
+            while(hasMore)
             {
                 Transactions transactionsContainer = await _eBayController.GetTransactions(filter, null, limit, offset);
 
-                if (transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
+                if(transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
                 {
                     allTransactions.AddRange(transactionsContainer.TransactionList);
                     Console.WriteLine(
@@ -193,7 +202,7 @@ namespace FeeBayConnectionTester
                 hasMore = !string.IsNullOrEmpty(transactionsContainer.Next);
                 offset += limit;
 
-                if (allTransactions.Count >= transactionsContainer.Total)
+                if(allTransactions.Count >= transactionsContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -208,7 +217,7 @@ namespace FeeBayConnectionTester
         private async Task<(List<Payout>, List<Transaction>, List<Order>)> PullFeeBayTransactions()
         {
             string? token = await _oAuthTokenService.GetOAuthTokenAsync("Simmons_Ink");
-            if (string.IsNullOrWhiteSpace(token))
+            if(string.IsNullOrWhiteSpace(token))
             {
                 MessageBox.Show(
                     "Unable to acquire an OAuth token for Simmons_Ink.",
@@ -239,7 +248,7 @@ namespace FeeBayConnectionTester
             // Try to get from database
             FeeBaySigningKeys? cachedKey = await _localDbConnectionManager.GetSigningKeyAsync();
 
-            if (cachedKey != null)
+            if(cachedKey != null)
             {
                 return cachedKey.ToSigningKey();
             }
@@ -257,10 +266,10 @@ namespace FeeBayConnectionTester
         {
             var simpleFinAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Peak CU");
 
-            if (simpleFinAccessToken == null)
+            if(simpleFinAccessToken == null)
             {
                 using var dlg = new FormAskForSimpleFinSetupToken();
-                if (dlg.ShowDialog(this) == DialogResult.OK)
+                if(dlg.ShowDialog(this) == DialogResult.OK)
                 {
                     string setupToken = dlg.SetupToken;
                     var accessToken = await SimpleFin.SimpleFinClient.Connect3(setupToken);
@@ -269,7 +278,7 @@ namespace FeeBayConnectionTester
                     simpleFinAccessToken.AccessToken = accessToken;
                 }
 
-                if (simpleFinAccessToken == null)
+                if(simpleFinAccessToken == null)
                 {
                     throw new NotImplementedException();
                 }
@@ -280,16 +289,6 @@ namespace FeeBayConnectionTester
 
             return simpleFinAccessToken;
         }
-        #endregion
-
-        #region SimpleFin Data Retrieval
-        private async Task<AccountResponse> PullSimpleFinTransactions()
-        {
-            SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
-            return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken);
-        }
-        #endregion
-
         #endregion
     }
 }
