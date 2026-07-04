@@ -27,7 +27,7 @@
 
         // 2. Fetch data from the claimed Access URL
         AccountResponse jsonResponse = await FetchAccountDataAsync(accessUrl);
-            List<PeakCuTransaction> transactions = jsonResponse.Accounts.First().Transactions;
+            List<SimpleFinTransaction> transactions = jsonResponse.Accounts.First().Transactions;
         
         Console.WriteLine("Account Response num of transactions:");
         Console.WriteLine(jsonResponse.Accounts.First().Transactions.Count);
@@ -58,18 +58,24 @@
         string businessCheckingId = "ACT-889f0bab-1c17-4dba-b790-21c3facbc0e6";
         string businessSavingsId = "ACT-02271871-782c-42b9-8cda-61431677ac40";
         string businessVisaId = "ACT-695f807d-f9f6-48b3-986a-b0ad3f177d74";
+            string sparkBusinessCC = "ACT-fe0b66ca-58d4-40fe-8620-7352f97ebcca";
            long startDate = new DateTimeOffset(
-                new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc))
+                new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc))
                 .ToUnixTimeSeconds();
 
             long endDate = new DateTimeOffset(
-                new DateTime(2026, 4, 30, 0, 0, 0, DateTimeKind.Utc))
+                new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc))
                 .ToUnixTimeSeconds();
 
-            string apiUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}{uri.AbsolutePath}/accounts?version=2&" +
-                $"account={businessCheckingId}&start-date={startDate}&end-date={endDate}";
+            string apiUrl = 
+                $"{uri.Scheme}://{uri.Host}:{uri.Port}{uri.AbsolutePath}/accounts?version=2&" +
+                $"account={businessCheckingId}&" +
+                $"account={sparkBusinessCC}&" +
+                $"start-date={startDate}&" +
+                $"end-date={endDate}";
+            //  string apiUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}{uri.AbsolutePath}/accounts?version=2";
 
-        var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+            var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
         
         // Attach HTTP Basic Authentication
         var authBytes = Encoding.ASCII.GetBytes(userInfo);
@@ -180,10 +186,10 @@
         public DateTimeOffset BalanceDate { get { return DateTimeOffset.FromUnixTimeSeconds(BalanceDateUnix); } }
 
         [JsonPropertyName("transactions")]
-        public List<PeakCuTransaction> Transactions { get; set; } = new();
+        public List<SimpleFinTransaction> Transactions { get; set; } = new();
     }
 
-    public class PeakCuTransaction
+    public class SimpleFinTransaction
     {
         [JsonPropertyName("posted")]
         public long PostedDateUnix { get; set; }

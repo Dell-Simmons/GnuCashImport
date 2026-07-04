@@ -24,7 +24,8 @@ namespace FeeBayConnectionTester
         private readonly ILocalDbConnectionManager _localDbConnectionManager;
         private readonly IOAuthTokenService _oAuthTokenService;
         private readonly SimpleFin.SimpleFinClient _simpleFinClient;
-        private readonly IFeeBayTransactionProcessor _transactionProcessor;
+        private readonly IFeeBayTransactionProcessor _feeBayTransactionProcessor;
+        private readonly ISimpleFinTransactionProcessor _simpleFinTransactionProcessor;
         private EbayController _eBayController = null!;
         #endregion
 
@@ -34,14 +35,16 @@ namespace FeeBayConnectionTester
             ILocalDbConnectionManager localDbConnectionManager,
             Func<string, EbayController> ebayControllerFactory,
             SimpleFin.SimpleFinClient simpleFinClient,
-            IFeeBayTransactionProcessor transactionProcessor)
+            IFeeBayTransactionProcessor transactionProcessor,
+            ISimpleFinTransactionProcessor simpleFinTransactionProcessor)
         {
             InitializeComponent();
             _oAuthTokenService = oAuthTokenFactory;
             _localDbConnectionManager = localDbConnectionManager;
             _ebayControllerFactory = ebayControllerFactory;
             _simpleFinClient = simpleFinClient;
-            _transactionProcessor = transactionProcessor;
+            _feeBayTransactionProcessor = transactionProcessor;
+            _simpleFinTransactionProcessor = simpleFinTransactionProcessor;
         }
         #endregion
 
@@ -56,7 +59,7 @@ namespace FeeBayConnectionTester
             (List<Payout> payoutList, List<Transaction> transactionList, List<Order> orderList)
                 = await PullFeeBayTransactions();
 
-            List<ToGnuCash> feeBayIncomingData = await _transactionProcessor.ProcessTransactionsAsync(
+            List<ToGnuCash> feeBayIncomingData = await _feeBayTransactionProcessor.ProcessTransactionsAsync(
                 payoutList,
                 transactionList,
                 orderList);
@@ -79,14 +82,22 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region PeakCU Button Click Workflow
-        private async void btnPeakCu_Click(object sender, EventArgs e)
+        private async void btnSimpleFin_Click(object sender, EventArgs e)
         {
-            await ProcessPeakCuTransactions(); 
+            await ProcessSimpleFinTransactions(); 
         }
 
-        private async Task ProcessPeakCuTransactions()
+        private async Task ProcessSimpleFinTransactions()
         {
-            AccountResponse accountResponse = await PullPeakCuTransactions();
+            AccountResponse accountResponse = await PullSimpleFinTransactions();
+            var SparkCCTransactions = accountResponse.Accounts.FirstOrDefault(a => a.Name == "Spark Cash Select (4742)")?.Transactions ?? new List<SimpleFinTransaction>();
+            var PeakCUTransactions = accountResponse.Accounts.FirstOrDefault(a => a.Name == "Business Checking (3904)")?.Transactions ?? new List<SimpleFinTransaction>();   
+            
+            List<ToGnuCash> sparkCCIncomingData = 
+            await _simpleFinTransactionProcessor.ProcessSparkCCTransactionsAsync(SparkCCTransactions);
+            List<ToGnuCash> peakCuIncomingData = 
+            await _simpleFinTransactionProcessor.ProcessPeakCuTransactionsAsync(PeakCUTransactions);
+      
         }
         #endregion
 
@@ -271,8 +282,8 @@ namespace FeeBayConnectionTester
         }
         #endregion
 
-        #region PeakCU Data Retrieval
-        private async Task<AccountResponse> PullPeakCuTransactions()
+        #region SimpleFin Data Retrieval
+        private async Task<AccountResponse> PullSimpleFinTransactions()
         {
             SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
             return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken);

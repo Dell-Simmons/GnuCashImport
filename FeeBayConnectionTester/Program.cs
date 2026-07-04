@@ -4,6 +4,7 @@ using LocalDBConnections;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
+
 namespace FeeBayConnectionTester
 {
     internal static class Program
@@ -48,6 +49,7 @@ namespace FeeBayConnectionTester
                     services.AddSingleton<IOAuthTokenService, OAuthTokenService>();
 
                     services.AddScoped<IFeeBayTransactionProcessor, FeeBayTransactionProcessor>();
+                    services.AddScoped<ISimpleFinTransactionProcessor,SimpleFinTransactionProcessor>();
                 });
         }
     }

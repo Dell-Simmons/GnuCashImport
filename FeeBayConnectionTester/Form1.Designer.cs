@@ -50,7 +50,7 @@
             btnPeakCu.TabIndex = 1;
             btnPeakCu.Text = "Peak CU";
             btnPeakCu.UseVisualStyleBackColor = true;
-            btnPeakCu.Click += btnPeakCu_Click;
+            btnPeakCu.Click += btnSimpleFin_Click;
             // 
             // Form1
             // 
