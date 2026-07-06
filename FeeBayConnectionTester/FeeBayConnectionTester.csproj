@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Remove="FeeBayCleaner.cs" />
     <Compile Remove="FormatToSendToGnuCash.cs" />
+    <Compile Remove="Services\SimpleFin\SparkCCToGnuCashConverter.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -4,6 +4,7 @@ using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Payout;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
 using EbaySharp.Entities.Develop.SellingApps.OrderManagement.Fulfillment.Order;
 using FeeBayConnectionTester.DTO;
+using FeeBayConnectionTester.DTO.FeeBayDTO;
 using FeeBayConnectionTester.Extensions;
 using FeeBayConnectionTester.Services;
 using FeeBayConnectionTester.Services.FeeBay;
@@ -116,8 +117,31 @@ namespace FeeBayConnectionTester
 
             List<ToGnuCash> sparkCCIncomingData = 
             await _simpleFinTransactionProcessor.ProcessSparkCCTransactionsAsync(SparkCCTransactions);
-            List<ToGnuCash> peakCuIncomingData = 
+            
+            List<ToGnuCash> peakCUIncomingData = 
             await _simpleFinTransactionProcessor.ProcessPeakCuTransactionsAsync(PeakCUTransactions);
+                      
+            var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var incomingSparkCCOutputPath = $@"D:\Exports\SparkCC_IncomingData_{incomingTimestamp}.csv";
+            var incomingPeakCUOutputPath = $@"D:\Exports\PeakCU_IncomingData_{incomingTimestamp}.csv";
+            
+            // Sort by date for testing
+            sparkCCIncomingData = sparkCCIncomingData
+                .OrderBy(d => d.Date)
+                .ToList();
+
+            peakCUIncomingData = peakCUIncomingData
+                .OrderBy(d => d.Date)
+                .ToList();
+
+            CsvExporter.WriteIncomingDataToCsv(sparkCCIncomingData, incomingSparkCCOutputPath);
+            CsvExporter.WriteIncomingDataToCsv(peakCUIncomingData, incomingSparkCCOutputPath);
+
+            //MessageBox.Show(
+            //    $"Successfully exported {sparkCCIncomingData.Count} incoming rows to:\n\n{incomingSparkCCOutputPath}",
+            //    "Incoming Data Export Successful",
+            //    MessageBoxButtons.OK,
+            //    MessageBoxIcon.Information);
         }
         #endregion
 

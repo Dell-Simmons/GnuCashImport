@@ -1,4 +1,5 @@
 ﻿using FeeBayConnectionTester.DTO;
+using FeeBayConnectionTester.Services.SimpleFin;
 using SimpleFin.SimpleFinDTO;
 using System;
 using System.Collections.Generic;
@@ -8,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace SimpleFin
 {
-    internal static class SparkCCToGnuCashConverter
+    public class SparkCCToGnuCashConverter: ISimpleFinTransactionProcessor
     {
-        public static IEnumerable<ToGnuCash> ReformatSparkCCDataForGnuCash(IEnumerable<SimpleFinTransaction> incomingRecords)
+        public async Task<List<ToGnuCash>> ProcessSparkCCTransactionsAsync(List<SimpleFinTransaction> incomingRecords)
         {
             var cleanedRecords = new List<ToGnuCash>();
             foreach (var record in incomingRecords)
@@ -27,53 +28,53 @@ namespace SimpleFin
                     sparkCCLiabilityRecord.TransactionId = record.TransactionId;
                     oneTransaction.Add(sparkCCLiabilityRecord);
 
-                    Stripe.StripeModels.OutputData sparkCCExpenseRecord = new();
-                    sparkCCExpenseRecord.Date = DateOnly.FromDateTime(DateTime.Parse(record.Posted_Date));
+                    ToGnuCash sparkCCExpenseRecord = new();
+                    sparkCCExpenseRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime   );
                     sparkCCExpenseRecord.Account = SetCorrectExpenseAccount(record.Description);
                     sparkCCExpenseRecord.Description = record.Description;
-                    sparkCCExpenseRecord.Amount = -decimal.Parse(record.Debit);
-                    sparkCCExpenseRecord.TransactionId = string.Empty;
+                    sparkCCExpenseRecord.Amount = -(record.Amount );
+                    sparkCCExpenseRecord.TransactionId = record.TransactionId;
                     sparkCCExpenseRecord.SortOrder = 2;
                     oneTransaction.Add(sparkCCExpenseRecord);
                 }
                 
-                if(record.Credit != string.Empty && record.Category == "Payment/Credit"  && record.Description =="CASH AUTO REDEMPTION")
+                 if(record.Amount > 0 && record.Description == "CASH BACK"  && record.Payee =="Cashback")
                 {
-                    Stripe.StripeModels.OutputData sparkCCCreditRecord = new();
-                    sparkCCCreditRecord.Date = DateOnly.FromDateTime(DateTime.Parse(record.Posted_Date));
+                    ToGnuCash sparkCCCreditRecord = new();
+                    sparkCCCreditRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime);
                     sparkCCCreditRecord.Account = "Credit Card Liabilities:Spark Business Credit Card";
                     sparkCCCreditRecord.Description = record.Description;
-                    sparkCCCreditRecord.Amount = decimal.Parse(record.Credit);
-                    sparkCCCreditRecord.TransactionId = string.Empty;
+                    sparkCCCreditRecord.Amount = record.Amount;
+                    sparkCCCreditRecord.TransactionId = record.TransactionId;
                     sparkCCCreditRecord.SortOrder = 1;
                     oneTransaction.Add(sparkCCCreditRecord);
 
-                    Stripe.StripeModels.OutputData sparkCCIncomeRecord = new();
-                    sparkCCCreditRecord.Date = DateOnly.FromDateTime(DateTime.Parse(record.Posted_Date));
+                    ToGnuCash sparkCCIncomeRecord = new();
+                    sparkCCCreditRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime);
                     sparkCCIncomeRecord.Account = "Spark CC Cash Back";
                     sparkCCIncomeRecord.Description = record.Description;
-                    sparkCCIncomeRecord.Amount = -decimal.Parse(record.Credit);
-                    sparkCCIncomeRecord.TransactionId = string.Empty;
+                    sparkCCIncomeRecord.Amount = -record.Amount;
+                    sparkCCIncomeRecord.TransactionId = record.TransactionId;
                     sparkCCIncomeRecord.SortOrder = 2;
                     oneTransaction.Add(sparkCCIncomeRecord);
                 }
-                if(record.Credit != string.Empty && record.Category == "Payment/Credit" && record.Description == "ELECTRONIC PAYMENT")
+                if (record.Amount > 0 && record.Description == "ELECTRONIC PAYMENT" && record.Payee == "Electronic Payment")
                 {
-                    Stripe.StripeModels.OutputData sparkCCCreditRecord = new();
-                    sparkCCCreditRecord.Date = DateOnly.FromDateTime(DateTime.Parse(record.Posted_Date));
+                    ToGnuCash sparkCCCreditRecord = new();
+                    sparkCCCreditRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime);
                     sparkCCCreditRecord.Account = "Credit Card Liabilities:Spark Business Credit Card";
                     sparkCCCreditRecord.Description = record.Description;
-                    sparkCCCreditRecord.Amount = decimal.Parse(record.Credit);
-                    sparkCCCreditRecord.TransactionId = string.Empty;
+                    sparkCCCreditRecord.Amount = record.Amount;
+                    sparkCCCreditRecord.TransactionId = record.TransactionId;
                     sparkCCCreditRecord.SortOrder = 1;
                     oneTransaction.Add(sparkCCCreditRecord);
 
-                    Stripe.StripeModels.OutputData sparkCCIncomeRecord = new();
-                    sparkCCIncomeRecord.Date = DateOnly.FromDateTime(DateTime.Parse(record.Posted_Date));
+                    ToGnuCash sparkCCIncomeRecord = new();
+                    sparkCCIncomeRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime);
                     sparkCCIncomeRecord.Account = "TCCU Business Checking";
                     sparkCCIncomeRecord.Description = record.Description;
-                    sparkCCIncomeRecord.Amount = -decimal.Parse(record.Credit);
-                    sparkCCIncomeRecord.TransactionId = string.Empty;
+                    sparkCCIncomeRecord.Amount = -record.Amount;
+                    sparkCCIncomeRecord.TransactionId = record.TransactionId;
                     sparkCCIncomeRecord.SortOrder = 2;
                     oneTransaction.Add(sparkCCIncomeRecord);
                 }
@@ -116,6 +117,11 @@ namespace SimpleFin
                 default: 
                     return "Expenses:Miscellaneous";
             }
+        }
+
+        public Task<List<ToGnuCash>> ProcessPeakCuTransactionsAsync(List<SimpleFinTransaction> peakCuTransactions)
+        {
+
         }
     }
 }
