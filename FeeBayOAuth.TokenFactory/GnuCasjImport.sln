@@ -14,9 +14,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleFin", "..\SimpleFin\SimpleFin.csproj", "{F24A53A5-7DDF-47FF-BEE4-B4E180CF169D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{41609337-1FD9-4DDE-BF2A-AA3BDE9A498A}"
-	ProjectSection(SolutionItems) = preProject
-		..\..\..\GnuCashCSVImporter\FileSystemService\CSVFileHandler.cs = ..\..\..\GnuCashCSVImporter\FileSystemService\CSVFileHandler.cs
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StripeCCProcessor", "..\StripeCCProcessor\StripeCCProcessor.csproj", "{C64890F8-BA45-463D-A0D9-96E43925CAF3}"
 EndProject
