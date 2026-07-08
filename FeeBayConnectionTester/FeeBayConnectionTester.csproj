@@ -12,6 +12,8 @@
     <Compile Remove="FeeBayCleaner.cs" />
     <Compile Remove="FormatToSendToGnuCash.cs" />
     <Compile Remove="Services\SimpleFin\SparkCCToGnuCashConverter.cs" />
+    <Compile Remove="Services\Stripe\StripeCleaner.cs" />
+    <Compile Remove="Services\Stripe\StripeIncomingData.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,6 +26,10 @@
     <ProjectReference Include="..\FeeBayOAuth.TokenFactory\FeeBayOAuth.TokenService.csproj" />
     <ProjectReference Include="..\LocalDBConnections\LocalDBConnections.csproj" />
     <ProjectReference Include="..\SimpleFin\SimpleFin.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\Stripe\" />
   </ItemGroup>
 
 </Project>

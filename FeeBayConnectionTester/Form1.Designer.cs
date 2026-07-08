@@ -29,7 +29,8 @@
         private void InitializeComponent()
         {
             btnFeeBay = new Button();
-            btnPeakCu = new Button();
+            btnSimpleFin = new Button();
+            btnStripe = new Button();
             SuspendLayout();
             // 
             // btnFeeBay
@@ -42,22 +43,33 @@
             btnFeeBay.UseVisualStyleBackColor = true;
             btnFeeBay.Click += btnFeeBay_Click;
             // 
-            // btnPeakCu
+            // btnSimpleFin
             // 
-            btnPeakCu.Location = new Point(472, 149);
-            btnPeakCu.Name = "btnPeakCu";
-            btnPeakCu.Size = new Size(169, 94);
-            btnPeakCu.TabIndex = 1;
-            btnPeakCu.Text = "Peak CU";
-            btnPeakCu.UseVisualStyleBackColor = true;
-            btnPeakCu.Click += btnSimpleFin_Click;
+            btnSimpleFin.Location = new Point(472, 150);
+            btnSimpleFin.Name = "btnSimpleFin";
+            btnSimpleFin.Size = new Size(169, 94);
+            btnSimpleFin.TabIndex = 1;
+            btnSimpleFin.Text = "Peak CU\r\nSpark CC\r\n";
+            btnSimpleFin.UseVisualStyleBackColor = true;
+            btnSimpleFin.Click += btnSimpleFin_Click;
+            // 
+            // btnStripe
+            // 
+            btnStripe.Location = new Point(472, 278);
+            btnStripe.Name = "btnStripe";
+            btnStripe.Size = new Size(169, 94);
+            btnStripe.TabIndex = 2;
+            btnStripe.Text = "Stripe (DSD)";
+            btnStripe.UseVisualStyleBackColor = true;
+            btnStripe.Click += btnReadStripeCSV_Click;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
-            Controls.Add(btnPeakCu);
+            Controls.Add(btnStripe);
+            Controls.Add(btnSimpleFin);
             Controls.Add(btnFeeBay);
             Font = new Font("Segoe UI", 12F);
             Name = "Form1";
@@ -69,6 +81,7 @@
         #endregion
 
         private Button btnFeeBay;
-        private Button btnPeakCu;
+        private Button btnSimpleFin;
+        private Button btnStripe;
     }
 }
