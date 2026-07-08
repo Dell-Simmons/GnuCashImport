@@ -22,7 +22,7 @@ namespace StripeCCProcessor
             }
         }
 
-        public async Task<bool> PullSalesAsync(DateTime startDate, DateTime endDate, string stripeSecretKey)
+        public async Task<List<Stripe.BalanceTransaction>> PullSalesAsync(DateTime startDate, DateTime endDate, string stripeSecretKey)
         {
             var client = new Stripe.StripeClient(stripeSecretKey);
 
@@ -36,9 +36,9 @@ namespace StripeCCProcessor
                 }
             };
 
-             var look = await client.V1.BalanceTransactions.ListAsync(options);
+             IEnumerable<Stripe.BalanceTransaction> look = await client.V1.BalanceTransactions.ListAsync(options);
              
-             return true;
+             return look.ToList();
         }
     }
 }

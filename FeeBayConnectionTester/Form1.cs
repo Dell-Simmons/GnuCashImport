@@ -319,10 +319,8 @@ namespace FeeBayConnectionTester
             string stripeSecretKey = "sk_live_25nKeitLKW2tgf6CTLDJWoNc";
             DateTime startDate = DateTime.Now.AddMonths(-8);
             DateTime endDate = DateTime.Now; // Assign your Stripe secret key here
-          var DSDSales = await _stripeCCProcessor.PullSalesAsync(startDate, endDate, stripeSecretKey);
-             var client = new Stripe.StripeClient(stripeSecretKey);
-             var look = await client.V1.BalanceTransactions.ListAsync();
-               // Console.WriteLine(await client.V1.Customers.ListAsync()); 
+            var DSDSales = await _stripeCCProcessor.PullSalesAsync(startDate, endDate, stripeSecretKey);
+            
             //HandleStripeCCImport(stripeCleaner);
         }
         //private static async void HandleStripeCCImport(StripeCleaner stripeCleaner)
