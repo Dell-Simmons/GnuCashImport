@@ -25,6 +25,7 @@ namespace FeeBayConnectionTester
         private readonly IOAuthTokenService _oAuthTokenService;
         private readonly SimpleFin.SimpleFinClient _simpleFinClient;
         private readonly ISimpleFinTransactionProcessor _simpleFinTransactionProcessor;
+        private readonly StripeCCProcessor.StripeCCProcessorClient _stripeCCProcessor;
         private EbayController _eBayController = null!;
         #endregion
 
@@ -35,7 +36,8 @@ namespace FeeBayConnectionTester
             Func<string, EbayController> ebayControllerFactory,
             SimpleFin.SimpleFinClient simpleFinClient,
             IFeeBayTransactionProcessor transactionProcessor,
-            ISimpleFinTransactionProcessor simpleFinTransactionProcessor)
+            ISimpleFinTransactionProcessor simpleFinTransactionProcessor,
+            StripeCCProcessor.StripeCCProcessorClient stripeCCProcessor )
         {
             InitializeComponent();
             _oAuthTokenService = oAuthTokenFactory;
@@ -44,6 +46,7 @@ namespace FeeBayConnectionTester
             _simpleFinClient = simpleFinClient;
             _feeBayTransactionProcessor = transactionProcessor;
             _simpleFinTransactionProcessor = simpleFinTransactionProcessor;
+            _stripeCCProcessor = stripeCCProcessor;
         }
         #endregion
 
@@ -311,11 +314,15 @@ namespace FeeBayConnectionTester
         }
         #endregion
 
-        private void btnReadStripeCSV_Click(object sender, EventArgs e)
+        private async void btnReadStripeCSV_Click(object sender, EventArgs e)
         {
-            // Create an instance of StripeCleaner to call the non-static method
-          //  StripeCleaner stripeCleaner = new StripeCleaner();
-          
+            string stripeSecretKey = "sk_live_25nKeitLKW2tgf6CTLDJWoNc";
+            DateTime startDate = DateTime.Now.AddMonths(-8);
+            DateTime endDate = DateTime.Now; // Assign your Stripe secret key here
+          var DSDSales = await _stripeCCProcessor.PullSalesAsync(startDate, endDate, stripeSecretKey);
+             var client = new Stripe.StripeClient(stripeSecretKey);
+             var look = await client.V1.BalanceTransactions.ListAsync();
+               // Console.WriteLine(await client.V1.Customers.ListAsync()); 
             //HandleStripeCCImport(stripeCleaner);
         }
         //private static async void HandleStripeCCImport(StripeCleaner stripeCleaner)
