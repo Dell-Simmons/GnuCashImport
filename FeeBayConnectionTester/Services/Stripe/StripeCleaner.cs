@@ -1,17 +1,19 @@
 ﻿using FeeBayConnectionTester.DTO;
-using System;
-using System.Linq;
-
+using LocalDBConnections;
+using Stripe;
 namespace GnuCashCSVImporter.Stripe
 {
     public class StripeCleaner
     {
         #region Constants and Fields
-        private StampDBService.StampDBConnection db = new();
+        private readonly ILocalDbConnectionManager _localDbConnectionManager;
         #endregion
-
+        public StripeCleaner(ILocalDbConnectionManager localDbConnectionManager)
+        {
+            _localDbConnectionManager = localDbConnectionManager;
+        }
         #region Methods
-        public List<ToGnuCash> ReformatStripeForGnuCash(IEnumerable<IncomingModels.Stripe.StripeIncomingData> incomingRecords)
+        public IEnumerable<ToGnuCash> ReformatStripeForGnuCash(IEnumerable<BalanceTransaction> incomingRecords)
         {
             var groupByTransactionId = from record in incomingRecords
                 group record by record.Transfer into newGroup select newGroup;
@@ -22,9 +24,9 @@ namespace GnuCashCSVImporter.Stripe
                 IList<ToGnuCash> oneTransaction = new List<ToGnuCash>();
                 foreach(var record in fullTransaction)
                 {
-                    StripeModels.OutputData stripeSalesRecord = new();
-                    StripeModels.OutputData stripeFeeRecord = new();
-                    StripeModels.OutputData stripePayoutRecord = new();
+                    ToGnuCash stripeSalesRecord = new();
+                    ToGnuCash stripeFeeRecord = new();
+                    ToGnuCash stripePayoutRecord = new();
 
                     switch(record.Type)
                     {
@@ -40,7 +42,7 @@ namespace GnuCashCSVImporter.Stripe
 
                             // Define COGS as 1/2 of sale price
                             // And add to the cost of goods sold
-                            StripeModels.OutputData stripeCOGSRecord = new();
+                            ToGnuCash stripeCOGSRecord = new();
                             stripeCOGSRecord.Date = DateOnly.FromDateTime(record.Available_On);
                             stripeCOGSRecord.Account = "Expenses:Cost of Goods Sold";
                             stripeCOGSRecord.Description = $"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid}";
@@ -50,7 +52,7 @@ namespace GnuCashCSVImporter.Stripe
                             oneTransaction.Add(stripeCOGSRecord);
 
                             // now subtract the cost of the sold stuff from inventory
-                            StripeModels.OutputData stripeInventoryRecord = new();
+                            ToGnuCash stripeInventoryRecord = new();
                             stripeInventoryRecord.Date = DateOnly.FromDateTime(record.Available_On);
                             stripeInventoryRecord.Account = "Assets:INVENTORY";
                             stripeInventoryRecord.Description = $"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid}";
@@ -88,19 +90,19 @@ namespace GnuCashCSVImporter.Stripe
             return cleanedRecords;
         }
 
-        public async  Task<List<ToGnuCash>> ReformatStripeForGnuCash(
+        public async  Task<IEnumerable<ToGnuCash>> ReformatStripeForGnuCash(
             IEnumerable<StripeModels.Itemized_balance_change_from_activity_USD> incomingRecords)
         {
             var cleanedRecords = new List<ToGnuCash>();
             foreach(var record in incomingRecords)
             {
-                List<ToGnuCash> oneTransaction = new List<ToGnuCash>();
+                IList<ToGnuCash> oneTransaction = new List<ToGnuCash>();
 
-                StripeModels.OutputData stripeIncomeLine = new();
-                StripeModels.OutputData stripeFeeLine = new();
-                StripeModels.OutputData stripePayoutLine = new();
-                StripeModels.OutputData payoutLineFrom = new();
-                StripeModels.OutputData payoutLineTo = new();
+                ToGnuCash stripeIncomeLine = new();
+                ToGnuCash stripeFeeLine = new();
+                ToGnuCash stripePayoutLine = new();
+                ToGnuCash payoutLineFrom = new();
+                ToGnuCash payoutLineTo = new();
 
 
                 // process the sale
@@ -152,7 +154,7 @@ namespace GnuCashCSVImporter.Stripe
 
                 // Define COGS as 1/2 of sale price
                 // And add to the cost of goods sold
-                StripeModels.OutputData stripeCOGSRecord = new();
+                ToGnuCash stripeCOGSRecord = new();
                 stripeCOGSRecord.Date = DateOnly.FromDateTime(DateTime.Parse(record.created));
                 stripeCOGSRecord.Account = "Expenses:Cost of Goods Sold";
                 stripeCOGSRecord.Description = $"NopCommerce Order #{record.description}";// - Order GUID {record.OrderGuid}";
@@ -162,7 +164,7 @@ namespace GnuCashCSVImporter.Stripe
                 oneTransaction.Add(stripeCOGSRecord);
 
                 // now subtract the cost of the sold stuff from inventory
-                StripeModels.OutputData stripeInventoryRecord = new();
+                ToGnuCash stripeInventoryRecord = new();
                 stripeInventoryRecord.Date = DateOnly.FromDateTime(DateTime.Parse(record.created));
                 stripeInventoryRecord.Account = "Assets:INVENTORY";
                 stripeInventoryRecord.Description = $"NopCommerce Order #{record.description}";
@@ -191,7 +193,7 @@ namespace GnuCashCSVImporter.Stripe
             var skus = await new StripeCleaner().PullOutSkus(record.description); // Fixed: Create an instance of StripeCleaner to call the non-static method
             foreach(var sku in skus)
             {
-                var singleStampCogs = db.GetStampCostById(int.Parse(sku));
+                var singleStampCogs = _localDbConnectionManager.GetStampCostById(int.Parse(sku));
                 if((singleStampCogs == null) || (singleStampCogs == 0.0m))
                 {
                     singleStampCogs = -(sellingPrice / 2);
@@ -206,7 +208,7 @@ namespace GnuCashCSVImporter.Stripe
 
         private async Task<List<string>> PullOutSkus(string NopOrderId)
         {
-            return await db.GetSoldStamps(NopOrderId); // Use instance field `db` directly
+            return await _localDbConnectionManager.GetSoldStamps(NopOrderId); // Use instance field `db` directly
         }
         #endregion
     }

@@ -12,7 +12,6 @@
     <Compile Remove="FeeBayCleaner.cs" />
     <Compile Remove="FormatToSendToGnuCash.cs" />
     <Compile Remove="Services\SimpleFin\SparkCCToGnuCashConverter.cs" />
-    <Compile Remove="Services\Stripe\StripeCleaner.cs" />
     <Compile Remove="Services\Stripe\StripeIncomingData.cs" />
   </ItemGroup>
 
@@ -27,10 +26,6 @@
     <ProjectReference Include="..\LocalDBConnections\LocalDBConnections.csproj" />
     <ProjectReference Include="..\SimpleFin\SimpleFin.csproj" />
     <ProjectReference Include="..\StripeCCProcessor\StripeCCProcessor.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\Stripe\" />
   </ItemGroup>
 
 </Project>
