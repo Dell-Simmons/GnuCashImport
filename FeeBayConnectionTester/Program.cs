@@ -1,5 +1,6 @@
 using FeeBayConnectionTester.Services.FeeBay;
 using FeeBayConnectionTester.Services.SimpleFin;
+using FeeBayConnectionTester.Services.Stripe;
 using FeeBayOAuth.TokenService;
 using LocalDBConnections;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +54,7 @@ namespace FeeBayConnectionTester
 
                     services.AddScoped<IFeeBayTransactionProcessor, FeeBayTransactionProcessor>();
                     services.AddScoped<ISimpleFinTransactionProcessor,SimpleFinTransactionProcessor>();
+                    services.AddScoped<IStripeTransactionProcessor, StripeTransactionProcessor>();
                 });
         }
     }

@@ -61,7 +61,7 @@
             btnStripe.TabIndex = 2;
             btnStripe.Text = "Stripe (DSD)";
             btnStripe.UseVisualStyleBackColor = true;
-            btnStripe.Click += btnReadStripeCSV_Click;
+            btnStripe.Click += btnStripe_Click;
             // 
             // Form1
             // 
