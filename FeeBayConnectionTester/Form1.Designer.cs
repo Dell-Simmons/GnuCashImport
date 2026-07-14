@@ -31,6 +31,8 @@
             btnFeeBay = new Button();
             btnSimpleFin = new Button();
             btnStripe = new Button();
+            btnShippo = new Button();
+            button1 = new Button();
             SuspendLayout();
             // 
             // btnFeeBay
@@ -63,11 +65,33 @@
             btnStripe.UseVisualStyleBackColor = true;
             btnStripe.Click += btnStripe_Click;
             // 
+            // btnShippo
+            // 
+            btnShippo.Location = new Point(472, 398);
+            btnShippo.Name = "btnShippo";
+            btnShippo.Size = new Size(169, 94);
+            btnShippo.TabIndex = 3;
+            btnShippo.Text = "Shippo";
+            btnShippo.UseVisualStyleBackColor = true;
+            btnShippo.Click += btnShippo_Click;
+            // 
+            // button1
+            // 
+            button1.Location = new Point(199, 190);
+            button1.Name = "button1";
+            button1.Size = new Size(112, 34);
+            button1.TabIndex = 4;
+            button1.Text = "button1";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
+            ClientSize = new Size(800, 573);
+            Controls.Add(button1);
+            Controls.Add(btnShippo);
             Controls.Add(btnStripe);
             Controls.Add(btnSimpleFin);
             Controls.Add(btnFeeBay);
@@ -83,5 +107,7 @@
         private Button btnFeeBay;
         private Button btnSimpleFin;
         private Button btnStripe;
+        private Button btnShippo;
+        private Button button1;
     }
 }

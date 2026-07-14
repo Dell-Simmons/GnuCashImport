@@ -4,7 +4,6 @@ using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Payout;
 using EbaySharp.Entities.Develop.SellingApps.AccountManagement.Finances.Transaction;
 using EbaySharp.Entities.Develop.SellingApps.OrderManagement.Fulfillment.Order;
 using FeeBayConnectionTester.DTO;
-using FeeBayConnectionTester.DTO.FeeBayDTO;
 using FeeBayConnectionTester.Extensions;
 using FeeBayConnectionTester.Services;
 using FeeBayConnectionTester.Services.FeeBay;
@@ -33,6 +32,7 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region Constructors
+        // Constructors
         public Form1(
             IOAuthTokenService oAuthTokenFactory,
             ILocalDbConnectionManager localDbConnectionManager,
@@ -54,42 +54,26 @@ namespace FeeBayConnectionTester
             _stripeTransactionProcessor = stripeTransactionProcessor;
         }
         #endregion
-        #region Stripe Button Click Workflow
-  private async void btnStripe_Click(object sender, EventArgs e)
-        {
-            await ProcessStripeTransactions();
-        }
 
-        private async Task ProcessStripeTransactions()
-        {
-            string stripeSecretKey = "sk_live_25nKeitLKW2tgf6CTLDJWoNc";
-            DateTime startDate = DateTime.Now.AddMonths(-8);
-            DateTime endDate = DateTime.Now; // Assign your Stripe secret key here
-            var dsdSales = await _stripeCCProcessor.PullSalesAsync(startDate, endDate, stripeSecretKey);
-
-            List<ToGnuCash> stripeIncomingData = await _stripeTransactionProcessor.ReformatStripeForGnuCashAsync(dsdSales);
-            var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-            var incomingOutputPath = $@"D:\Exports\stripe_IncomingData_{incomingTimestamp}.csv";
-
-            // Sort by date for testing
-            stripeIncomingData = stripeIncomingData
-                .OrderBy(d => d.Date)
-                .ToList();
-
-            CsvExporter.WriteIncomingDataToCsv(stripeIncomingData, incomingOutputPath);
-            MessageBox.Show(
-                $"Successfully exported {stripeIncomingData.Count} incoming rows to:\n\n{incomingOutputPath}",
-                "Incoming Data Export Successful",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-        }
-        #endregion
         #region Event handlers
         #region
-
+        private async void btnFeeBay_Click(object sender, EventArgs e) => await ProcessFeeBayTransactions();
         #endregion
 
         #region
+        private void btnShippo_Click(object sender, EventArgs e) => ProcessShippoTransactions();
+        #endregion
+
+        #region
+        private async void btnSimpleFin_Click(object sender, EventArgs e) => await ProcessSimpleFinTransactions();
+        #endregion
+
+        #region
+        private async void btnStripe_Click(object sender, EventArgs e) => await ProcessStripeTransactions();
+        #endregion
+
+        #region
+        // Event handlers
         private void Form1_Load(object sender, EventArgs e)
         {
         }
@@ -97,22 +81,149 @@ namespace FeeBayConnectionTester
         #endregion
         #region Methods
         #region Public Methods
+        // Methods
+        // Public Methods
         public static string ToEbayDate(DateTime dateTime) => dateTime.ToUniversalTime().ToString("o");
         #endregion
 
         #region Private Methods
-        #region SimpleFin Data Retrieval
-        private async Task<AccountResponse> PullSimpleFinTransactions()
+        // API Pagination
+        private async Task<List<Order>> GetAllOrdersPaginated(string filter, int limit = 50)
         {
-            SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
-            return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken);
-        }
-        #endregion
-        #endregion
-        #endregion
+            var allOrders = new List<Order>();
+            int offset = 0;
+            bool hasMore = true;
 
-        #region FeeBay Button Click Workflow
-        private async void btnFeeBay_Click(object sender, EventArgs e) => await ProcessFeeBayTransactions();
+            while (hasMore)
+            {
+                Orders ordersContainer = await _eBayController.GetOrders(filter, limit, offset);
+
+                if (ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
+                {
+                    allOrders.AddRange(ordersContainer.OrderList);
+                    Console.WriteLine(
+                        $"Retrieved {ordersContainer.OrderList.Count} orders (Total so far: {allOrders.Count})");
+                }
+
+                hasMore = !string.IsNullOrEmpty(ordersContainer.Next);
+                offset += limit;
+
+                if (allOrders.Count >= ordersContainer.Total)
+                {
+                    hasMore = false;
+                }
+            }
+
+            Console.WriteLine($"Completed pagination. Total orders retrieved: {allOrders.Count}");
+            return allOrders;
+        }
+
+        private async Task<List<Payout>> GetAllPayOutsPaginated(string filter, int limit = 50)
+        {
+            var allPayouts = new List<Payout>();
+            int offset = 0;
+            bool hasMore = true;
+
+            while (hasMore)
+            {
+                PayoutList payoutsContainer = await _eBayController.GetPayouts(filter, null, limit, offset);
+
+                if (payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
+                {
+                    allPayouts.AddRange(payoutsContainer.Payouts);
+                    Console.WriteLine(
+                        $"Retrieved {payoutsContainer.Payouts.Count} payouts (Total so far: {allPayouts.Count})");
+                }
+
+                hasMore = !string.IsNullOrEmpty(payoutsContainer.Next);
+                offset += limit;
+
+                if (allPayouts.Count >= payoutsContainer.Total)
+                {
+                    hasMore = false;
+                }
+            }
+
+            Console.WriteLine($"Completed pagination. Total payouts retrieved: {allPayouts.Count}");
+            return allPayouts;
+        }
+
+        private async Task<List<Transaction>> GetAllTransactionsPaginated(string filter, int limit = 50)
+        {
+            var allTransactions = new List<Transaction>();
+            int offset = 0;
+            bool hasMore = true;
+
+            while (hasMore)
+            {
+                Transactions transactionsContainer = await _eBayController.GetTransactions(filter, null, limit, offset);
+
+                if (transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
+                {
+                    allTransactions.AddRange(transactionsContainer.TransactionList);
+                    Console.WriteLine(
+                        $"Retrieved {transactionsContainer.TransactionList.Count} transactions (Total so far: {allTransactions.Count})");
+                }
+
+                hasMore = !string.IsNullOrEmpty(transactionsContainer.Next);
+                offset += limit;
+
+                if (allTransactions.Count >= transactionsContainer.Total)
+                {
+                    hasMore = false;
+                }
+            }
+
+            Console.WriteLine($"Completed pagination. Total transactions retrieved: {allTransactions.Count}");
+            return allTransactions;
+        }
+
+        private async Task<SigningKey> GetOrCreateSigningKey(EbayController ebayController)
+        {
+            // Try to get from database
+            FeeBaySigningKeys? cachedKey = await _localDbConnectionManager.GetSigningKeyAsync();
+
+            if (cachedKey != null)
+            {
+                return cachedKey.ToSigningKey();
+            }
+
+            // Create new if none exist
+            SigningKey key = await ebayController.CreateSigningKey();
+
+            // Store in database
+            await _localDbConnectionManager.SaveSigningKeyAsync(key.ToFeeBaySigningKey());
+
+            return key;
+        }
+
+        private async Task<SimpleFinAccessTokens?> GetSimpleFinAccessToken()
+        {
+            var simpleFinAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Peak CU");
+
+            if (simpleFinAccessToken == null)
+            {
+                using var dlg = new FormAskForSimpleFinSetupToken();
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                {
+                    string setupToken = dlg.SetupToken;
+                    var accessToken = await SimpleFin.SimpleFinClient.Connect3(setupToken);
+                    simpleFinAccessToken = new SimpleFinAccessTokens();
+                    simpleFinAccessToken.BankName = "Peak CU";
+                    simpleFinAccessToken.AccessToken = accessToken;
+                }
+
+                if (simpleFinAccessToken == null)
+                {
+                    throw new NotImplementedException();
+                }
+
+                _ = await _localDbConnectionManager.SaveSimpleFinAccessToken(simpleFinAccessToken);
+                return await GetSimpleFinAccessToken();
+            }
+
+            return simpleFinAccessToken;
+        }
 
         private async Task ProcessFeeBayTransactions()
         {
@@ -139,10 +250,6 @@ namespace FeeBayConnectionTester
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
-        #endregion
-
-        #region PeakCU Button Click Workflow
-        private async void btnSimpleFin_Click(object sender, EventArgs e) => await ProcessSimpleFinTransactions();
 
         private async Task ProcessSimpleFinTransactions()
         {
@@ -180,105 +287,37 @@ namespace FeeBayConnectionTester
             //    MessageBoxButtons.OK,
             //    MessageBoxIcon.Information);
         }
-        #endregion
 
-        #region API Pagination
-        private async Task<List<Order>> GetAllOrdersPaginated(string filter, int limit = 50)
+        private async Task ProcessStripeTransactions()
         {
-            var allOrders = new List<Order>();
-            int offset = 0;
-            bool hasMore = true;
+            string stripeSecretKey = "sk_live_25nKeitLKW2tgf6CTLDJWoNc";
+            DateTime startDate = DateTime.Now.AddMonths(-8);
+            DateTime endDate = DateTime.Now; // Assign your Stripe secret key here
+            var dsdSales = await _stripeCCProcessor.PullSalesAsync(startDate, endDate, stripeSecretKey);
 
-            while(hasMore)
-            {
-                Orders ordersContainer = await _eBayController.GetOrders(filter, limit, offset);
+            List<ToGnuCash> stripeIncomingData = await _stripeTransactionProcessor.ReformatStripeForGnuCashAsync(
+                dsdSales);
+            var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var incomingOutputPath = $@"D:\Exports\stripe_IncomingData_{incomingTimestamp}.csv";
 
-                if(ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
-                {
-                    allOrders.AddRange(ordersContainer.OrderList);
-                    Console.WriteLine(
-                        $"Retrieved {ordersContainer.OrderList.Count} orders (Total so far: {allOrders.Count})");
-                }
+            // Sort by date for testing
+            stripeIncomingData = stripeIncomingData
+                .OrderBy(d => d.Date)
+                .ToList();
 
-                hasMore = !string.IsNullOrEmpty(ordersContainer.Next);
-                offset += limit;
-
-                if(allOrders.Count >= ordersContainer.Total)
-                {
-                    hasMore = false;
-                }
-            }
-
-            Console.WriteLine($"Completed pagination. Total orders retrieved: {allOrders.Count}");
-            return allOrders;
+            CsvExporter.WriteIncomingDataToCsv(stripeIncomingData, incomingOutputPath);
+            MessageBox.Show(
+                $"Successfully exported {stripeIncomingData.Count} incoming rows to:\n\n{incomingOutputPath}",
+                "Incoming Data Export Successful",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
         }
 
-        private async Task<List<Payout>> GetAllPayOutsPaginated(string filter, int limit = 50)
-        {
-            var allPayouts = new List<Payout>();
-            int offset = 0;
-            bool hasMore = true;
-
-            while(hasMore)
-            {
-                PayoutList payoutsContainer = await _eBayController.GetPayouts(filter, null, limit, offset);
-
-                if(payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
-                {
-                    allPayouts.AddRange(payoutsContainer.Payouts);
-                    Console.WriteLine(
-                        $"Retrieved {payoutsContainer.Payouts.Count} payouts (Total so far: {allPayouts.Count})");
-                }
-
-                hasMore = !string.IsNullOrEmpty(payoutsContainer.Next);
-                offset += limit;
-
-                if(allPayouts.Count >= payoutsContainer.Total)
-                {
-                    hasMore = false;
-                }
-            }
-
-            Console.WriteLine($"Completed pagination. Total payouts retrieved: {allPayouts.Count}");
-            return allPayouts;
-        }
-
-        private async Task<List<Transaction>> GetAllTransactionsPaginated(string filter, int limit = 50)
-        {
-            var allTransactions = new List<Transaction>();
-            int offset = 0;
-            bool hasMore = true;
-
-            while(hasMore)
-            {
-                Transactions transactionsContainer = await _eBayController.GetTransactions(filter, null, limit, offset);
-
-                if(transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
-                {
-                    allTransactions.AddRange(transactionsContainer.TransactionList);
-                    Console.WriteLine(
-                        $"Retrieved {transactionsContainer.TransactionList.Count} transactions (Total so far: {allTransactions.Count})");
-                }
-
-                hasMore = !string.IsNullOrEmpty(transactionsContainer.Next);
-                offset += limit;
-
-                if(allTransactions.Count >= transactionsContainer.Total)
-                {
-                    hasMore = false;
-                }
-            }
-
-            Console.WriteLine($"Completed pagination. Total transactions retrieved: {allTransactions.Count}");
-            return allTransactions;
-        }
-        #endregion
-
-        #region eBay Data Retrieval
+        // eBay Data Retrieval
         private async Task<(List<Payout>, List<Transaction>, List<Order>)> PullFeeBayTransactions()
         {
             string? token = await _oAuthTokenService.GetOAuthTokenAsync("Simmons_Ink");
-            if(string.IsNullOrWhiteSpace(token))
+            if (string.IsNullOrWhiteSpace(token))
             {
                 MessageBox.Show(
                     "Unable to acquire an OAuth token for Simmons_Ink.",
@@ -304,79 +343,19 @@ namespace FeeBayConnectionTester
             return (payoutList, transactionList, orderList);
         }
 
-        private async Task<SigningKey> GetOrCreateSigningKey(EbayController ebayController)
+        // Private Methods
+        // SimpleFin Data Retrieval
+        private async Task<AccountResponse> PullSimpleFinTransactions()
         {
-            // Try to get from database
-            FeeBaySigningKeys? cachedKey = await _localDbConnectionManager.GetSigningKeyAsync();
-
-            if(cachedKey != null)
-            {
-                return cachedKey.ToSigningKey();
-            }
-
-            // Create new if none exist
-            SigningKey key = await ebayController.CreateSigningKey();
-
-            // Store in database
-            await _localDbConnectionManager.SaveSigningKeyAsync(key.ToFeeBaySigningKey());
-
-            return key;
-        }
-
-        private async Task<SimpleFinAccessTokens?> GetSimpleFinAccessToken()
-        {
-            var simpleFinAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Peak CU");
-
-            if(simpleFinAccessToken == null)
-            {
-                using var dlg = new FormAskForSimpleFinSetupToken();
-                if(dlg.ShowDialog(this) == DialogResult.OK)
-                {
-                    string setupToken = dlg.SetupToken;
-                    var accessToken = await SimpleFin.SimpleFinClient.Connect3(setupToken);
-                    simpleFinAccessToken = new SimpleFinAccessTokens();
-                    simpleFinAccessToken.BankName = "Peak CU";
-                    simpleFinAccessToken.AccessToken = accessToken;
-                }
-
-                if(simpleFinAccessToken == null)
-                {
-                    throw new NotImplementedException();
-                }
-
-                _ = await _localDbConnectionManager.SaveSimpleFinAccessToken(simpleFinAccessToken);
-                return await GetSimpleFinAccessToken();
-            }
-
-            return simpleFinAccessToken;
+            SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
+            return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken);
         }
         #endregion
-        //private static async void HandleStripeCCImport(StripeCleaner stripeCleaner)
-        //{
-        //    //try
-        //    //{
-        //    //    string csvFileToRead = CSVFileHandler.OpenFile("C:\\Users\\DellS\\Downloads", "Itemized_balance_change_from_activity_USD");
-        //    //    if (string.IsNullOrEmpty(csvFileToRead))
-        //    //    {
-        //    //        MessageBox.Show(
-        //    //            "No file selected.",
-        //    //            "Information",
-        //    //            MessageBoxButtons.OK,
-        //    //            MessageBoxIcon.Information);
-        //    //        return;
-        //    //    }
-        //    //    var records = await CSVFileHandler.ReadStripeCSV(csvFileToRead);
-        //    //    var outputRecords = await stripeCleaner.ReformatStripeForGnuCash(records);
-        //    //    await CSVFileHandler.WriteStripeCSV(outputRecords, "C:\\Users\\DellS\\Downloads\\StripeCCOutputToGnuCash.csv");
-        //    //}
-        //    //catch (Exception ex)
-        //    //{
-        //    //    MessageBox.Show(
-        //    //        $"Error reading CSV file: {ex.Message}",
-        //    //        "Error",
-        //    //        MessageBoxButtons.OK,
-        //    //        MessageBoxIcon.Error);
-        //    //}
-        //}
+        #endregion
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
