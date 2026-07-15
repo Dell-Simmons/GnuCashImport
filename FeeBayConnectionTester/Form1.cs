@@ -62,6 +62,7 @@ namespace FeeBayConnectionTester
 
         #region
         private void btnShippo_Click(object sender, EventArgs e) => ProcessShippoTransactions();
+        private void ProcessShippoTransactions() => throw new NotImplementedException();
         #endregion
 
         #region
@@ -70,6 +71,10 @@ namespace FeeBayConnectionTester
 
         #region
         private async void btnStripe_Click(object sender, EventArgs e) => await ProcessStripeTransactions();
+        #endregion
+
+        #region
+        private void button1_Click(object sender, EventArgs e) => throw new NotImplementedException();
         #endregion
 
         #region
@@ -94,11 +99,11 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while (hasMore)
+            while(hasMore)
             {
                 Orders ordersContainer = await _eBayController.GetOrders(filter, limit, offset);
 
-                if (ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
+                if(ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
                 {
                     allOrders.AddRange(ordersContainer.OrderList);
                     Console.WriteLine(
@@ -108,7 +113,7 @@ namespace FeeBayConnectionTester
                 hasMore = !string.IsNullOrEmpty(ordersContainer.Next);
                 offset += limit;
 
-                if (allOrders.Count >= ordersContainer.Total)
+                if(allOrders.Count >= ordersContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -124,11 +129,11 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while (hasMore)
+            while(hasMore)
             {
                 PayoutList payoutsContainer = await _eBayController.GetPayouts(filter, null, limit, offset);
 
-                if (payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
+                if(payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
                 {
                     allPayouts.AddRange(payoutsContainer.Payouts);
                     Console.WriteLine(
@@ -138,7 +143,7 @@ namespace FeeBayConnectionTester
                 hasMore = !string.IsNullOrEmpty(payoutsContainer.Next);
                 offset += limit;
 
-                if (allPayouts.Count >= payoutsContainer.Total)
+                if(allPayouts.Count >= payoutsContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -154,11 +159,11 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while (hasMore)
+            while(hasMore)
             {
                 Transactions transactionsContainer = await _eBayController.GetTransactions(filter, null, limit, offset);
 
-                if (transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
+                if(transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
                 {
                     allTransactions.AddRange(transactionsContainer.TransactionList);
                     Console.WriteLine(
@@ -168,7 +173,7 @@ namespace FeeBayConnectionTester
                 hasMore = !string.IsNullOrEmpty(transactionsContainer.Next);
                 offset += limit;
 
-                if (allTransactions.Count >= transactionsContainer.Total)
+                if(allTransactions.Count >= transactionsContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -183,7 +188,7 @@ namespace FeeBayConnectionTester
             // Try to get from database
             FeeBaySigningKeys? cachedKey = await _localDbConnectionManager.GetSigningKeyAsync();
 
-            if (cachedKey != null)
+            if(cachedKey != null)
             {
                 return cachedKey.ToSigningKey();
             }
@@ -201,10 +206,10 @@ namespace FeeBayConnectionTester
         {
             var simpleFinAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Peak CU");
 
-            if (simpleFinAccessToken == null)
+            if(simpleFinAccessToken == null)
             {
                 using var dlg = new FormAskForSimpleFinSetupToken();
-                if (dlg.ShowDialog(this) == DialogResult.OK)
+                if(dlg.ShowDialog(this) == DialogResult.OK)
                 {
                     string setupToken = dlg.SetupToken;
                     var accessToken = await SimpleFin.SimpleFinClient.Connect3(setupToken);
@@ -213,7 +218,7 @@ namespace FeeBayConnectionTester
                     simpleFinAccessToken.AccessToken = accessToken;
                 }
 
-                if (simpleFinAccessToken == null)
+                if(simpleFinAccessToken == null)
                 {
                     throw new NotImplementedException();
                 }
@@ -290,7 +295,9 @@ namespace FeeBayConnectionTester
 
         private async Task ProcessStripeTransactions()
         {
-            string stripeSecretKey = "sk_live_25nKeitLKW2tgf6CTLDJWoNc";
+           // string stripeSecretKey = "sk_live_25nKeitLKW2tgf6CTLDJWoNc";
+            var stripeAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Stripe_Secret");
+            string stripeSecretKey = stripeAccessToken.AccessToken;
             DateTime startDate = DateTime.Now.AddMonths(-8);
             DateTime endDate = DateTime.Now; // Assign your Stripe secret key here
             var dsdSales = await _stripeCCProcessor.PullSalesAsync(startDate, endDate, stripeSecretKey);
@@ -317,7 +324,7 @@ namespace FeeBayConnectionTester
         private async Task<(List<Payout>, List<Transaction>, List<Order>)> PullFeeBayTransactions()
         {
             string? token = await _oAuthTokenService.GetOAuthTokenAsync("Simmons_Ink");
-            if (string.IsNullOrWhiteSpace(token))
+            if(string.IsNullOrWhiteSpace(token))
             {
                 MessageBox.Show(
                     "Unable to acquire an OAuth token for Simmons_Ink.",
@@ -352,10 +359,5 @@ namespace FeeBayConnectionTester
         }
         #endregion
         #endregion
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
