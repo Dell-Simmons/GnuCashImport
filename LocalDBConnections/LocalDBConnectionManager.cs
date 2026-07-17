@@ -14,6 +14,7 @@ namespace LocalDBConnections
         private readonly FeeBayOAuthTokensRepository _feeBayOAuthTokensRepository;
         private readonly FeeBaySigningKeyRepository _feeBaySigningKeysRepository;
         private readonly SimpleFinAccessTokenRepository _simpleFinAccessTokenRepository;
+        private ORDER_LINE_ITEMSRepository _orderLineItemsRepository;
         private readonly StampRepository _stampRepository;
         #endregion
 
@@ -133,6 +134,13 @@ namespace LocalDBConnections
         {
             var allBankAccessTokens = await _simpleFinAccessTokenRepository.FindAllAsync();
             return allBankAccessTokens.Where(t => t.BankName == bankName).FirstOrDefault();
+        }
+
+        public async Task<List<string>> GetSoldNopStampsAsync(string nopOrderId)
+        {
+            var orderItems = _orderLineItemsRepository.FindAllAsync(x => x.Order_Id == nopOrderId).Result;
+            var soldStamps = orderItems.Select(x => x.SKU).ToList();
+            return soldStamps;
         }
         #endregion
     }

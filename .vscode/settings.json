@@ -9,5 +9,6 @@
     "rgba(127, 255, 255, 0.15)"
   ],
    "editor.codeLens": false,
-   "workbench.editor.editorActionsLocation": "hidden"
+  "workbench.editor.editorActionsLocation": "hidden",
+  "workbench.experimental.modernUI": true
 }

@@ -27,6 +27,7 @@ namespace LocalDBConnections
         Task<FeeBaySigningKeys?> GetSigningKeyAsync();
         Task<bool> SaveSimpleFinAccessToken(SimpleFinAccessTokens bankAccessToken);
         Task<SimpleFinAccessTokens> GetSimpleFinAccessToken(string bankName);
+        Task<List<string>> GetSoldNopStampsAsync(string nopOrderId);
         //  decimal GetStampCostById(string sku);
         #endregion
         // IEnumerable<MisslItem> GetMisslItems();
