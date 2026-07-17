@@ -100,9 +100,25 @@ namespace FeeBayConnectionTester.Services.Stripe
         public async Task<List<ToGnuCash>> ReformatStripeForGnuCashAsync(
             List<BalanceTransaction> incomingRecords)
         {
+
+            var groupedTransactions = incomingRecords
+              .Where(t => !string.IsNullOrWhiteSpace(t.ReportingCategory))
+              .GroupBy(t => t.ReportingCategory!)
+              .ToDictionary(g => g.Key, g => g.ToList());
+
+
             var cleanedRecords = new List<ToGnuCash>();
             foreach (var record in incomingRecords)
             {
+                switch record.ReportingCategory
+                    case "payout":
+                        break;
+                    case "charge":
+                        break;
+                    case "refund":
+                        break;
+                    default:
+                        break;
                 IList<ToGnuCash> oneTransaction = new List<ToGnuCash>();
 
                 ToGnuCash stripeIncomeLine = new();
