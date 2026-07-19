@@ -16,6 +16,7 @@ namespace LocalDBConnections
         private readonly FeeBaySigningKeyRepository _feeBaySigningKeysRepository;
         private readonly SimpleFinAccessTokenRepository _simpleFinAccessTokenRepository;
         private ORDER_LINE_ITEMSRepository _orderLineItemsRepository;
+        private readonly Order_Line_Items_By_Order_IdRepository _orderLineItemsByOrderIdRepository;
         private readonly StampRepository _stampRepository;
         #endregion
 
@@ -27,6 +28,7 @@ namespace LocalDBConnections
             _simpleFinAccessTokenRepository = CreateSimpleFinAccessTokenRepository(_stampDataConnection);
             _stampRepository = CreateFeeBayStampRepository(_stampDataConnection);
             _orderLineItemsRepository = CreateOrderLineItemsRepository(_stampDataConnection);
+            _orderLineItemsByOrderIdRepository = CreateOrderLineItemsByOrderIdRepository(_stampDataConnection);
         }
 
         private ORDER_LINE_ITEMSRepository? CreateOrderLineItemsRepository(string stampDataConnection)
@@ -34,7 +36,11 @@ namespace LocalDBConnections
             IDbConnection dbConnection = new SqlConnection(stampDataConnection);
             return new ORDER_LINE_ITEMSRepository(dbConnection, new SqlGenerator<ORDER_LINE_ITEM>());//, new SqlGenerator<FeeBaySigningKeys>());
         }
-
+        private Order_Line_Items_By_Order_IdRepository CreateOrderLineItemsByOrderIdRepository(string stampDataConnection)
+        {
+            IDbConnection dbConnection = new SqlConnection(stampDataConnection);
+            return new Order_Line_Items_By_Order_IdRepository(dbConnection, new SqlGenerator<Order_Line_Items_By_Order_Id>());
+        }
         private StampRepository CreateFeeBayStampRepository(string stampDataConnection)
         {
             IDbConnection dbConnection = new SqlConnection(stampDataConnection);
@@ -149,6 +155,11 @@ namespace LocalDBConnections
             var orderItems = await _orderLineItemsRepository.FindAllAsync(x => x.Order_Id == nopOrderId);
             var soldStamps = orderItems.Select(x => x.SKU).ToList();
             return soldStamps;
+        }
+        public async Task<List<Order_Line_Items_By_Order_Id>> GetSoldNopStampsViewAsync(string nopOrderId)
+        {
+            var sdf = await _orderLineItemsByOrderIdRepository.FindAllAsync(x => x.Order_Id == nopOrderId);
+            return sdf.ToList();
         }
         #endregion
     }

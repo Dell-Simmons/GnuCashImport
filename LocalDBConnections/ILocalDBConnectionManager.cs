@@ -1,6 +1,7 @@
 ﻿//using LocalDBConnections.CatValuesDB.DTOs;
 //using LocalDBConnections.StampDataDB.DTOs;
 using LocalDBConnections.StampDataDB.StampDataEntities;
+using LocalDBConnections.StampDataDB.StampdataEntities;
 //using SIDSUtilities48;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,8 @@ namespace LocalDBConnections
 {
     public interface ILocalDbConnectionManager
     {
-       
+        Task<List<Order_Line_Items_By_Order_Id>> GetSoldNopStampsViewAsync(string nopOrderId);
+
         #region Events
         // event EventHandler<MyEventArgs<string>> DataBaseTableChanged;
         #endregion

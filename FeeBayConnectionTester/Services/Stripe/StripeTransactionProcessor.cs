@@ -3,6 +3,7 @@ using FeeBayConnectionTester.DTO;
 using LocalDBConnections;
 using Stripe;
 using FeeBayConnectionTester.Extensions;
+using LocalDBConnections.StampDataDB.StampdataEntities;
 namespace FeeBayConnectionTester.Services.Stripe
 {
     public class StripeTransactionProcessor : IStripeTransactionProcessor
@@ -287,18 +288,19 @@ namespace FeeBayConnectionTester.Services.Stripe
             {
                 return 0m;
             }
-            var skus = await PullOutSkus(orderId); // Fixed: Create an instance of StripeCleaner to call the non-static method
-            foreach (var sku in skus)
+           // var skus = await PullOutSkus(orderId); // Fixed: Create an instance of StripeCleaner to call the non-static method
+           var orderLineItems = await PullOrderLineItems(orderId);
+            foreach (var oli in orderLineItems)
             {
                 // Extract the numeric part of the SKU
-                var singleStampCogs = _localDbConnectionManager.GetStampCOGS(sku);
+                var singleStampCogs = oli.Cost;//_localDbConnectionManager.GetStampCOGS(oli);
                 if (singleStampCogs == 0.0m)
                 {
-                    singleStampCogs = -(sellingPrice / 2);
+                    singleStampCogs = (oli.Sales_Price / 2);
                 }
                 else
                 {
-                    singleStampCogs = (decimal)-(singleStampCogs);
+                    singleStampCogs = (decimal)(singleStampCogs);
                 }
                 fullOrderCogs += (decimal)singleStampCogs;
             }
@@ -307,7 +309,16 @@ namespace FeeBayConnectionTester.Services.Stripe
 
         private async Task<List<string>> PullOutSkus(string NopOrderId)
         {
+            if (NopOrderId == "5060")
+            {
+                var lookit = await _localDbConnectionManager.GetSoldNopStampsViewAsync(NopOrderId);
+            }
+           
             return await _localDbConnectionManager.GetSoldNopStampsAsync(NopOrderId); // Use instance field `db` directly
+        }
+        private async Task<List<Order_Line_Items_By_Order_Id>> PullOrderLineItems(string nopOrderId)
+        {
+            return await _localDbConnectionManager.GetSoldNopStampsViewAsync(nopOrderId);
         }
         #endregion
     }
