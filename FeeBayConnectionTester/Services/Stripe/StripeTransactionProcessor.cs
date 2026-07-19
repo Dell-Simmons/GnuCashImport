@@ -35,7 +35,10 @@ namespace FeeBayConnectionTester.Services.Stripe
                     ToGnuCash stripeCOGSRecord = new();
                     ToGnuCash stripeInventoryRecord = new();
                     ToGnuCash stripeIncomingCashRecord = new();
-
+                    if (record.Description.Contains("5060"))
+                            {
+                                
+                            }
 
 
 
@@ -45,108 +48,109 @@ namespace FeeBayConnectionTester.Services.Stripe
                             //! This treats a refund as the exact opposite of a sale
                             //! May not be the correct way to do this
                            
-                            // subtract from Income
-                            stripeRefundRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            stripeRefundRecord.Account = "Income:DSD Website Sales:Stripe CC Sale";
-                            stripeRefundRecord.Description = $"NopCommerce {record.Description} refund";
-                            stripeRefundRecord.Amount = -record.Amount.Cents2Dollars();
-                            stripeRefundRecord.TransactionId = record.Id;
-                            stripeRefundRecord.SortOrder = 1;
-                            oneTransaction.Add(stripeRefundRecord);
+                            // // subtract from Income
+                            // stripeRefundRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
+                            // stripeRefundRecord.Account = "Income:DSD Website Sales:Stripe CC Sale";
+                            // stripeRefundRecord.Description = $"NopCommerce {record.Description} refund";
+                            // stripeRefundRecord.Amount = -record.Amount.Cents2Dollars();
+                            // stripeRefundRecord.TransactionId = record.Id;
+                            // stripeRefundRecord.SortOrder = 1;
+                            // oneTransaction.Add(stripeRefundRecord);
 
-                            // subtract from COGS
-                            stripeCOGSRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            stripeCOGSRecord.Account = "Expenses:Cost of Goods Sold";
-                            stripeCOGSRecord.Description = $"NopCommerce {record.Description}";// - Order GUID {record.OrderGuid}";
-                            stripeCOGSRecord.Amount = -(await MakeCogsForFullOrder(record));//Decimal.Parse(record.gross) / 2;
-                            stripeCOGSRecord.TransactionId = record.Id;
-                            stripeCOGSRecord.SortOrder = 2;
-                            oneTransaction.Add(stripeCOGSRecord);
+                            // // subtract from COGS
+                            // stripeCOGSRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
+                            // stripeCOGSRecord.Account = "Expenses:Cost of Goods Sold";
+                            // stripeCOGSRecord.Description = $"NopCommerce {record.Description}";// - Order GUID {record.OrderGuid}";
+                            // stripeCOGSRecord.Amount = -(await MakeCogsForFullOrder(record));//Decimal.Parse(record.gross) / 2;
+                            // stripeCOGSRecord.TransactionId = record.Id;
+                            // stripeCOGSRecord.SortOrder = 2;
+                            // oneTransaction.Add(stripeCOGSRecord);
 
-                            //put back into Inventory
-                            stripeInventoryRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            stripeInventoryRecord.Account = "Assets:INVENTORY";
-                            stripeInventoryRecord.Description = $"NopCommerce Order #{record.Description}";
-                            stripeInventoryRecord.Amount = stripeCOGSRecord.Amount;// Decimal.Parse(record.gross) / 2;
-                            stripeInventoryRecord.TransactionId = record.Id;
-                            stripeInventoryRecord.SortOrder = 3;
-                            oneTransaction.Add(stripeInventoryRecord);
+                            // //put back into Inventory
+                            // stripeInventoryRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
+                            // stripeInventoryRecord.Account = "Assets:INVENTORY";
+                            // stripeInventoryRecord.Description = $"NopCommerce Order #{record.Description}";
+                            // stripeInventoryRecord.Amount = stripeCOGSRecord.Amount;// Decimal.Parse(record.gross) / 2;
+                            // stripeInventoryRecord.TransactionId = record.Id;
+                            // stripeInventoryRecord.SortOrder = 3;
+                            // oneTransaction.Add(stripeInventoryRecord);
 
-                            // subtract original  //!Fees
-                            stripeFeeRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            stripeFeeRecord.Account = "Expenses:StripeCC Fees";
-                            stripeFeeRecord.Description = string.Empty;// $"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} Stripe Fee";
-                            stripeFeeRecord.Amount = record.Fee.Cents2Dollars();
-                            stripeFeeRecord.TransactionId = record.Id;
-                            stripeFeeRecord.SortOrder = 4;
-                            oneTransaction.Add(stripeFeeRecord);
+                            // // subtract original  //!Fees
+                            // stripeFeeRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
+                            // stripeFeeRecord.Account = "Expenses:StripeCC Fees";
+                            // stripeFeeRecord.Description = string.Empty;// $"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} Stripe Fee";
+                            // stripeFeeRecord.Amount = record.Fee.Cents2Dollars();
+                            // stripeFeeRecord.TransactionId = record.Id;
+                            // stripeFeeRecord.SortOrder = 4;
+                            // oneTransaction.Add(stripeFeeRecord);
 
                             break;
                         
                         case "charge":
-                            //// Add purchase to Income
-                            //stripeSalesRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            //stripeSalesRecord.Account = "Income:DSD Website Sales:Stripe CC Sale";
-                            //stripeSalesRecord.Description = $"NopCommerce {record.Description}";
-                            //stripeSalesRecord.Amount = record.Amount.Cents2Dollars();
-                            //stripeSalesRecord.TransactionId = record.Id;
-                            //stripeSalesRecord.SortOrder = 1;
-                            //oneTransaction.Add(stripeSalesRecord);
+                         
+                            // Add purchase to Income
+                            stripeSalesRecord.Date = DateOnly.FromDateTime(record.Created);
+                            stripeSalesRecord.Account = "Income:DSD Website Sales:Stripe CC Sale";
+                            stripeSalesRecord.Description = $"NopCommerce {record.Description}";
+                            stripeSalesRecord.Amount = record.Amount.Cents2Dollars();
+                            stripeSalesRecord.TransactionId = record.Id;
+                            stripeSalesRecord.SortOrder = 1;
+                            oneTransaction.Add(stripeSalesRecord);
 
-                            //// Add purchases to COGS
-                            //stripeCOGSRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            //stripeCOGSRecord.Account = "Expenses:Cost of Goods Sold";
-                            //stripeCOGSRecord.Description = $"NopCommerce {record.Description}";// - Order GUID {record.OrderGuid}";
-                            //stripeCOGSRecord.Amount = (await MakeCogsForFullOrder(record));//Decimal.Parse(record.gross) / 2;
-                            //stripeCOGSRecord.TransactionId = record.Id;
-                            //stripeCOGSRecord.SortOrder = 2;
-                            //oneTransaction.Add(stripeCOGSRecord);
+                            // Add purchases to COGS
+                            stripeCOGSRecord.Date = DateOnly.FromDateTime(record.Created);
+                            stripeCOGSRecord.Account = "Expenses:Cost of Goods Sold";
+                            stripeCOGSRecord.Description = string.Empty;//mmerce {record.Description}";// - Order GUID {record.OrderGuid}";
+                            stripeCOGSRecord.Amount = (await MakeCogsForFullOrder(record));//Decimal.Parse(record.gross) / 2;
+                            stripeCOGSRecord.TransactionId = record.Id;
+                            stripeCOGSRecord.SortOrder = 2;
+                            oneTransaction.Add(stripeCOGSRecord);
 
-                            //// now subtract the cost of the sold stuff from inventory
-                            //stripeInventoryRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            //stripeInventoryRecord.Account = "Assets:INVENTORY";
-                            //stripeInventoryRecord.Description = $"NopCommerce Order #{record.Description}";
-                            //stripeInventoryRecord.Amount = -stripeCOGSRecord.Amount;// Decimal.Parse(record.gross) / 2;
-                            //stripeInventoryRecord.TransactionId = record.Id;
-                            //stripeInventoryRecord.SortOrder = 3;
-                            //oneTransaction.Add(stripeInventoryRecord);
+                            // now subtract the cost of the sold stuff from inventory
+                            stripeInventoryRecord.Date = DateOnly.FromDateTime(record.Created);
+                            stripeInventoryRecord.Account = "Assets:INVENTORY";
+                            stripeInventoryRecord.Description = string.Empty;//$"NopCommerce Order #{record.Description}";
+                            stripeInventoryRecord.Amount = -stripeCOGSRecord.Amount;// Decimal.Parse(record.gross) / 2;
+                            stripeInventoryRecord.TransactionId = record.Id;
+                            stripeInventoryRecord.SortOrder = 3;
+                            oneTransaction.Add(stripeInventoryRecord);
 
-                            //// and add Stripe Processing Fees to Expences
-                            //stripeFeeRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            //stripeFeeRecord.Account = "Expenses:StripeCC Fees";
-                            //stripeFeeRecord.Description = string.Empty;// $"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} Stripe Fee";
-                            //stripeFeeRecord.Amount = -record.Fee.Cents2Dollars();
-                            //stripeFeeRecord.TransactionId = record.Id;
-                            //stripeFeeRecord.SortOrder = 4;
-                            //oneTransaction.Add(stripeFeeRecord);
+                            // and add Stripe Processing Fees to Expences
+                            stripeFeeRecord.Date = DateOnly.FromDateTime(record.Created);
+                            stripeFeeRecord.Account = "Expenses:StripeCC Fees";
+                            stripeFeeRecord.Description = string.Empty;// $"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} Stripe Fee";
+                            stripeFeeRecord.Amount = -record.Fee.Cents2Dollars();
+                            stripeFeeRecord.TransactionId = record.Id;
+                            stripeFeeRecord.SortOrder = 4;
+                            oneTransaction.Add(stripeFeeRecord);
 
-                            //// and put net income into the holding account for payout to  checking
-                            //stripeIncomingCashRecord.Date = DateOnly.FromDateTime(record.Created);
-                            //stripeIncomingCashRecord.Account = "Assets:Incoming Cash:website";
-                            //stripeIncomingCashRecord.Description = string.Empty;//$"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} XFER to Checking";
-                            //stripeIncomingCashRecord.Amount = record.Net.Cents2Dollars();
-                            //stripeIncomingCashRecord.TransactionId = record.Id;
-                            //stripeIncomingCashRecord.SortOrder = 5;
-                            //oneTransaction.Add(stripeIncomingCashRecord);
+                            // and put net income into the holding account for payout to  checking
+                            stripeIncomingCashRecord.Date = DateOnly.FromDateTime(record.Created);
+                            stripeIncomingCashRecord.Account = "Assets:Incoming Cash:website";
+                            stripeIncomingCashRecord.Description = string.Empty;//$"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} XFER to Checking";
+                            stripeIncomingCashRecord.Amount = record.Net.Cents2Dollars();
+                            stripeIncomingCashRecord.TransactionId = record.Id;
+                            stripeIncomingCashRecord.SortOrder = 5;
+                            oneTransaction.Add(stripeIncomingCashRecord);
                             break;
                         
                         case "payout":
-                            //Subtract from the holding account
-                            stripePayoutFromRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            stripePayoutFromRecord.Account = "Assets:Incoming Cash:website";
-                            stripePayoutFromRecord.Description = $"NopCommerce {record.Description} Payout";
-                            stripePayoutFromRecord.Amount = -record.Amount.Cents2Dollars();
-                            stripePayoutFromRecord.TransactionId = record.Id;
-                            stripePayoutFromRecord.SortOrder = 1;
-                            oneTransaction.Add(stripePayoutFromRecord);
+                            // //Subtract from the holding account
+                            // stripePayoutFromRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
+                            // stripePayoutFromRecord.Account = "Assets:Incoming Cash:website";
+                            // stripePayoutFromRecord.Description = $"NopCommerce {record.Description} Payout";
+                            // stripePayoutFromRecord.Amount = -record.Amount.Cents2Dollars();
+                            // stripePayoutFromRecord.TransactionId = record.Id;
+                            // stripePayoutFromRecord.SortOrder = 1;
+                            // oneTransaction.Add(stripePayoutFromRecord);
 
-                            stripePayoutToRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
-                            stripePayoutToRecord.Account = "Assets:Current Assets:TCCU Business Checking";
-                            stripePayoutToRecord.Description = string.Empty;//$"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} XFER to Checking";
-                            stripePayoutToRecord.Amount = record.Amount.Cents2Dollars();
-                            stripePayoutToRecord.TransactionId = record.Id;
-                            stripePayoutToRecord.SortOrder = 2;
-                            oneTransaction.Add(stripePayoutToRecord);
+                            // stripePayoutToRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
+                            // stripePayoutToRecord.Account = "Assets:Current Assets:TCCU Business Checking";
+                            // stripePayoutToRecord.Description = string.Empty;//$"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} XFER to Checking";
+                            // stripePayoutToRecord.Amount = record.Amount.Cents2Dollars();
+                            // stripePayoutToRecord.TransactionId = record.Id;
+                            // stripePayoutToRecord.SortOrder = 2;
+                            // oneTransaction.Add(stripePayoutToRecord);
                             break;
                         default:
                             break;
@@ -268,7 +272,11 @@ namespace FeeBayConnectionTester.Services.Stripe
 
         private async Task<decimal> MakeCogsForFullOrder(BalanceTransaction record)
         {
-            var sellingPrice = record.Amount;
+            if(record.Description.Contains("5060"))
+            {
+               // return 0.0m;
+            }
+            var sellingPrice = record.Amount.Cents2Dollars();
             decimal fullOrderCogs = 0.0m;
             if (sellingPrice == 130.0m)
             {
