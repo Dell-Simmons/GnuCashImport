@@ -308,9 +308,9 @@ namespace FeeBayConnectionTester
             var incomingOutputPath = $@"D:\Exports\stripe_IncomingData_{incomingTimestamp}.csv";
 
             // Sort by date for testing
-            stripeIncomingData = stripeIncomingData
-                .OrderBy(d => d.Date)
-                .ToList();
+            //stripeIncomingData = stripeIncomingData
+            //    .OrderBy(d => d.Date)
+            //    .ToList();
 
             CsvExporter.WriteIncomingDataToCsv(stripeIncomingData, incomingOutputPath);
             MessageBox.Show(

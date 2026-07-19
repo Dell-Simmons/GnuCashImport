@@ -1,4 +1,5 @@
-﻿using LocalDBConnections.StampDataDB.StampDataEntities;
+﻿using LocalDBConnections.StampDataDB.StampdataEntities;
+using LocalDBConnections.StampDataDB.StampDataEntities;
 using LocalDBConnections.StampDataDB.StampDataRepositories;
 using MicroOrm.Dapper.Repositories.SqlGenerator;
 using System;
@@ -25,6 +26,13 @@ namespace LocalDBConnections
             _feeBaySigningKeysRepository = CreateFeeBaySigningKeysRepository(_stampDataConnection);
             _simpleFinAccessTokenRepository = CreateSimpleFinAccessTokenRepository(_stampDataConnection);
             _stampRepository = CreateFeeBayStampRepository(_stampDataConnection);
+            _orderLineItemsRepository = CreateOrderLineItemsRepository(_stampDataConnection);
+        }
+
+        private ORDER_LINE_ITEMSRepository? CreateOrderLineItemsRepository(string stampDataConnection)
+        {
+            IDbConnection dbConnection = new SqlConnection(stampDataConnection);
+            return new ORDER_LINE_ITEMSRepository(dbConnection, new SqlGenerator<ORDER_LINE_ITEM>());//, new SqlGenerator<FeeBaySigningKeys>());
         }
 
         private StampRepository CreateFeeBayStampRepository(string stampDataConnection)
@@ -138,7 +146,7 @@ namespace LocalDBConnections
 
         public async Task<List<string>> GetSoldNopStampsAsync(string nopOrderId)
         {
-            var orderItems = _orderLineItemsRepository.FindAllAsync(x => x.Order_Id == nopOrderId).Result;
+            var orderItems = await _orderLineItemsRepository.FindAllAsync(x => x.Order_Id == nopOrderId);
             var soldStamps = orderItems.Select(x => x.SKU).ToList();
             return soldStamps;
         }
