@@ -85,7 +85,7 @@ namespace FeeBayConnectionTester.Services
                     EscapeCsvField(row.Date.ToString()),
                     EscapeCsvField(row.Account),
                     EscapeCsvField(row.Description),
-                    EscapeCsvField(row.Amount.ToString()),
+                    EscapeCsvField(row.Amount.ToString("F2",System.Globalization.CultureInfo.InvariantCulture)),
                     EscapeCsvField(row.TransactionId),
                     EscapeCsvField(row.SortOrder.ToString())
                     // EscapeCsvField(row.Below_standard_performance_fee),

@@ -4,6 +4,7 @@ using LocalDBConnections;
 using Stripe;
 using FeeBayConnectionTester.Extensions;
 using LocalDBConnections.StampDataDB.StampdataEntities;
+using Org.BouncyCastle.Math.EC.Rfc7748;
 namespace FeeBayConnectionTester.Services.Stripe
 {
     public class StripeTransactionProcessor : IStripeTransactionProcessor
@@ -41,10 +42,7 @@ namespace FeeBayConnectionTester.Services.Stripe
                           //      continue;
                             }
 
-                    var orderId = Regex.Matches(record.Description, @"\d+").FirstOrDefault()?.Value ?? string.Empty;
-                    var orderLineItems = await PullOrderLineItems(orderId);
-                    foreach (var oli in orderLineItems)
-                    {
+                  
                         switch (record.ReportingCategory)
                         {
                             case "refund":
@@ -90,11 +88,16 @@ namespace FeeBayConnectionTester.Services.Stripe
                                 break;
 
                             case "charge":
-
+                                var orderId = Regex.Matches(record.Description, @"\d+").FirstOrDefault()?.Value ?? string.Empty;
+                                var orderLineItems = await PullOrderLineItems(orderId);
+                                bool totalsMatch = CheckOrderTotals(orderLineItems, record);
+                            if (!totalsMatch)
+                            {
+                                MessageBox.Show($"Order {orderId} Totals don't match!");
                                 // Add purchase to Income
                                 stripeSalesRecord.Date = DateOnly.FromDateTime(record.Created);
                                 stripeSalesRecord.Account = "Income:DSD Website Sales:Stripe CC Sale";
-                                stripeSalesRecord.Description = $"NopCommerce {record.Description}";
+                                stripeSalesRecord.Description = $"NopCommerce {record.Description} Line Items not available";
                                 stripeSalesRecord.Amount = record.Amount.Cents2Dollars();
                                 stripeSalesRecord.TransactionId = record.Id;
                                 stripeSalesRecord.SortOrder = 1;
@@ -113,7 +116,6 @@ namespace FeeBayConnectionTester.Services.Stripe
                                 stripeInventoryRecord.Date = DateOnly.FromDateTime(record.Created);
                                 stripeInventoryRecord.Account = "Assets:INVENTORY";
                                 stripeInventoryRecord.Description = string.Empty;//$"NopCommerce Order #{record.Description}";
-                                                                                 // stripeCOGSRecord is already negative, so this is a positive number to add back to inventory
                                 stripeInventoryRecord.Amount = -stripeCOGSRecord.Amount;// Decimal.Parse(record.gross) / 2;
                                 stripeInventoryRecord.TransactionId = record.Id;
                                 stripeInventoryRecord.SortOrder = 3;
@@ -136,8 +138,59 @@ namespace FeeBayConnectionTester.Services.Stripe
                                 stripeIncomingCashRecord.TransactionId = record.Id;
                                 stripeIncomingCashRecord.SortOrder = 5;
                                 oneTransaction.Add(stripeIncomingCashRecord);
-                                break;
+                                continue;
+                            }
+                            foreach (var oli in orderLineItems)
+                                {
+                                   // decimal proRatedAmount = ProRateAmount(oli, record);
+                                    // Add purchase to Income
+                                    stripeSalesRecord.Date = DateOnly.FromDateTime(record.Created);
+                                    stripeSalesRecord.Account = "Income:DSD Website Sales:Stripe CC Sale";
+                                    stripeSalesRecord.Description = $"NopCommerce {record.Description} SKU {oli.SKU}";
+                                    stripeSalesRecord.Amount = ProRateAmount(oli,record);// record.Amount.Cents2Dollars();
+                                    stripeSalesRecord.TransactionId = record.Id;
+                                    stripeSalesRecord.SortOrder = 1;
+                                    oneTransaction.Add(stripeSalesRecord);
 
+                                    // Add purchases to //!COGS
+                                    stripeCOGSRecord.Date = DateOnly.FromDateTime(record.Created);
+                                    stripeCOGSRecord.Account = "Expenses:Cost of Goods Sold";
+                                    stripeCOGSRecord.Description = string.Empty;//mmerce {record.Description}";// - Order GUID {record.OrderGuid}";
+                                    stripeCOGSRecord.Amount = -MakeCogsForLineItem(oli);// (await MakeCogsForFullOrder(record));//Decimal.Parse(record.gross) / 2;
+                                    stripeCOGSRecord.TransactionId = record.Id;
+                                    stripeCOGSRecord.SortOrder = 2;
+                                    oneTransaction.Add(stripeCOGSRecord);
+
+                                    // now subtract from //!inventory
+                                    stripeInventoryRecord.Date = DateOnly.FromDateTime(record.Created);
+                                    stripeInventoryRecord.Account = "Assets:INVENTORY";
+                                    stripeInventoryRecord.Description = string.Empty;//$"NopCommerce Order #{record.Description}";
+                                    stripeInventoryRecord.Amount = -MakeCogsForLineItem(oli);// -stripeCOGSRecord.Amount;// Decimal.Parse(record.gross) / 2;
+                                    stripeInventoryRecord.TransactionId = record.Id;
+                                    stripeInventoryRecord.SortOrder = 3;
+                                    oneTransaction.Add(stripeInventoryRecord);
+
+                                    // and add Stripe Processing Fees to Expences
+                                    stripeFeeRecord.Date = DateOnly.FromDateTime(record.Created);
+                                    stripeFeeRecord.Account = "Expenses:StripeCC Fees";
+                                    stripeFeeRecord.Description = string.Empty;// $"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} Stripe Fee";
+                                    stripeFeeRecord.Amount = -ProRateFee(oli, record);// record.Fee.Cents2Dollars();
+                                    stripeFeeRecord.TransactionId = record.Id;
+                                    stripeFeeRecord.SortOrder = 4;
+                                    oneTransaction.Add(stripeFeeRecord);
+
+                                    // and put net income into the holding account for payout to  checking
+                                    stripeIncomingCashRecord.Date = DateOnly.FromDateTime(record.Created);
+                                    stripeIncomingCashRecord.Account = "Assets:Incoming Cash:website";
+                                    stripeIncomingCashRecord.Description = string.Empty;//$"NopCommerce Order #{record.Description} - Order GUID {record.OrderGuid} XFER to Checking";
+                                    stripeIncomingCashRecord.Amount = oli.Sales_Price;// -record.Net.Cents2Dollars();
+                                    stripeIncomingCashRecord.TransactionId = record.Id;
+                                    stripeIncomingCashRecord.SortOrder = 5;
+                                    oneTransaction.Add(stripeIncomingCashRecord);
+                                continue;
+                              
+                                } 
+                            break;
                             case "payout":
                                 //Subtract from the holding account
                                 stripePayoutFromRecord.Date = DateOnly.FromDateTime(record.AvailableOn);
@@ -159,7 +212,7 @@ namespace FeeBayConnectionTester.Services.Stripe
                             default:
                                 break;
                         } 
-                    }
+                    
                 }
 
                 cleanedRecords.AddRange(from o in oneTransaction orderby o.SortOrder select o);
@@ -167,8 +220,37 @@ namespace FeeBayConnectionTester.Services.Stripe
             return cleanedRecords;
         }
 
-    
-        
+        private decimal ProRateFee(Order_Line_Items_By_Order_Id oli, BalanceTransaction record)
+        {
+            decimal totalFee = record.Fee;
+            decimal totalSale = record.Amount;
+            decimal lineItemPrice = oli.Sales_Price;
+            decimal prf = totalFee * (lineItemPrice / totalSale);
+            return prf;
+        }
+
+        private decimal MakeCogsForLineItem(Order_Line_Items_By_Order_Id oli)
+        {
+           if(oli.Cost == 0)
+            {
+                oli.Cost = oli.Sales_Price / 2;
+            }
+           return oli.Cost;
+        }
+
+        private decimal ProRateAmount(Order_Line_Items_By_Order_Id oli, BalanceTransaction record)
+        {
+            decimal lineItemSalesPrice = oli.Sales_Price;
+            decimal totalSale = record.Amount.Cents2Dollars();
+            return lineItemSalesPrice / totalSale;
+        }
+
+        private bool CheckOrderTotals(List<Order_Line_Items_By_Order_Id> orderLineItems, BalanceTransaction record)
+        {
+            if (orderLineItems == null || orderLineItems.Count == 0) return false;
+            var orderLineItemsTotalSale = orderLineItems.Sum(x => x.Sales_Price);// ?? 0m;
+            return orderLineItemsTotalSale == record.Amount.Cents2Dollars();
+        }
 
         private async Task<decimal> MakeCogsForFullOrder(BalanceTransaction record)
         {
