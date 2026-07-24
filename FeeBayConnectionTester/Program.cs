@@ -43,6 +43,7 @@ namespace FeeBayConnectionTester
                     services.AddSingleton<SimpleFin.SimpleFinClient>();
 
                     services.AddSingleton<StripeCCProcessor.StripeCCProcessorClient>();
+                    services.AddSingleton<ShippoMailingLabels.ShippoMailingLabelClient>();
                     // Register EbaySharp
                     services.AddSingleton<Func<string, EbaySharp.Controllers.EbayController>>(_ =>
                         accessToken => new EbaySharp.Controllers.EbayController(accessToken));
@@ -55,6 +56,7 @@ namespace FeeBayConnectionTester
                     services.AddScoped<IFeeBayTransactionProcessor, FeeBayTransactionProcessor>();
                     services.AddScoped<ISimpleFinTransactionProcessor,SimpleFinTransactionProcessor>();
                     services.AddScoped<IStripeTransactionProcessor, StripeTransactionProcessor>();
+                  
                 });
         }
     }

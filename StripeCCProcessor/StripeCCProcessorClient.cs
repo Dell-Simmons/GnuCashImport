@@ -7,20 +7,7 @@ namespace StripeCCProcessor
 {
     public class StripeCCProcessorClient
     {
-        public static async Task Run()
-        {
-            var apiKey = Environment.GetEnvironmentVariable("STRIPE_API_KEY");
-
-            try
-            {
-                var client = new StripeClient(apiKey);
-                Console.WriteLine(await client.V1.Customers.ListAsync());
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-        }
+      
 
         public async Task<List<Stripe.BalanceTransaction>> PullSalesAsync(DateTime startDate, DateTime endDate, string stripeSecretKey)
         {

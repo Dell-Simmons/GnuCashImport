@@ -29,10 +29,11 @@
         private void InitializeComponent()
         {
             btnFeeBay = new Button();
-            btnSimpleFin = new Button();
+            btnSparkCC = new Button();
             btnStripe = new Button();
             btnShippo = new Button();
             button1 = new Button();
+            btnPeakCU = new Button();
             SuspendLayout();
             // 
             // btnFeeBay
@@ -45,19 +46,19 @@
             btnFeeBay.UseVisualStyleBackColor = true;
             btnFeeBay.Click += btnFeeBay_Click;
             // 
-            // btnSimpleFin
+            // btnSparkCC
             // 
-            btnSimpleFin.Location = new Point(472, 150);
-            btnSimpleFin.Name = "btnSimpleFin";
-            btnSimpleFin.Size = new Size(169, 94);
-            btnSimpleFin.TabIndex = 1;
-            btnSimpleFin.Text = "Peak CU\r\nSpark CC\r\n";
-            btnSimpleFin.UseVisualStyleBackColor = true;
-            btnSimpleFin.Click += btnSimpleFin_Click;
+            btnSparkCC.Location = new Point(472, 150);
+            btnSparkCC.Name = "btnSparkCC";
+            btnSparkCC.Size = new Size(169, 94);
+            btnSparkCC.TabIndex = 1;
+            btnSparkCC.Text = "Spark CC\r\n";
+            btnSparkCC.UseVisualStyleBackColor = true;
+            btnSparkCC.Click += btnSimpleFin_Click;
             // 
             // btnStripe
             // 
-            btnStripe.Location = new Point(472, 278);
+            btnStripe.Location = new Point(453, 389);
             btnStripe.Name = "btnStripe";
             btnStripe.Size = new Size(169, 94);
             btnStripe.TabIndex = 2;
@@ -67,12 +68,13 @@
             // 
             // btnShippo
             // 
-            btnShippo.Location = new Point(472, 398);
+            btnShippo.Location = new Point(34, 311);
             btnShippo.Name = "btnShippo";
             btnShippo.Size = new Size(169, 94);
             btnShippo.TabIndex = 3;
             btnShippo.Text = "Shippo";
             btnShippo.UseVisualStyleBackColor = true;
+            btnShippo.Visible = false;
             btnShippo.Click += btnShippo_Click;
             // 
             // button1
@@ -85,15 +87,26 @@
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
             // 
+            // btnPeakCU
+            // 
+            btnPeakCU.Location = new Point(472, 263);
+            btnPeakCU.Name = "btnPeakCU";
+            btnPeakCU.Size = new Size(169, 94);
+            btnPeakCU.TabIndex = 5;
+            btnPeakCU.Text = "Peak CU";
+            btnPeakCU.UseVisualStyleBackColor = true;
+            btnPeakCU.Click += btnPeakCU_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 573);
+            Controls.Add(btnPeakCU);
             Controls.Add(button1);
             Controls.Add(btnShippo);
             Controls.Add(btnStripe);
-            Controls.Add(btnSimpleFin);
+            Controls.Add(btnSparkCC);
             Controls.Add(btnFeeBay);
             Font = new Font("Segoe UI", 12F);
             Name = "Form1";
@@ -105,9 +118,10 @@
         #endregion
 
         private Button btnFeeBay;
-        private Button btnSimpleFin;
+        private Button btnSparkCC;
         private Button btnStripe;
         private Button btnShippo;
         private Button button1;
+        private Button btnPeakCU;
     }
 }

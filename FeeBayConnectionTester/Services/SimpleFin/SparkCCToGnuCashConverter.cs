@@ -23,7 +23,7 @@ namespace SimpleFin
                     sparkCCLiabilityRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime);// (record.PostedDate);
                     sparkCCLiabilityRecord.Account = "Credit Card Liabilities:Spark Business Credit Card";
                     sparkCCLiabilityRecord.Description = record.Description;
-                    sparkCCLiabilityRecord.Amount = record.Amount;
+                    sparkCCLiabilityRecord.Amount = -record.Amount;
                     sparkCCLiabilityRecord.SortOrder = 1;
                     sparkCCLiabilityRecord.TransactionId = record.TransactionId;
                     oneTransaction.Add(sparkCCLiabilityRecord);
@@ -32,7 +32,7 @@ namespace SimpleFin
                     sparkCCExpenseRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime   );
                     sparkCCExpenseRecord.Account = SetCorrectExpenseAccount(record.Description);
                     sparkCCExpenseRecord.Description = record.Description;
-                    sparkCCExpenseRecord.Amount = -(record.Amount );
+                    sparkCCExpenseRecord.Amount = (record.Amount );
                     sparkCCExpenseRecord.TransactionId = record.TransactionId;
                     sparkCCExpenseRecord.SortOrder = 2;
                     oneTransaction.Add(sparkCCExpenseRecord);

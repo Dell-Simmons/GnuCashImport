@@ -25,6 +25,7 @@
     <ProjectReference Include="..\EbaySharp\EbaySharp.csproj" />
     <ProjectReference Include="..\FeeBayOAuth.TokenFactory\FeeBayOAuth.TokenService.csproj" />
     <ProjectReference Include="..\LocalDBConnections\LocalDBConnections.csproj" />
+    <ProjectReference Include="..\ShippoMailingLabels\ShippoMailingLabels.csproj" />
     <ProjectReference Include="..\SimpleFin\SimpleFin.csproj" />
     <ProjectReference Include="..\StripeCCProcessor\StripeCCProcessor.csproj" />
   </ItemGroup>

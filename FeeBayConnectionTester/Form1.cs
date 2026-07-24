@@ -24,6 +24,7 @@ namespace FeeBayConnectionTester
         private readonly IFeeBayTransactionProcessor _feeBayTransactionProcessor;
         private readonly ILocalDbConnectionManager _localDbConnectionManager;
         private readonly IOAuthTokenService _oAuthTokenService;
+        private readonly ShippoMailingLabels.ShippoMailingLabelClient _shippoMailingLabelClient;
         private readonly SimpleFin.SimpleFinClient _simpleFinClient;
         private readonly ISimpleFinTransactionProcessor _simpleFinTransactionProcessor;
         private readonly StripeCCProcessor.StripeCCProcessorClient _stripeCCProcessor;
@@ -41,7 +42,8 @@ namespace FeeBayConnectionTester
             IFeeBayTransactionProcessor transactionProcessor,
             ISimpleFinTransactionProcessor simpleFinTransactionProcessor,
             StripeCCProcessor.StripeCCProcessorClient stripeCCProcessor,
-            IStripeTransactionProcessor stripeTransactionProcessor)
+            IStripeTransactionProcessor stripeTransactionProcessor,
+            ShippoMailingLabels.ShippoMailingLabelClient shippoMailingLabelClient)
         {
             InitializeComponent();
             _oAuthTokenService = oAuthTokenFactory;
@@ -52,29 +54,33 @@ namespace FeeBayConnectionTester
             _simpleFinTransactionProcessor = simpleFinTransactionProcessor;
             _stripeCCProcessor = stripeCCProcessor;
             _stripeTransactionProcessor = stripeTransactionProcessor;
+            _shippoMailingLabelClient = shippoMailingLabelClient;
         }
         #endregion
 
         #region Event handlers
         #region
-        private async void btnFeeBay_Click(object sender, EventArgs e) => await ProcessFeeBayTransactions();
+        private async void btnFeeBay_Click(object sender, EventArgs e) { await ProcessFeeBayTransactions(); }
         #endregion
 
         #region
-        private void btnShippo_Click(object sender, EventArgs e) => ProcessShippoTransactions();
-        private void ProcessShippoTransactions() => throw new NotImplementedException();
+        private async void btnPeakCU_Click(object sender, EventArgs e) { await ProcessPeakCUTransactions(); }
         #endregion
 
         #region
-        private async void btnSimpleFin_Click(object sender, EventArgs e) => await ProcessSimpleFinTransactions();
+        private async void btnShippo_Click(object sender, EventArgs e) { await ProcessShippoTransactions(); }
         #endregion
 
         #region
-        private async void btnStripe_Click(object sender, EventArgs e) => await ProcessStripeTransactions();
+        private async void btnSimpleFin_Click(object sender, EventArgs e) { await ProcessSparkCCTransactions(); }
         #endregion
 
         #region
-        private void button1_Click(object sender, EventArgs e) => throw new NotImplementedException();
+        private async void btnStripe_Click(object sender, EventArgs e) { await ProcessStripeTransactions(); }
+        #endregion
+
+        #region
+        private void button1_Click(object sender, EventArgs e) { throw new NotImplementedException(); }
         #endregion
 
         #region
@@ -88,7 +94,7 @@ namespace FeeBayConnectionTester
         #region Public Methods
         // Methods
         // Public Methods
-        public static string ToEbayDate(DateTime dateTime) => dateTime.ToUniversalTime().ToString("o");
+        public static string ToEbayDate(DateTime dateTime) { return dateTime.ToUniversalTime().ToString("o"); }
         #endregion
 
         #region Private Methods
@@ -256,7 +262,21 @@ namespace FeeBayConnectionTester
                 MessageBoxIcon.Information);
         }
 
-        private async Task ProcessSimpleFinTransactions()
+     
+
+        private async Task ProcessShippoTransactions()
+        {
+            var shippoAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Shippo_Token");
+            string shippoSecretKey = shippoAccessToken.AccessToken;
+            _shippoMailingLabelClient.PullShippoMailingLabelPurchases(shippoSecretKey);
+        }
+
+        private async Task ProcessPeakCUTransactions()
+        {
+            string businessCheckingId = "ACT-889f0bab-1c17-4dba-b790-21c3facbc0e6";
+        }
+
+        private async Task ProcessSparkCCTransactions()
         {
             AccountResponse accountResponse = await PullSimpleFinTransactions();
             var SparkCCTransactions = accountResponse.Accounts.FirstOrDefault(a => a.Name == "Spark Cash Select (4742)")?.Transactions ??
@@ -284,7 +304,7 @@ namespace FeeBayConnectionTester
                 .ToList();
 
             CsvExporter.WriteIncomingDataToCsv(sparkCCIncomingData, incomingSparkCCOutputPath);
-            CsvExporter.WriteIncomingDataToCsv(peakCUIncomingData, incomingSparkCCOutputPath);
+            // CsvExporter.WriteIncomingDataToCsv(peakCUIncomingData, incomingSparkCCOutputPath);
 
             //MessageBox.Show(
             //    $"Successfully exported {sparkCCIncomingData.Count} incoming rows to:\n\n{incomingSparkCCOutputPath}",
@@ -295,7 +315,7 @@ namespace FeeBayConnectionTester
 
         private async Task ProcessStripeTransactions()
         {
-           // string stripeSecretKey = "sk_live_25nKeitLKW2tgf6CTLDJWoNc";
+            // string stripeSecretKey = "sk_live_25nKeitLKW2tgf6CTLDJWoNc";
             var stripeAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Stripe_Secret");
             string stripeSecretKey = stripeAccessToken.AccessToken;
             DateTime startDate = DateTime.Now.AddMonths(-8);
@@ -338,9 +358,9 @@ namespace FeeBayConnectionTester
             var signingKey = await GetOrCreateSigningKey(_eBayController);
 
             // Define date filters
-            string payOutsFilter = "payoutDate:[2026-01-01T00:00:00.000Z..2026-02-14T23:59:59.999Z]";
-            string transactionsFilter = "transactionDate:[2025-12-25T00:00:00.000Z..2026-02-14T23:59:59.000Z]";
-            string ordersFilter = "creationdate:[2025-12-25T00:00:00.000Z..2026-02-14T23:59:59.999Z]";
+            string payOutsFilter = "payoutDate:[2026-04-01T00:00:00.000Z..2026-05-14T23:59:59.999Z]";
+            string transactionsFilter = "transactionDate:[2025-03-25T00:00:00.000Z..2026-05-14T23:59:59.000Z]";
+            string ordersFilter = "creationdate:[2025-03-25T00:00:00.000Z..2026-05-14T23:59:59.999Z]";
 
             // Fetch all data
             var payoutList = await GetAllPayOutsPaginated(payOutsFilter, limit: 50);
@@ -350,8 +370,6 @@ namespace FeeBayConnectionTester
             return (payoutList, transactionList, orderList);
         }
 
-        // Private Methods
-        // SimpleFin Data Retrieval
         private async Task<AccountResponse> PullSimpleFinTransactions()
         {
             SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();

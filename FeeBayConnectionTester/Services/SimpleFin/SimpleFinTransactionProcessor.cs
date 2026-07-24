@@ -28,7 +28,7 @@ namespace FeeBayConnectionTester.Services.SimpleFin
                     sparkCCLiabilityRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime);// (record.PostedDate);
                     sparkCCLiabilityRecord.Account = "Credit Card Liabilities:Spark Business Credit Card";
                     sparkCCLiabilityRecord.Description = record.Description;
-                    sparkCCLiabilityRecord.Amount = record.Amount;
+                    sparkCCLiabilityRecord.Amount = -record.Amount;
                     sparkCCLiabilityRecord.SortOrder = 1;
                     sparkCCLiabilityRecord.TransactionId = record.TransactionId;
                     oneTransaction.Add(sparkCCLiabilityRecord);
@@ -37,7 +37,7 @@ namespace FeeBayConnectionTester.Services.SimpleFin
                     sparkCCExpenseRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime);
                     sparkCCExpenseRecord.Account = SetCorrectExpenseAccount(record.Description);
                     sparkCCExpenseRecord.Description = record.Description;
-                    sparkCCExpenseRecord.Amount = -(record.Amount);
+                    sparkCCExpenseRecord.Amount = (record.Amount);
                     sparkCCExpenseRecord.TransactionId = record.TransactionId;
                     sparkCCExpenseRecord.SortOrder = 2;
                     oneTransaction.Add(sparkCCExpenseRecord);
@@ -69,7 +69,7 @@ namespace FeeBayConnectionTester.Services.SimpleFin
                     sparkCCCreditRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime);
                     sparkCCCreditRecord.Account = "Credit Card Liabilities:Spark Business Credit Card";
                     sparkCCCreditRecord.Description = record.Description;
-                    sparkCCCreditRecord.Amount = record.Amount;
+                    sparkCCCreditRecord.Amount = -record.Amount;
                     sparkCCCreditRecord.TransactionId = record.TransactionId;
                     sparkCCCreditRecord.SortOrder = 1;
                     oneTransaction.Add(sparkCCCreditRecord);
@@ -78,7 +78,7 @@ namespace FeeBayConnectionTester.Services.SimpleFin
                     sparkCCIncomeRecord.Date = DateOnly.FromDateTime(record.PostedDate.DateTime);
                     sparkCCIncomeRecord.Account = "TCCU Business Checking";
                     sparkCCIncomeRecord.Description = record.Description;
-                    sparkCCIncomeRecord.Amount = -record.Amount;
+                    sparkCCIncomeRecord.Amount = record.Amount;
                     sparkCCIncomeRecord.TransactionId = record.TransactionId;
                     sparkCCIncomeRecord.SortOrder = 2;
                     oneTransaction.Add(sparkCCIncomeRecord);

@@ -62,11 +62,11 @@
         string businessVisaId = "ACT-695f807d-f9f6-48b3-986a-b0ad3f177d74";
             string sparkBusinessCC = "ACT-fe0b66ca-58d4-40fe-8620-7352f97ebcca";
            long startDate = new DateTimeOffset(
-                new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc))
+                new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc))
                 .ToUnixTimeSeconds();
 
             long endDate = new DateTimeOffset(
-                new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc))
+                new DateTime(2026, 7, 20, 0, 0, 0, DateTimeKind.Utc))
                 .ToUnixTimeSeconds();
 
             string apiUrl = 
