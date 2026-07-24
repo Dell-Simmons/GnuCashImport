@@ -266,51 +266,79 @@ namespace FeeBayConnectionTester
 
         private async Task ProcessShippoTransactions()
         {
-            var shippoAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Shippo_Token");
-            string shippoSecretKey = shippoAccessToken.AccessToken;
-            _shippoMailingLabelClient.PullShippoMailingLabelPurchases(shippoSecretKey);
+            throw new NotImplementedException();
+            // really no need to do this since we are not using Shippo for anything other than shipping labels,
+            // but if you want to pull the data from Shippo, you can use the following code:   
+            // var shippoAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Shippo_Token");
+            // string shippoSecretKey = shippoAccessToken.AccessToken;
+            // _shippoMailingLabelClient.PullShippoMailingLabelPurchases(shippoSecretKey);
         }
 
         private async Task ProcessPeakCUTransactions()
         {
             string businessCheckingId = "ACT-889f0bab-1c17-4dba-b790-21c3facbc0e6";
+            SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
+            if(simpleFinAccessToken == null)
+            {
+                MessageBox.Show(
+                    "Unable to acquire SimpleFIN access token for Peak CU.",
+                    "Authentication Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+            AccountResponse peakCUTransactions= 
+                await SimpleFin.SimpleFinClient.FetchAccountDataAsync(
+                    simpleFinAccessToken.AccessToken, businessCheckingId);
+            List<ToGnuCash> peakCUIncomingData =
+            await _simpleFinTransactionProcessor.ProcessPeakCuTransactionsAsync(
+                peakCUTransactions.Accounts.First().Transactions);
+
+            var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var incomingPeakCUOutputPath = $@"D:\Exports\PeakCU_IncomingData_{incomingTimestamp}.csv";
+             // Sort by date for testing
+            peakCUIncomingData = peakCUIncomingData
+                .OrderBy(d => d.Date)
+                .ToList();
+           
+            CsvExporter.WriteIncomingDataToCsv(peakCUIncomingData, incomingPeakCUOutputPath);
+            MessageBox.Show(
+               $"Successfully exported {peakCUIncomingData.Count} incoming rows to:\n\n{incomingPeakCUOutputPath}",
+               "Incoming Data Export Successful",
+               MessageBoxButtons.OK,
+               MessageBoxIcon.Information);
         }
 
         private async Task ProcessSparkCCTransactions()
         {
-            AccountResponse accountResponse = await PullSimpleFinTransactions();
-            var SparkCCTransactions = accountResponse.Accounts.FirstOrDefault(a => a.Name == "Spark Cash Select (4742)")?.Transactions ??
-                new List<SimpleFinTransaction>();
-            var PeakCUTransactions = accountResponse.Accounts.FirstOrDefault(a => a.Name == "Business Checking (3904)")?.Transactions ??
-                new List<SimpleFinTransaction>();
+                  string sparkBusinessCC = "ACT-fe0b66ca-58d4-40fe-8620-7352f97ebcca";
+      
+            SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
+            
+            AccountResponse sparkCCTransactions = await SimpleFin.SimpleFinClient.FetchAccountDataAsync(
+                simpleFinAccessToken.AccessToken, sparkBusinessCC);
+           
 
             List<ToGnuCash> sparkCCIncomingData =
-            await _simpleFinTransactionProcessor.ProcessSparkCCTransactionsAsync(SparkCCTransactions);
+            await _simpleFinTransactionProcessor.ProcessSparkCCTransactionsAsync(
+                sparkCCTransactions.Accounts.First().Transactions);
 
-            List<ToGnuCash> peakCUIncomingData =
-            await _simpleFinTransactionProcessor.ProcessPeakCuTransactionsAsync(PeakCUTransactions);
-
+         
             var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var incomingSparkCCOutputPath = $@"D:\Exports\SparkCC_IncomingData_{incomingTimestamp}.csv";
-            var incomingPeakCUOutputPath = $@"D:\Exports\PeakCU_IncomingData_{incomingTimestamp}.csv";
-
+         
             // Sort by date for testing
             sparkCCIncomingData = sparkCCIncomingData
                 .OrderBy(d => d.Date)
                 .ToList();
 
-            peakCUIncomingData = peakCUIncomingData
-                .OrderBy(d => d.Date)
-                .ToList();
-
             CsvExporter.WriteIncomingDataToCsv(sparkCCIncomingData, incomingSparkCCOutputPath);
-            // CsvExporter.WriteIncomingDataToCsv(peakCUIncomingData, incomingSparkCCOutputPath);
-
-            //MessageBox.Show(
-            //    $"Successfully exported {sparkCCIncomingData.Count} incoming rows to:\n\n{incomingSparkCCOutputPath}",
-            //    "Incoming Data Export Successful",
-            //    MessageBoxButtons.OK,
-            //    MessageBoxIcon.Information);
+         
+            MessageBox.Show(
+               $"Successfully exported {sparkCCIncomingData.Count} incoming rows to:\n\n{incomingSparkCCOutputPath}",
+               "Incoming Data Export Successful",
+               MessageBoxButtons.OK,
+               MessageBoxIcon.Information);
         }
 
         private async Task ProcessStripeTransactions()
@@ -373,7 +401,7 @@ namespace FeeBayConnectionTester
         private async Task<AccountResponse> PullSimpleFinTransactions()
         {
             SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
-            return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken);
+            return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken,string.Empty);
         }
         #endregion
         #endregion
