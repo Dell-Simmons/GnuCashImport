@@ -25,7 +25,6 @@ namespace FeeBayConnectionTester
         private readonly IFeeBayTransactionProcessor _feeBayTransactionProcessor;
         private readonly ILocalDbConnectionManager _localDbConnectionManager;
         private readonly IOAuthTokenService _oAuthTokenService;
-        private readonly ShippoMailingLabels.ShippoMailingLabelClient _shippoMailingLabelClient;
         private readonly SimpleFin.SimpleFinClient _simpleFinClient;
         private readonly ISparkCCTransactionProcessor _sparkCCTransactionProcessor;
         private readonly IPeakCUTransactionProcessor _peakCUTransactionProcessor;
@@ -45,8 +44,7 @@ namespace FeeBayConnectionTester
             ISparkCCTransactionProcessor sparkCCTransactionProcessor,
             IPeakCUTransactionProcessor peakCUTransactionProcessor,
             StripeCCProcessor.StripeCCProcessorClient stripeCCProcessor,
-            IStripeTransactionProcessor stripeTransactionProcessor,
-            ShippoMailingLabels.ShippoMailingLabelClient shippoMailingLabelClient)
+            IStripeTransactionProcessor stripeTransactionProcessor)
         {
             InitializeComponent();
             _oAuthTokenService = oAuthTokenFactory;
@@ -58,7 +56,6 @@ namespace FeeBayConnectionTester
             _peakCUTransactionProcessor = peakCUTransactionProcessor;
             _stripeCCProcessor = stripeCCProcessor;
             _stripeTransactionProcessor = stripeTransactionProcessor;
-            _shippoMailingLabelClient = shippoMailingLabelClient;
         }
         #endregion
 
