@@ -1,24 +1,14 @@
-using EbaySharp.Entities.Develop.SellingApps.OrderManagement.Fulfillment.Order;
 using FeeBayConnectionTester.DTO;
-using LocalDBConnections;
-using SimpleFin;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using SimpleFin.SimpleFinDTO;
 
 namespace FeeBayConnectionTester.Services.SimpleFin
 {       
-    public class SimpleFinTransactionProcessor : ISimpleFinTransactionProcessor
+    public class SparkCCTransactionProcessor : ISparkCCTransactionProcessor
     {
-        public async Task<List<ToGnuCash>> ProcessPeakCuTransactionsAsync(List<SimpleFinTransaction> peakCuTransactions)
-        {
-            return new List<ToGnuCash>();
-        }
+     
         public async Task<List<ToGnuCash>> ProcessSparkCCTransactionsAsync(List<SimpleFinTransaction> incomingRecords)
         {
-            var cleanedRecords = new List<ToGnuCash>();
+            var cleanEntries = new List<ToGnuCash>();
             foreach (var record in incomingRecords)
             {
                 IList<ToGnuCash> oneTransaction = new List<ToGnuCash>();
@@ -83,10 +73,10 @@ namespace FeeBayConnectionTester.Services.SimpleFin
                     sparkCCIncomeRecord.SortOrder = 2;
                     oneTransaction.Add(sparkCCIncomeRecord);
                 }
-                cleanedRecords.AddRange(oneTransaction);
+                cleanEntries.AddRange(oneTransaction);
             }
 
-            return cleanedRecords;
+            return cleanEntries;
         }
 
         private static string SetCorrectExpenseAccount(string description)

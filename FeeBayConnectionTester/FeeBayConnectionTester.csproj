@@ -12,7 +12,7 @@
     <Compile Remove="FeeBayCleaner.cs" />
     <Compile Remove="FormatToSendToGnuCash.cs" />
     <Compile Remove="Services\FeeBay\EbayToGnuCashConverter.cs" />
-    <Compile Remove="Services\SimpleFin\SparkCCToGnuCashConverter.cs" />
+    <Compile Remove="Services\SparkCC\SparkCCToGnuCashConverter.cs" />
     <Compile Remove="Services\Stripe\StripeIncomingData.cs" />
   </ItemGroup>
 

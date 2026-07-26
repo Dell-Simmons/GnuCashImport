@@ -3,11 +3,10 @@ using SimpleFin;
 using System;
 using System.Linq;
 using SimpleFin.SimpleFinDTO;
-namespace FeeBayConnectionTester.Services.SimpleFin
+namespace FeeBayConnectionTester.Services.PeakCreditUnion
 {
-    public interface ISimpleFinTransactionProcessor
+    public interface IPeakCUTransactionProcessor
     {
         Task<List<ToGnuCash>> ProcessPeakCuTransactionsAsync(List<SimpleFinTransaction> peakCuTransactions);
-        Task<List<ToGnuCash>> ProcessSparkCCTransactionsAsync(List<SimpleFinTransaction> sparkCCTransactions);
     }
 }

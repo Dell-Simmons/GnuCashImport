@@ -1,4 +1,5 @@
 using FeeBayConnectionTester.Services.FeeBay;
+using FeeBayConnectionTester.Services.PeakCreditUnion;
 using FeeBayConnectionTester.Services.SimpleFin;
 using FeeBayConnectionTester.Services.Stripe;
 using FeeBayOAuth.TokenService;
@@ -54,9 +55,9 @@ namespace FeeBayConnectionTester
                     services.AddSingleton<IOAuthTokenService, OAuthTokenService>();
 
                     services.AddScoped<IFeeBayTransactionProcessor, FeeBayTransactionProcessor>();
-                    services.AddScoped<ISimpleFinTransactionProcessor,SimpleFinTransactionProcessor>();
+                    services.AddScoped<ISparkCCTransactionProcessor,SparkCCTransactionProcessor>();
                     services.AddScoped<IStripeTransactionProcessor, StripeTransactionProcessor>();
-                  
+                    services.AddScoped<IPeakCUTransactionProcessor, PeakCUTransactionProcessor>();
                 });
         }
     }

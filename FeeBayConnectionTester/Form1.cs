@@ -7,6 +7,7 @@ using FeeBayConnectionTester.DTO;
 using FeeBayConnectionTester.Extensions;
 using FeeBayConnectionTester.Services;
 using FeeBayConnectionTester.Services.FeeBay;
+using FeeBayConnectionTester.Services.PeakCreditUnion;
 using FeeBayConnectionTester.Services.SimpleFin;
 using FeeBayConnectionTester.Services.Stripe;
 using FeeBayOAuth.TokenService;
@@ -26,7 +27,8 @@ namespace FeeBayConnectionTester
         private readonly IOAuthTokenService _oAuthTokenService;
         private readonly ShippoMailingLabels.ShippoMailingLabelClient _shippoMailingLabelClient;
         private readonly SimpleFin.SimpleFinClient _simpleFinClient;
-        private readonly ISimpleFinTransactionProcessor _simpleFinTransactionProcessor;
+        private readonly ISparkCCTransactionProcessor _sparkCCTransactionProcessor;
+        private readonly IPeakCUTransactionProcessor _peakCUTransactionProcessor;
         private readonly StripeCCProcessor.StripeCCProcessorClient _stripeCCProcessor;
         private readonly IStripeTransactionProcessor _stripeTransactionProcessor;
         private EbayController _eBayController = null!;
@@ -40,7 +42,8 @@ namespace FeeBayConnectionTester
             Func<string, EbayController> ebayControllerFactory,
             SimpleFin.SimpleFinClient simpleFinClient,
             IFeeBayTransactionProcessor transactionProcessor,
-            ISimpleFinTransactionProcessor simpleFinTransactionProcessor,
+            ISparkCCTransactionProcessor sparkCCTransactionProcessor,
+            IPeakCUTransactionProcessor peakCUTransactionProcessor,
             StripeCCProcessor.StripeCCProcessorClient stripeCCProcessor,
             IStripeTransactionProcessor stripeTransactionProcessor,
             ShippoMailingLabels.ShippoMailingLabelClient shippoMailingLabelClient)
@@ -51,7 +54,8 @@ namespace FeeBayConnectionTester
             _ebayControllerFactory = ebayControllerFactory;
             _simpleFinClient = simpleFinClient;
             _feeBayTransactionProcessor = transactionProcessor;
-            _simpleFinTransactionProcessor = simpleFinTransactionProcessor;
+            _sparkCCTransactionProcessor = sparkCCTransactionProcessor;
+            _peakCUTransactionProcessor = peakCUTransactionProcessor;
             _stripeCCProcessor = stripeCCProcessor;
             _stripeTransactionProcessor = stripeTransactionProcessor;
             _shippoMailingLabelClient = shippoMailingLabelClient;
@@ -291,7 +295,7 @@ namespace FeeBayConnectionTester
                 await SimpleFin.SimpleFinClient.FetchAccountDataAsync(
                     simpleFinAccessToken.AccessToken, businessCheckingId);
             List<ToGnuCash> peakCUIncomingData =
-            await _simpleFinTransactionProcessor.ProcessPeakCuTransactionsAsync(
+            await _peakCUTransactionProcessor.ProcessPeakCuTransactionsAsync(
                 peakCUTransactions.Accounts.First().Transactions);
 
             var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
@@ -320,7 +324,7 @@ namespace FeeBayConnectionTester
            
 
             List<ToGnuCash> sparkCCIncomingData =
-            await _simpleFinTransactionProcessor.ProcessSparkCCTransactionsAsync(
+            await _sparkCCTransactionProcessor.ProcessSparkCCTransactionsAsync(
                 sparkCCTransactions.Accounts.First().Transactions);
 
          
@@ -386,9 +390,9 @@ namespace FeeBayConnectionTester
             var signingKey = await GetOrCreateSigningKey(_eBayController);
 
             // Define date filters
-            string payOutsFilter = "payoutDate:[2026-04-01T00:00:00.000Z..2026-05-14T23:59:59.999Z]";
-            string transactionsFilter = "transactionDate:[2025-03-25T00:00:00.000Z..2026-05-14T23:59:59.000Z]";
-            string ordersFilter = "creationdate:[2025-03-25T00:00:00.000Z..2026-05-14T23:59:59.999Z]";
+            string payOutsFilter = "payoutDate:[2026-05-01T00:00:00.000Z..2026-06-14T23:59:59.999Z]";
+            string transactionsFilter = "transactionDate:[2025-04-25T00:00:00.000Z..2026-06-14T23:59:59.000Z]";
+            string ordersFilter = "creationdate:[2025-04-25T00:00:00.000Z..2026-06-14T23:59:59.999Z]";
 
             // Fetch all data
             var payoutList = await GetAllPayOutsPaginated(payOutsFilter, limit: 50);
