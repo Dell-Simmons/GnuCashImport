@@ -55,7 +55,94 @@ namespace FeeBayConnectionTester.Services
 
             Console.WriteLine($"Successfully wrote {sortedTransactions.Count} transactions to {outputPath}");
         }
+        public static void WriteIncomingDataToCsv(List<PeakCUToGnuCash> rows, string outputPath)
+        {
+            if (rows == null || !rows.Any())
+            {
+                throw new ArgumentException("Incoming data list cannot be null or empty", nameof(rows));
+            }
 
+            if (string.IsNullOrWhiteSpace(outputPath))
+            {
+                throw new ArgumentException("Output path cannot be null or empty", nameof(outputPath));
+            }
+
+            var directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            using var writer = new StreamWriter(outputPath, false, new UTF8Encoding(true));
+
+            writer.WriteLine("Date,Account,Description,Amount,CheckNumber,TransactionId,Sort");
+
+            foreach (var row in rows)
+            {
+                writer.WriteLine(string.Join(",", new[]
+                {
+                    EscapeCsvField(row.Date.ToString()),
+                    EscapeCsvField(row.Account),
+                    EscapeCsvField(row.Description),
+                    EscapeCsvField(row.Amount.ToString()),//),
+                    EscapeCsvField(CreateCheckNumber(row.CheckNumber)),
+                   // EscapeCsvField(row.Amount.ToString("F3",CultureInfo.InvariantCulture)),
+                    EscapeCsvField(row.TransactionId),
+                    EscapeCsvField(row.SortOrder.ToString())
+                    // EscapeCsvField(row.Below_standard_performance_fee),
+                    // EscapeCsvField(row.Buyer_name),
+                    // EscapeCsvField(row.Buyer_username),
+                    // EscapeCsvField(row.Charity_donation),
+                    // EscapeCsvField(row.Deposit_processing_fee),
+                    // EscapeCsvField(row.Description),
+                    // EscapeCsvField(row.Exchange_rate),
+                    // EscapeCsvField(row.feeBay_collected_tax),
+                    // EscapeCsvField(row.FVF_fixed),
+                    // EscapeCsvField(row.FVF_variable),
+                    // EscapeCsvField(row.Gross_transaction_amount),
+                    // EscapeCsvField(row.International_fee),
+                    // EscapeCsvField(row.Item_ID),
+                    // EscapeCsvField(row.Item_not_as_described_fee),
+                    // EscapeCsvField(row.Item_subtotal),
+                    // EscapeCsvField(row.Item_title),
+                    // EscapeCsvField(row.Legacy_order_ID),
+                    // EscapeCsvField(row.Net_amount),
+                    // EscapeCsvField(row.Order_number),
+                    // EscapeCsvField(row.Payout_currency),
+                    // EscapeCsvField(row.Payout_date),
+                    // EscapeCsvField(row.Payout_ID),
+                    // EscapeCsvField(row.Payout_method),
+                    // EscapeCsvField(row.Payout_status),
+                    // EscapeCsvField(row.Quantity),
+                    // EscapeCsvField(row.Reason_for_hold),
+                    // EscapeCsvField(row.Reference_ID),
+                    // EscapeCsvField(row.Regulatory_operating_fee),
+                    // EscapeCsvField(row.Seller_collected_tax),
+                    // EscapeCsvField(row.Ship_to_city),
+                    // EscapeCsvField(row.Ship_to_country),
+                    // EscapeCsvField(row.Ship_to_state),
+                    // EscapeCsvField(row.Ship_to_zip),
+                    // EscapeCsvField(row.Shipping_and_handling),
+                    // EscapeCsvField(row.Sku),
+                    // EscapeCsvField(row.Transaction_creation_date),
+                    // EscapeCsvField(row.Transaction_currency),
+                    // EscapeCsvField(row.Transaction_ID),
+                    // EscapeCsvField(row.Type)
+                }));
+            }
+
+            Console.WriteLine($"Successfully wrote {rows.Count} incoming rows to {outputPath}");
+        }
+        private static string CreateCheckNumber(int incoming)
+        {
+            if(incoming == 0)
+            {
+                return string.Empty;
+            }
+            return incoming.ToString();
+        }
+
+            
         public static void WriteIncomingDataToCsv(List<ToGnuCash> rows, string outputPath)
         {
             if (rows == null || !rows.Any())

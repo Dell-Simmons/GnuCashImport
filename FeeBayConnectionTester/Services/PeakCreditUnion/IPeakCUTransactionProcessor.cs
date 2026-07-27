@@ -7,6 +7,6 @@ namespace FeeBayConnectionTester.Services.PeakCreditUnion
 {
     public interface IPeakCUTransactionProcessor
     {
-        Task<List<ToGnuCash>> ProcessPeakCuTransactionsAsync(List<SimpleFinTransaction> peakCuTransactions);
+        Task<List<PeakCUToGnuCash>> ProcessPeakCuTransactionsAsync(List<SimpleFinTransaction> peakCuTransactions);
     }
 }

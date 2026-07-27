@@ -291,7 +291,7 @@ namespace FeeBayConnectionTester
             AccountResponse peakCUTransactions= 
                 await SimpleFin.SimpleFinClient.FetchAccountDataAsync(
                     simpleFinAccessToken.AccessToken, businessCheckingId);
-            List<ToGnuCash> peakCUIncomingData =
+            List<PeakCUToGnuCash> peakCUIncomingData =
             await _peakCUTransactionProcessor.ProcessPeakCuTransactionsAsync(
                 peakCUTransactions.Accounts.First().Transactions);
 
