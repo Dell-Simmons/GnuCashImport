@@ -387,9 +387,9 @@ namespace FeeBayConnectionTester
             var signingKey = await GetOrCreateSigningKey(_eBayController);
 
             // Define date filters
-            string payOutsFilter = "payoutDate:[2026-05-01T00:00:00.000Z..2026-06-14T23:59:59.999Z]";
-            string transactionsFilter = "transactionDate:[2025-04-25T00:00:00.000Z..2026-06-14T23:59:59.000Z]";
-            string ordersFilter = "creationdate:[2025-04-25T00:00:00.000Z..2026-06-14T23:59:59.999Z]";
+            string payOutsFilter = "payoutDate:[2026-06-01T00:00:00.000Z..2026-07-14T23:59:59.999Z]";
+            string transactionsFilter = "transactionDate:[2025-05-25T00:00:00.000Z..2026-07-14T23:59:59.000Z]";
+            string ordersFilter = "creationdate:[2025-05-25T00:00:00.000Z..2026-07-14T23:59:59.999Z]";
 
             // Fetch all data
             var payoutList = await GetAllPayOutsPaginated(payOutsFilter, limit: 50);

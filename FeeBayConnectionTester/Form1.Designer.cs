@@ -31,8 +31,6 @@
             btnFeeBay = new Button();
             btnSparkCC = new Button();
             btnStripe = new Button();
-            btnShippo = new Button();
-            button1 = new Button();
             btnPeakCU = new Button();
             SuspendLayout();
             // 
@@ -48,7 +46,7 @@
             // 
             // btnSparkCC
             // 
-            btnSparkCC.Location = new Point(472, 150);
+            btnSparkCC.Location = new Point(472, 299);
             btnSparkCC.Name = "btnSparkCC";
             btnSparkCC.Size = new Size(169, 94);
             btnSparkCC.TabIndex = 1;
@@ -58,7 +56,7 @@
             // 
             // btnStripe
             // 
-            btnStripe.Location = new Point(453, 389);
+            btnStripe.Location = new Point(472, 137);
             btnStripe.Name = "btnStripe";
             btnStripe.Size = new Size(169, 94);
             btnStripe.TabIndex = 2;
@@ -66,30 +64,9 @@
             btnStripe.UseVisualStyleBackColor = true;
             btnStripe.Click += btnStripe_Click;
             // 
-            // btnShippo
-            // 
-            btnShippo.Location = new Point(34, 311);
-            btnShippo.Name = "btnShippo";
-            btnShippo.Size = new Size(169, 94);
-            btnShippo.TabIndex = 3;
-            btnShippo.Text = "Shippo";
-            btnShippo.UseVisualStyleBackColor = true;
-            btnShippo.Visible = false;
-            btnShippo.Click += btnShippo_Click;
-            // 
-            // button1
-            // 
-            button1.Location = new Point(199, 190);
-            button1.Name = "button1";
-            button1.Size = new Size(112, 34);
-            button1.TabIndex = 4;
-            button1.Text = "button1";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
-            // 
             // btnPeakCU
             // 
-            btnPeakCU.Location = new Point(472, 263);
+            btnPeakCU.Location = new Point(472, 413);
             btnPeakCU.Name = "btnPeakCU";
             btnPeakCU.Size = new Size(169, 94);
             btnPeakCU.TabIndex = 5;
@@ -103,8 +80,6 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 573);
             Controls.Add(btnPeakCU);
-            Controls.Add(button1);
-            Controls.Add(btnShippo);
             Controls.Add(btnStripe);
             Controls.Add(btnSparkCC);
             Controls.Add(btnFeeBay);
@@ -120,8 +95,6 @@
         private Button btnFeeBay;
         private Button btnSparkCC;
         private Button btnStripe;
-        private Button btnShippo;
-        private Button button1;
         private Button btnPeakCU;
     }
 }
