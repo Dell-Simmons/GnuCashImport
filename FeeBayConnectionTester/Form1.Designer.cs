@@ -31,8 +31,12 @@
             btnFeeBay = new Button();
             btnSparkCC = new Button();
             btnStripe = new Button();
-            button1 = new Button();
             btnPeakCU = new Button();
+            monthsBackPicker = new NumericUpDown();
+            label1 = new Label();
+            panel1 = new Panel();
+            ((System.ComponentModel.ISupportInitialize)monthsBackPicker).BeginInit();
+            panel1.SuspendLayout();
             SuspendLayout();
             // 
             // btnFeeBay
@@ -47,7 +51,7 @@
             // 
             // btnSparkCC
             // 
-            btnSparkCC.Location = new Point(472, 150);
+            btnSparkCC.Location = new Point(472, 144);
             btnSparkCC.Name = "btnSparkCC";
             btnSparkCC.Size = new Size(169, 94);
             btnSparkCC.TabIndex = 1;
@@ -57,7 +61,7 @@
             // 
             // btnStripe
             // 
-            btnStripe.Location = new Point(453, 389);
+            btnStripe.Location = new Point(472, 376);
             btnStripe.Name = "btnStripe";
             btnStripe.Size = new Size(169, 94);
             btnStripe.TabIndex = 2;
@@ -65,21 +69,9 @@
             btnStripe.UseVisualStyleBackColor = true;
             btnStripe.Click += btnStripe_Click;
             // 
-            // (Shippo button removed)
-            // 
-            // button1
-            // 
-            button1.Location = new Point(199, 190);
-            button1.Name = "button1";
-            button1.Size = new Size(112, 34);
-            button1.TabIndex = 4;
-            button1.Text = "button1";
-            button1.UseVisualStyleBackColor = true;
-            button1.Click += button1_Click;
-            // 
             // btnPeakCU
             // 
-            btnPeakCU.Location = new Point(472, 263);
+            btnPeakCU.Location = new Point(472, 260);
             btnPeakCU.Name = "btnPeakCU";
             btnPeakCU.Size = new Size(169, 94);
             btnPeakCU.TabIndex = 5;
@@ -87,13 +79,41 @@
             btnPeakCU.UseVisualStyleBackColor = true;
             btnPeakCU.Click += btnPeakCU_Click;
             // 
+            // monthsBackPicker
+            // 
+            monthsBackPicker.Location = new Point(161, 15);
+            monthsBackPicker.Maximum = new decimal(new int[] { 3, 0, 0, 0 });
+            monthsBackPicker.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            monthsBackPicker.Name = "monthsBackPicker";
+            monthsBackPicker.Size = new Size(55, 39);
+            monthsBackPicker.TabIndex = 6;
+            monthsBackPicker.Value = new decimal(new int[] { 3, 0, 0, 0 });
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(3, 17);
+            label1.Name = "label1";
+            label1.Size = new Size(152, 32);
+            label1.TabIndex = 7;
+            label1.Text = "Months Back";
+            // 
+            // panel1
+            // 
+            panel1.Controls.Add(label1);
+            panel1.Controls.Add(monthsBackPicker);
+            panel1.Location = new Point(448, 476);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(229, 69);
+            panel1.TabIndex = 8;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 573);
+            Controls.Add(panel1);
             Controls.Add(btnPeakCU);
-            Controls.Add(button1);
             Controls.Add(btnStripe);
             Controls.Add(btnSparkCC);
             Controls.Add(btnFeeBay);
@@ -101,6 +121,9 @@
             Name = "Form1";
             Text = "Form1";
             Load += Form1_Load;
+            ((System.ComponentModel.ISupportInitialize)monthsBackPicker).EndInit();
+            panel1.ResumeLayout(false);
+            panel1.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -109,7 +132,9 @@
         private Button btnFeeBay;
         private Button btnSparkCC;
         private Button btnStripe;
-        private Button button1;
         private Button btnPeakCU;
+        private NumericUpDown monthsBackPicker;
+        private Label label1;
+        private Panel panel1;
     }
 }

@@ -81,8 +81,7 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region
-        private void button1_Click(object sender, EventArgs e) { throw new NotImplementedException(); }
-        #endregion
+         #endregion
 
         #region
         // Event handlers
@@ -95,8 +94,7 @@ namespace FeeBayConnectionTester
         #region Public Methods
         // Methods
         // Public Methods
-        public static string ToEbayDate(DateTime dateTime) { return dateTime.ToUniversalTime().ToString("o"); }
-        #endregion
+         #endregion
 
         #region Private Methods
         // API Pagination
