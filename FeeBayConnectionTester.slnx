@@ -3,7 +3,6 @@
   <Project Path="FeeBayConnectionTester/FeeBayConnectionTester.csproj" />
   <Project Path="FeeBayOAuth.TokenFactory/FeeBayOAuth.TokenService.csproj" />
   <Project Path="LocalDBConnections/LocalDBConnections.csproj" />
-  <Project Path="ShippoMailingLabels/ShippoMailingLabels.csproj" Id="2061cd48-8cc4-452b-bf5f-117db70ac58d" />
   <Project Path="SimpleFin/SimpleFin.csproj" />
   <Project Path="StripeCCProcessor/StripeCCProcessor.csproj" />
 </Solution>

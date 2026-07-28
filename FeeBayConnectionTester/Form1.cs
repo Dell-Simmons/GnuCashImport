@@ -69,7 +69,7 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region
-        private async void btnShippo_Click(object sender, EventArgs e) { await ProcessShippoTransactions(); }
+        // Shippo button and handler removed
         #endregion
 
         #region
@@ -265,15 +265,7 @@ namespace FeeBayConnectionTester
 
      
 
-        private async Task ProcessShippoTransactions()
-        {
-            throw new NotImplementedException();
-            // really no need to do this since we are not using Shippo for anything other than shipping labels,
-            // but if you want to pull the data from Shippo, you can use the following code:   
-            // var shippoAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Shippo_Token");
-            // string shippoSecretKey = shippoAccessToken.AccessToken;
-            // _shippoMailingLabelClient.PullShippoMailingLabelPurchases(shippoSecretKey);
-        }
+        // Shippo processing removed
 
         private async Task ProcessPeakCUTransactions()
         {

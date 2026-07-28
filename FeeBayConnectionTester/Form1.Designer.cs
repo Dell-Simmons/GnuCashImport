@@ -31,7 +31,6 @@
             btnFeeBay = new Button();
             btnSparkCC = new Button();
             btnStripe = new Button();
-            btnShippo = new Button();
             button1 = new Button();
             btnPeakCU = new Button();
             SuspendLayout();
@@ -66,16 +65,7 @@
             btnStripe.UseVisualStyleBackColor = true;
             btnStripe.Click += btnStripe_Click;
             // 
-            // btnShippo
-            // 
-            btnShippo.Location = new Point(34, 311);
-            btnShippo.Name = "btnShippo";
-            btnShippo.Size = new Size(169, 94);
-            btnShippo.TabIndex = 3;
-            btnShippo.Text = "Shippo";
-            btnShippo.UseVisualStyleBackColor = true;
-            btnShippo.Visible = false;
-            btnShippo.Click += btnShippo_Click;
+            // (Shippo button removed)
             // 
             // button1
             // 
@@ -104,7 +94,6 @@
             ClientSize = new Size(800, 573);
             Controls.Add(btnPeakCU);
             Controls.Add(button1);
-            Controls.Add(btnShippo);
             Controls.Add(btnStripe);
             Controls.Add(btnSparkCC);
             Controls.Add(btnFeeBay);
@@ -120,7 +109,6 @@
         private Button btnFeeBay;
         private Button btnSparkCC;
         private Button btnStripe;
-        private Button btnShippo;
         private Button button1;
         private Button btnPeakCU;
     }
