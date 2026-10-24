@@ -87,7 +87,8 @@
             monthsBackPicker.Name = "monthsBackPicker";
             monthsBackPicker.Size = new Size(55, 39);
             monthsBackPicker.TabIndex = 6;
-            monthsBackPicker.Value = new decimal(new int[] { 3, 0, 0, 0 });
+            monthsBackPicker.Value = new decimal(new int[] { 4, 0, 0, 0 });
+            monthsBackPicker.ValueChanged += monthsBackPicker_ValueChanged;
             // 
             // label1
             // 

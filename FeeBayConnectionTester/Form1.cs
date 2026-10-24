@@ -59,9 +59,46 @@ namespace FeeBayConnectionTester
         }
         #endregion
 
+        #region Busy indicator
+        private sealed class BusyScope : IDisposable
+        {
+            private readonly Action _end;
+            public BusyScope(Action end) { _end = end; }
+            public void Dispose() => _end();
+        }
+
+        // Shows a spinning marquee bar and wait cursor until the returned scope is disposed.
+        private IDisposable ShowBusy(Control? trigger)
+        {
+            var bar = new ProgressBar
+            {
+                Style = ProgressBarStyle.Marquee,
+                MarqueeAnimationSpeed = 30,
+                Dock = DockStyle.Bottom,
+                Height = 12
+            };
+            Controls.Add(bar);
+            bar.BringToFront();
+            UseWaitCursor = true;
+            if (trigger != null) trigger.Enabled = false;
+
+            return new BusyScope(() =>
+            {
+                if (trigger != null) trigger.Enabled = true;
+                UseWaitCursor = false;
+                Controls.Remove(bar);
+                bar.Dispose();
+            });
+        }
+        #endregion
+
         #region Event handlers
         #region
-        private async void btnFeeBay_Click(object sender, EventArgs e) { await ProcessFeeBayTransactions(); }
+        private async void btnFeeBay_Click(object sender, EventArgs e)
+        {
+            using var busy = ShowBusy(sender as Control);
+            await ProcessFeeBayTransactions();
+        }
         #endregion
 
         #region
@@ -81,7 +118,7 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region
-         #endregion
+        #endregion
 
         #region
         // Event handlers
@@ -94,7 +131,7 @@ namespace FeeBayConnectionTester
         #region Public Methods
         // Methods
         // Public Methods
-         #endregion
+        #endregion
 
         #region Private Methods
         // API Pagination
@@ -104,11 +141,11 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while(hasMore)
+            while (hasMore)
             {
                 Orders ordersContainer = await _eBayController.GetOrders(filter, limit, offset);
 
-                if(ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
+                if (ordersContainer.OrderList != null && ordersContainer.OrderList.Any())
                 {
                     allOrders.AddRange(ordersContainer.OrderList);
                     Console.WriteLine(
@@ -118,7 +155,7 @@ namespace FeeBayConnectionTester
                 hasMore = !string.IsNullOrEmpty(ordersContainer.Next);
                 offset += limit;
 
-                if(allOrders.Count >= ordersContainer.Total)
+                if (allOrders.Count >= ordersContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -134,11 +171,11 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while(hasMore)
+            while (hasMore)
             {
                 PayoutList payoutsContainer = await _eBayController.GetPayouts(filter, null, limit, offset);
 
-                if(payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
+                if (payoutsContainer.Payouts != null && payoutsContainer.Payouts.Any())
                 {
                     allPayouts.AddRange(payoutsContainer.Payouts);
                     Console.WriteLine(
@@ -148,7 +185,7 @@ namespace FeeBayConnectionTester
                 hasMore = !string.IsNullOrEmpty(payoutsContainer.Next);
                 offset += limit;
 
-                if(allPayouts.Count >= payoutsContainer.Total)
+                if (allPayouts.Count >= payoutsContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -164,11 +201,11 @@ namespace FeeBayConnectionTester
             int offset = 0;
             bool hasMore = true;
 
-            while(hasMore)
+            while (hasMore)
             {
                 Transactions transactionsContainer = await _eBayController.GetTransactions(filter, null, limit, offset);
 
-                if(transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
+                if (transactionsContainer.TransactionList != null && transactionsContainer.TransactionList.Any())
                 {
                     allTransactions.AddRange(transactionsContainer.TransactionList);
                     Console.WriteLine(
@@ -178,7 +215,7 @@ namespace FeeBayConnectionTester
                 hasMore = !string.IsNullOrEmpty(transactionsContainer.Next);
                 offset += limit;
 
-                if(allTransactions.Count >= transactionsContainer.Total)
+                if (allTransactions.Count >= transactionsContainer.Total)
                 {
                     hasMore = false;
                 }
@@ -193,7 +230,7 @@ namespace FeeBayConnectionTester
             // Try to get from database
             FeeBaySigningKeys? cachedKey = await _localDbConnectionManager.GetSigningKeyAsync();
 
-            if(cachedKey != null)
+            if (cachedKey != null)
             {
                 return cachedKey.ToSigningKey();
             }
@@ -211,10 +248,10 @@ namespace FeeBayConnectionTester
         {
             var simpleFinAccessToken = await _localDbConnectionManager.GetSimpleFinAccessToken("Peak CU");
 
-            if(simpleFinAccessToken == null)
+            if (simpleFinAccessToken == null)
             {
                 using var dlg = new FormAskForSimpleFinSetupToken();
-                if(dlg.ShowDialog(this) == DialogResult.OK)
+                if (dlg.ShowDialog(this) == DialogResult.OK)
                 {
                     string setupToken = dlg.SetupToken;
                     var accessToken = await SimpleFin.SimpleFinClient.Connect3(setupToken);
@@ -223,7 +260,7 @@ namespace FeeBayConnectionTester
                     simpleFinAccessToken.AccessToken = accessToken;
                 }
 
-                if(simpleFinAccessToken == null)
+                if (simpleFinAccessToken == null)
                 {
                     throw new NotImplementedException();
                 }
@@ -261,7 +298,7 @@ namespace FeeBayConnectionTester
                 MessageBoxIcon.Information);
         }
 
-     
+
 
         // Shippo processing removed
 
@@ -269,7 +306,7 @@ namespace FeeBayConnectionTester
         {
             string businessCheckingId = "ACT-889f0bab-1c17-4dba-b790-21c3facbc0e6";
             SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
-            if(simpleFinAccessToken == null)
+            if (simpleFinAccessToken == null)
             {
                 MessageBox.Show(
                     "Unable to acquire SimpleFIN access token for Peak CU.",
@@ -278,7 +315,7 @@ namespace FeeBayConnectionTester
                     MessageBoxIcon.Error);
                 return;
             }
-            AccountResponse peakCUTransactions= 
+            AccountResponse peakCUTransactions =
                 await SimpleFin.SimpleFinClient.FetchAccountDataAsync(
                     simpleFinAccessToken.AccessToken, businessCheckingId);
             List<ToGnuCash> peakCUIncomingData =
@@ -287,11 +324,11 @@ namespace FeeBayConnectionTester
 
             var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var incomingPeakCUOutputPath = $@"D:\Exports\PeakCU_IncomingData_{incomingTimestamp}.csv";
-             // Sort by date for testing
+            // Sort by date for testing
             peakCUIncomingData = peakCUIncomingData
                 .OrderBy(d => d.Date)
                 .ToList();
-           
+
             CsvExporter.WriteIncomingDataToCsv(peakCUIncomingData, incomingPeakCUOutputPath);
             MessageBox.Show(
                $"Successfully exported {peakCUIncomingData.Count} incoming rows to:\n\n{incomingPeakCUOutputPath}",
@@ -302,29 +339,29 @@ namespace FeeBayConnectionTester
 
         private async Task ProcessSparkCCTransactions()
         {
-                  string sparkBusinessCC = "ACT-fe0b66ca-58d4-40fe-8620-7352f97ebcca";
-      
+            string sparkBusinessCC = "ACT-fe0b66ca-58d4-40fe-8620-7352f97ebcca";
+
             SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
-            
+
             AccountResponse sparkCCTransactions = await SimpleFin.SimpleFinClient.FetchAccountDataAsync(
                 simpleFinAccessToken.AccessToken, sparkBusinessCC);
-           
+
 
             List<ToGnuCash> sparkCCIncomingData =
             await _sparkCCTransactionProcessor.ProcessSparkCCTransactionsAsync(
                 sparkCCTransactions.Accounts.First().Transactions);
 
-         
+
             var incomingTimestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var incomingSparkCCOutputPath = $@"D:\Exports\SparkCC_IncomingData_{incomingTimestamp}.csv";
-         
+
             // Sort by date for testing
             sparkCCIncomingData = sparkCCIncomingData
                 .OrderBy(d => d.Date)
                 .ToList();
 
             CsvExporter.WriteIncomingDataToCsv(sparkCCIncomingData, incomingSparkCCOutputPath);
-         
+
             MessageBox.Show(
                $"Successfully exported {sparkCCIncomingData.Count} incoming rows to:\n\n{incomingSparkCCOutputPath}",
                "Incoming Data Export Successful",
@@ -363,7 +400,7 @@ namespace FeeBayConnectionTester
         private async Task<(List<Payout>, List<Transaction>, List<Order>)> PullFeeBayTransactions()
         {
             string? token = await _oAuthTokenService.GetOAuthTokenAsync("Simmons_Ink");
-            if(string.IsNullOrWhiteSpace(token))
+            if (string.IsNullOrWhiteSpace(token))
             {
                 MessageBox.Show(
                     "Unable to acquire an OAuth token for Simmons_Ink.",
@@ -377,9 +414,9 @@ namespace FeeBayConnectionTester
             var signingKey = await GetOrCreateSigningKey(_eBayController);
 
             // Define date filters
-            string payOutsFilter = "payoutDate:[2026-05-01T00:00:00.000Z..2026-06-14T23:59:59.999Z]";
-            string transactionsFilter = "transactionDate:[2025-04-25T00:00:00.000Z..2026-06-14T23:59:59.000Z]";
-            string ordersFilter = "creationdate:[2025-04-25T00:00:00.000Z..2026-06-14T23:59:59.999Z]";
+            string payOutsFilter = "payoutDate:[2026-09-01T00:00:00.000Z..2026-10-14T23:59:59.999Z]";
+            string transactionsFilter = "transactionDate:[2025-09-10T00:00:00.000Z..2026-10-14T23:59:59.000Z]";
+            string ordersFilter = "creationdate:[2025-09-10T00:00:00.000Z..2026-10-14T23:59:59.999Z]";
 
             // Fetch all data
             var payoutList = await GetAllPayOutsPaginated(payOutsFilter, limit: 50);
@@ -392,9 +429,14 @@ namespace FeeBayConnectionTester
         private async Task<AccountResponse> PullSimpleFinTransactions()
         {
             SimpleFinAccessTokens? simpleFinAccessToken = await GetSimpleFinAccessToken();
-            return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken,string.Empty);
+            return await SimpleFin.SimpleFinClient.FetchAccountDataAsync(simpleFinAccessToken.AccessToken, string.Empty);
         }
         #endregion
         #endregion
+
+        private void monthsBackPicker_ValueChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

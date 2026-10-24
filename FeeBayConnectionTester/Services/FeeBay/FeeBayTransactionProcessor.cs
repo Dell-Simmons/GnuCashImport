@@ -657,11 +657,45 @@ namespace FeeBayConnectionTester.Services.FeeBay
                 {
                     return HandlePromotedListingsPriorityFees(transaction, fee.ReferenceId);
                 }
+
             }
 
-            throw new NotImplementedException();
-        }
+            foreach (var fee in feeTypes)
+            {
+                if (fee.ReferenceType == ReferenceTypeEnum.ITEM_ID &&
+                    transaction.TransactionMemo == "Promoted Listings - General fee")
+                {
+                    return HandlePromotedListingsGeneralFees(transaction, fee.ReferenceId);
+                }
 
+            }
+
+            throw new NotImplementedException(transaction.TransactionMemo);
+        }
+        private List<ToGnuCash> HandlePromotedListingsGeneralFees(Transaction transaction, string itemId)
+        {
+            var outputData = new List<ToGnuCash>();
+            var transactionDate = DateOnly.FromDateTime(DateTime.Parse(transaction.TransactionDate));
+            outputData.Add(new ToGnuCash
+            {
+                Date = transactionDate,
+                Account = $"Assets:Current Assets:feeBay:{FeeBaySellerID}",
+                Description = $"{transaction.TransactionMemo} ItemId {itemId}",
+                Amount = transaction.Amount.DollarAmount() ?? 0m,
+                TransactionId = transaction.TransactionId,
+                SortOrder = 1
+            });
+            outputData.Add(new ToGnuCash
+            {
+                Date = transactionDate,
+                Account = $"Expenses:FeeBay Fees:{FeeBaySellerID}:Promoted Listings Fee",
+                Description = string.Empty,
+                Amount = -transaction.Amount.DollarAmount() ?? 0m,
+                TransactionId = transaction.TransactionId,
+                SortOrder = 2
+            });
+            return outputData;
+        }
         private List<ToGnuCash> HandlePromotedListingsPriorityFees(Transaction transaction, string itemId)
         {
             var outputData = new List<ToGnuCash>();
