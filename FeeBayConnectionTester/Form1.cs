@@ -102,7 +102,11 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region
-        private async void btnPeakCU_Click(object sender, EventArgs e) { await ProcessPeakCUTransactions(); }
+        private async void btnPeakCU_Click(object sender, EventArgs e) 
+        {
+            using var busy = ShowBusy(sender as Control);
+            await ProcessPeakCUTransactions();
+        }
         #endregion
 
         #region
@@ -110,11 +114,19 @@ namespace FeeBayConnectionTester
         #endregion
 
         #region
-        private async void btnSimpleFin_Click(object sender, EventArgs e) { await ProcessSparkCCTransactions(); }
+        private async void btnSimpleFin_Click(object sender, EventArgs e) 
+        {
+            using var busy = ShowBusy(sender as Control);
+            await ProcessSparkCCTransactions(); 
+        }
         #endregion
 
         #region
-        private async void btnStripe_Click(object sender, EventArgs e) { await ProcessStripeTransactions(); }
+        private async void btnStripe_Click(object sender, EventArgs e) 
+        { 
+            using var busy = ShowBusy(sender as Control);
+            await ProcessStripeTransactions(); 
+        }
         #endregion
 
         #region
