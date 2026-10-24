@@ -1,5 +1,5 @@
 {
-  "editor.fontSize": 16,
+  "editor.fontSize": 14,
   "terminal.integrated.fontSize": 14,
   "window.zoomLevel": 2,
   "indentRainbow.colors": [
@@ -8,7 +8,10 @@
     "rgba(255, 127, 255, 0.15)",
     "rgba(127, 255, 255, 0.15)"
   ],
-   "editor.codeLens": false,
+   "editor.codeLens": true,
+   "editor.codeLensFontSize": 8,
+   "dotnet.codeLens.enableReferencesCodeLens": true,
+   "dotnet.codeLens.enableTestsCodeLens": true,
   "workbench.editor.editorActionsLocation": "hidden",
   "workbench.experimental.modernUI": true
 }
